@@ -13,7 +13,7 @@ import {
 import { migrateLocalStorageToServer } from "../lib/migrateLocalStorage";
 import * as dataApi from "../lib/api/dataApi";
 
-const ACTIVE_CLIENT_KEY = "kramer-music-active-client-v1";
+const ACTIVE_CLIENT_KEY = "kremer-music-active-client-v1";
 
 function loadActiveClientId() {
   try {
@@ -87,10 +87,11 @@ export default function useClients() {
   const activeClient = clients.find((c) => c.id === activeClientId) ?? null;
 
   useEffect(() => {
+    if (!ready) return;
     if (activeClientId && !activeClient) {
       setActiveClientId(null);
     }
-  }, [activeClientId, activeClient]);
+  }, [ready, activeClientId, activeClient]);
 
   const createClient = useCallback(
     (name, loginCode, clientType = DEFAULT_CLIENT_TYPE) => {
