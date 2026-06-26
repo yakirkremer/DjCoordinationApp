@@ -29,5 +29,37 @@
       "djNotes": "",
       "customAnswers": {}
     }
+  },
+  "client_1782476394794_f4nik": {
+    "ratings": {},
+    "comments": {},
+    "selectedCategories": [
+      "Israeli",
+      "Loazi",
+      "Mizrahit",
+      "Oldies",
+      "Hip Hop",
+      "Regatton",
+      "Trance",
+      "Techno",
+      "Tomorrowland"
+    ],
+    "categoryRatings": {},
+    "preferences": {
+      "wizardCompleted": false,
+      "eventDate": "2027-01-01",
+      "eventLocation": "אגדתא",
+      "energyLevel": "mixed",
+      "phases": {
+        "reception": [],
+        "dancing": [],
+        "dessert": [],
+        "hora": []
+      },
+      "mustPlay": [],
+      "doNotPlay": [],
+      "djNotes": "",
+      "customAnswers": {}
+    }
   }
 }

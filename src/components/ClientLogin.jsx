@@ -35,14 +35,18 @@ export default function ClientLogin({ onLogin }) {
             setError("");
           }}
           placeholder="ACCESS CODE"
-          className="input-luxury font-lcd px-4 py-4 text-center text-lg tracking-[0.3em] text-xdj-cyan rounded-sm uppercase"
+          className="input-luxury font-lcd px-4 py-4 text-center text-base tracking-[0.3em] text-xdj-cyan rounded-sm uppercase min-h-[44px]"
           dir="ltr"
-          autoComplete="off"
+          inputMode="numeric"
+          autoComplete="one-time-code"
         />
 
         {error && <p className="text-xs text-xdj-orange text-center">{error}</p>}
 
-        <button type="submit" className="btn-luxury-primary px-4 py-3 rounded-sm text-sm tracking-widest">
+        <button
+          type="submit"
+          className="btn-luxury-primary px-4 py-3 rounded-sm text-sm tracking-widest min-h-[44px] text-base"
+        >
           כניסה
         </button>
       </form>

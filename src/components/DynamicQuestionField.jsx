@@ -17,7 +17,7 @@ export default function DynamicQuestionField({ question, preferences, onChange }
           onChange={(e) => onChange(e.target.value)}
           placeholder={question.placeholder}
           rows={4}
-          className="input-luxury w-full px-4 py-3 text-xdj-text rounded-sm resize-none placeholder:text-xdj-muted/50"
+          className="input-luxury w-full px-4 py-3 text-base text-xdj-text rounded-sm resize-none placeholder:text-xdj-muted/50 min-h-[44px]"
         />
       </div>
     );
@@ -34,7 +34,7 @@ export default function DynamicQuestionField({ question, preferences, onChange }
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="input-luxury w-full px-4 py-3 text-xdj-text rounded-sm"
+          className="input-luxury w-full px-4 py-3 text-base text-xdj-text rounded-sm min-h-[44px]"
         />
       </div>
     );
@@ -50,7 +50,7 @@ export default function DynamicQuestionField({ question, preferences, onChange }
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="input-luxury w-full px-4 py-3 text-xdj-text rounded-sm"
+          className="input-luxury w-full px-4 py-3 text-base text-xdj-text rounded-sm min-h-[44px]"
         >
           <option value="">בחרו...</option>
           {(question.options ?? []).map((opt) => (
@@ -74,7 +74,7 @@ export default function DynamicQuestionField({ question, preferences, onChange }
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={question.placeholder}
-        className="input-luxury w-full px-4 py-3 text-xdj-text rounded-sm placeholder:text-xdj-muted/50"
+        className="input-luxury w-full px-4 py-3 text-base text-xdj-text rounded-sm placeholder:text-xdj-muted/50 min-h-[44px]"
       />
     </div>
   );

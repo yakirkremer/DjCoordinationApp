@@ -24,7 +24,7 @@ export default function CategoryStyleRow({
       </button>
       <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
         <span className="font-lcd text-[9px] text-xdj-muted hidden sm:inline">RATE</span>
-        <StarRating rating={rating} onRate={onRate} compact />
+        <StarRating rating={rating} onRate={onRate} compact touchFriendly />
       </div>
     </div>
   );

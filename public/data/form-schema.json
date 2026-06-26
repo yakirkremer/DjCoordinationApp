@@ -28,18 +28,18 @@
       "audience": "all"
     },
     {
-      "id": "genres",
-      "stepType": "genres",
-      "title": "סגנונות מוזיקה",
-      "description": "סמנו קטגוריות ודרגו כל סגנון מ-1 עד 5 כוכבים.",
-      "questions": [],
-      "audience": "all"
-    },
-    {
       "id": "energy",
       "stepType": "energy",
       "title": "רמת אנרגיה",
       "description": "בחרו את האווירה הכללית של האירוע.",
+      "questions": [],
+      "audience": "all"
+    },
+    {
+      "id": "genres",
+      "stepType": "genres",
+      "title": "סגנונות מוזיקה",
+      "description": "סמנו קטגוריות ודרגו כל סגנון מ-1 עד 5 כוכבים.",
       "questions": [],
       "audience": "all"
     },

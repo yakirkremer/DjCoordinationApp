@@ -132,36 +132,38 @@ export default function PreferencesWizard({
   const isSummary = currentStepDef?.stepType === "summary";
 
   return (
-    <section className="panel-luxury rounded-sm p-6 sm:p-8" dir="rtl">
+    <section className="panel-luxury rounded-sm p-4 sm:p-8 wizard-shell" dir="rtl">
       <WizardProgress currentStep={step} totalSteps={steps.length} stepLabels={stepLabels} />
-      {renderStep()}
+      <div className="wizard-scroll">{renderStep()}</div>
 
       {!isSummary && (
-        <div className="flex justify-between mt-8 pt-6 border-t border-xdj-border">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={step === 0}
-            className="text-sm text-xdj-muted hover:text-xdj-text disabled:opacity-30 disabled:cursor-not-allowed font-bold"
-          >
-            → חזרה
-          </button>
-          <div className="flex gap-3">
+        <div className="wizard-footer">
+          <div className="flex justify-between wizard-footer-actions gap-3">
             <button
               type="button"
-              onClick={onSkip}
-              className="text-sm text-xdj-muted hover:text-xdj-cyan font-bold"
+              onClick={handleBack}
+              disabled={step === 0}
+              className="text-sm text-xdj-muted hover:text-xdj-text disabled:opacity-30 disabled:cursor-not-allowed font-bold min-h-[44px] px-4"
             >
-              דלג הכל
+              → חזרה
             </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={!canAdvance()}
-              className="btn-luxury-primary px-6 py-2 rounded-sm text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              המשך ←
-            </button>
+            <div className="flex gap-3 wizard-footer-actions">
+              <button
+                type="button"
+                onClick={onSkip}
+                className="text-sm text-xdj-muted hover:text-xdj-cyan font-bold min-h-[44px] px-4"
+              >
+                דלג הכל
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canAdvance()}
+                className="btn-luxury-primary px-6 py-2 rounded-sm text-sm disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
+              >
+                המשך ←
+              </button>
+            </div>
           </div>
         </div>
       )}

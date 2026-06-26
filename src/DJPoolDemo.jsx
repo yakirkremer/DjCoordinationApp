@@ -17,7 +17,7 @@ import useDropbox from "./hooks/useDropbox";
 import { OFFICIAL_CATEGORIES } from "./lib/categories";
 import { normalizePreviewCue } from "./lib/previewCue";
 import { resolveTrackAudioUrl, verifyLocalTrack } from "./lib/trackAudioUrl";
-import { loadDropboxState, loadDropboxCatalog } from "./lib/dropbox/storage";
+import { loadDropboxState, loadDropboxCatalog, saveDropboxCatalog } from "./lib/dropbox/storage";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
 
 export default function DJPoolDemo() {
@@ -136,28 +136,57 @@ export default function DJPoolDemo() {
   }, []);
 
   const persistCatalog = useCallback((nextTracks) => {
+    if (loadDropboxState().musicSource === "dropbox") {
+      saveDropboxCatalog(nextTracks);
+    }
     clearTimeout(catalogSaveTimer.current);
     catalogSaveTimer.current = setTimeout(() => {
       saveCatalog(nextTracks).catch((err) => console.error("Catalog save failed:", err));
-    }, 400);
+    }, 250);
   }, []);
 
-  const handleUpdateTrack = (id, field, value) => {
-    const val =
-      field === "startTime" || field === "endTime" || field === "duration"
-        ? parseInt(value) || 0
-        : value;
-    const updated = tracks.map((t) => {
-      if (t.id !== id) return t;
-      return normalizePreviewCue({ ...t, [field]: val });
-    });
-    setTracks(updated);
-    persistCatalog(updated);
+  const handleUpdateTrack = useCallback(
+    (id, field, value) => {
+      const val =
+        field === "startTime" || field === "endTime" || field === "duration"
+          ? parseInt(value, 10) || 0
+          : value;
 
-    if (currentTrack?.id === id) {
-      setCurrentTrack(normalizePreviewCue({ ...currentTrack, [field]: val }));
-    }
-  };
+      setTracks((prev) => {
+        const updated = prev.map((t) => {
+          if (t.id !== id) return t;
+          return normalizePreviewCue({ ...t, [field]: val });
+        });
+        persistCatalog(updated);
+        return updated;
+      });
+
+      setCurrentTrack((prev) => {
+        if (prev?.id !== id) return prev;
+        return normalizePreviewCue({ ...prev, [field]: val });
+      });
+    },
+    [persistCatalog]
+  );
+
+  const handleUpdateTrackCue = useCallback(
+    (id, { startTime, endTime }) => {
+      setTracks((prev) => {
+        const updated = prev.map((t) => {
+          if (t.id !== id) return t;
+          return normalizePreviewCue({ ...t, startTime, endTime });
+        });
+        persistCatalog(updated);
+        return updated;
+      });
+
+      setCurrentTrack((prev) => {
+        if (prev?.id !== id) return prev;
+        return normalizePreviewCue({ ...prev, startTime, endTime });
+      });
+    },
+    [persistCatalog]
+  );
 
   const handleDeleteTrack = (id) => {
     const updated = tracks.filter((t) => t.id !== id);
@@ -177,6 +206,19 @@ export default function DJPoolDemo() {
       setCurrentTrack(normalized);
       setCurrentTime(normalized.startTime);
       setIsPlaying(true);
+    }
+  };
+
+  const handleAdminPreviewTrack = (track, { play = false } = {}) => {
+    if (track.isMissing) return;
+    const normalized = normalizePreviewCue(track);
+    const isSame = currentTrack?.id === normalized.id;
+    setCurrentTrack(normalized);
+    setCurrentTime(normalized.startTime);
+    if (play) {
+      setIsPlaying(isSame ? !isPlaying : true);
+    } else if (!isSame) {
+      setIsPlaying(false);
     }
   };
 
@@ -204,18 +246,73 @@ export default function DJPoolDemo() {
     if (firstValid) setCurrentTrack(firstValid);
   };
 
+  const isCoupleBrowse =
+    !isAdmin && activeClient && coupleReady && preferences.wizardCompleted;
+
+  const showPlayer =
+    currentTrack && (isAdmin || (activeClient && preferences.wizardCompleted));
+
+  const isAdminCatalog = isAdmin && adminTab === "catalog";
+  const showFooterPlayer = showPlayer && !isAdminCatalog;
+
+  const playerProps = {
+    currentTrack,
+    isPlaying,
+    setIsPlaying,
+    currentTime,
+    setCurrentTime,
+    formatTime,
+    onUpdateTrack: handleUpdateTrack,
+    onUpdateTrackCue: handleUpdateTrackCue,
+    isAdmin,
+    resolveTrackUrl,
+    embedded: isAdminCatalog,
+  };
+
+  useEffect(() => {
+    if (!isAdminCatalog || catalogStatus !== "ready") return;
+    if (currentTrack && !currentTrack.isMissing) return;
+    const first = tracks.find((t) => !t.isMissing);
+    if (first) {
+      setCurrentTrack(normalizePreviewCue(first));
+      setCurrentTime(first.startTime ?? 0);
+    }
+  }, [isAdminCatalog, catalogStatus, tracks, currentTrack?.id, currentTrack?.isMissing]);
+
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
       return (
-        <>
-          <DropboxPanel
-            dropbox={dropbox}
-            existingTracks={tracks}
-            trackCount={tracks.length}
-            onSync={handleDropboxSync}
-          />
-          <AdminTable tracks={tracks} onUpdateTrack={handleUpdateTrack} onDeleteTrack={handleDeleteTrack} />
-        </>
+        <div className="admin-catalog-layout flex flex-col flex-1 min-h-0 gap-3">
+          <div className="shrink-0">
+            <DropboxPanel
+              dropbox={dropbox}
+              existingTracks={tracks}
+              trackCount={tracks.length}
+              onSync={handleDropboxSync}
+            />
+          </div>
+
+          <div className="admin-catalog-player shrink-0">
+            {currentTrack && !currentTrack.isMissing ? (
+              <GlobalPlayer {...playerProps} />
+            ) : (
+              <div className="admin-catalog-player-empty panel-luxury p-4 text-center">
+                <p className="font-lcd text-xs text-xdj-muted">PREVIEW EDITOR</p>
+                <p className="text-xs text-xdj-muted mt-1">בחר שיר מהטבלה למטה כדי לנגן ולגרור סמני A / B</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-auto">
+            <AdminTable
+              tracks={tracks}
+              currentTrack={currentTrack}
+              onUpdateTrack={handleUpdateTrack}
+              onDeleteTrack={handleDeleteTrack}
+              onPreviewTrack={handleAdminPreviewTrack}
+            />
+          </div>
+        </div>
       );
     }
     if (adminTab === "clients") {
@@ -227,13 +324,10 @@ export default function DJPoolDemo() {
     return <AdminDashboard clients={clients} tracks={tracks} formSchema={formSchema} />;
   };
 
-  const showPlayer =
-    currentTrack && (isAdmin || (activeClient && preferences.wizardCompleted));
-
   return (
-    <div className="h-screen flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir="rtl">
-      <div className="shrink-0 p-4 sm:p-6 pb-0">
-      <header className="max-w-7xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-5">
+    <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir="rtl">
+      <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
+      <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
         <div className="flex flex-col items-center sm:items-start gap-2 w-full sm:w-auto">
           <img
             src="/kremer-logo.png"
@@ -277,7 +371,11 @@ export default function DJPoolDemo() {
       </header>
       </div>
 
-      <main className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pb-4 max-w-7xl mx-auto w-full">
+      <main
+        className={`app-main-safe flex-1 min-h-0 max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2 sm:pb-4 flex flex-col ${
+          isCoupleBrowse || isAdmin ? "overflow-hidden" : "overflow-y-auto"
+        }`}
+      >
         {catalogStatus === "loading" || !appReady ? (
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING...</p>
         ) : catalogStatus === "error" ? (
@@ -292,10 +390,10 @@ export default function DJPoolDemo() {
             ) : null}
           </div>
         ) : isAdmin ? (
-          <>
+          <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <AdminTabNav activeTab={adminTab} onTabChange={setAdminTab} />
-            {renderAdminContent()}
-          </>
+            <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
+          </div>
         ) : !activeClient ? (
           <ClientLogin onLogin={login} />
         ) : !coupleReady ? (
@@ -314,7 +412,7 @@ export default function DJPoolDemo() {
             onSkip={skipWizard}
           />
         ) : (
-          <>
+          <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <CategorySelector
               allCategories={OFFICIAL_CATEGORIES}
               selectedCategories={selectedCategories}
@@ -323,36 +421,30 @@ export default function DJPoolDemo() {
               onRateCategory={rateCategory}
             />
 
-            <TrackList
-              tracks={tracks.filter(
-                (t) => t.isMissing !== true && selectedCategories.includes(t.bucket)
-              )}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              onTrackSelect={handleTrackSelect}
-              onPlayPause={() => currentTrack && handleTrackSelect(currentTrack)}
-              formatTime={formatTime}
-              ratings={ratings}
-              comments={comments}
-              onRateTrack={rateTrack}
-              onCommentChange={setComment}
-            />
-          </>
+            <div className="flex-1 min-h-0">
+              <TrackList
+                tracks={tracks.filter(
+                  (t) => t.isMissing !== true && selectedCategories.includes(t.bucket)
+                )}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                onTrackSelect={handleTrackSelect}
+                onPlayPause={() => currentTrack && handleTrackSelect(currentTrack)}
+                formatTime={formatTime}
+                ratings={ratings}
+                comments={comments}
+                onRateTrack={rateTrack}
+                onCommentChange={setComment}
+              />
+            </div>
+          </div>
         )}
       </main>
 
-      {showPlayer && (
-        <GlobalPlayer
-          currentTrack={currentTrack}
-          isPlaying={isPlaying}
-          setIsPlaying={setIsPlaying}
-          currentTime={currentTime}
-          setCurrentTime={setCurrentTime}
-          formatTime={formatTime}
-          onUpdateTrack={handleUpdateTrack}
-          isAdmin={isAdmin}
-          resolveTrackUrl={resolveTrackUrl}
-        />
+      {showFooterPlayer && (
+        <div className="app-player-safe shrink-0">
+          <GlobalPlayer {...playerProps} embedded={false} />
+        </div>
       )}
     </div>
   );

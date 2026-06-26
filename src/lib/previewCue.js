@@ -40,3 +40,21 @@ export function isWithinPreviewCue(track, time) {
   const { startTime, endTime } = normalizePreviewCue(track);
   return time >= startTime && time < endTime;
 }
+
+/** Move start or end while keeping a fixed preview span (linked cue drag). */
+export function computeLinkedCue(which, time, span, duration) {
+  const dur = Math.floor(Number(duration)) || 0;
+  if (dur <= 0) return null;
+
+  const lockedSpan = Math.max(MIN_PREVIEW_LENGTH, Math.floor(span));
+  const t = Math.floor(Number(time)) || 0;
+
+  if (which === "start") {
+    const maxStart = Math.max(0, dur - lockedSpan);
+    const startTime = Math.max(0, Math.min(t, maxStart));
+    return { startTime, endTime: startTime + lockedSpan };
+  }
+
+  const endTime = Math.max(lockedSpan, Math.min(t, dur));
+  return { startTime: endTime - lockedSpan, endTime };
+}

@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function StarRating({ rating, onRate, compact = false }) {
+export default function StarRating({ rating, onRate, compact = false, touchFriendly = false }) {
   return (
     <div className="flex items-center gap-0.5" dir="ltr">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -9,6 +9,8 @@ export default function StarRating({ rating, onRate, compact = false }) {
           type="button"
           onClick={() => onRate(star)}
           className={`transition-transform active:scale-110 ${
+            touchFriendly ? "star-touch-target" : ""
+          } ${
             compact ? "text-sm" : "text-xl"
           } ${
             star <= rating

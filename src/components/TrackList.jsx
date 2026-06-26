@@ -3,6 +3,7 @@ import TrackCommentInput from "./TrackCommentInput";
 import TrackFeedback from "./TrackFeedback";
 import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
+import StarRating from "./StarRating";
 import { getPreviewLength } from "../lib/previewCue";
 
 function FolderIcon({ open }) {
@@ -53,7 +54,9 @@ export default function TrackList({
 }) {
   const categoriesInTracks = [...new Set(tracks.map((t) => t.bucket))];
   const [activeTab, setActiveTab] = useState(categoriesInTracks[0] || "");
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : true
+  );
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const categoriesKey = categoriesInTracks.join("|");
@@ -155,7 +158,64 @@ export default function TrackList({
             {filteredTracks.length === 0 ? (
               <p className="xdj-az-empty">NO TRACKS IN FOLDER</p>
             ) : (
-              filteredTracks.map((track, index) => {
+              <>
+                <div className="xdj-az-mobile-cards">
+                  {filteredTracks.map((track) => {
+                    const isSelected = currentTrack?.id === track.id;
+                    const isThisPlaying = isSelected && isPlaying;
+
+                    return (
+                      <div
+                        key={track.id}
+                        className={`xdj-az-track-card ${
+                          isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""
+                        }`}
+                        onClick={() => onTrackSelect(track)}
+                      >
+                        <div className="xdj-az-track-card-top">
+                          <TrackArtwork track={track} />
+                          <div className="xdj-az-track-card-meta">
+                            <div className="xdj-az-track-card-title">{track.title}</div>
+                            <div className="xdj-az-track-card-artist">{track.artist}</div>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <StarRating
+                              rating={ratings[track.id] || 0}
+                              onRate={(star) => onRateTrack(track.id, star)}
+                              compact
+                              touchFriendly
+                            />
+                          </div>
+                        </div>
+                        {showPreview && (
+                          <div
+                            className="xdj-az-track-card-preview"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTrackSelect(track);
+                            }}
+                          >
+                            <PreviewWaveform
+                              track={track}
+                              isActive={isSelected}
+                              isPlaying={isThisPlaying}
+                            />
+                          </div>
+                        )}
+                        <TrackFeedback
+                          rating={ratings[track.id] || 0}
+                          comment={comments[track.id] || ""}
+                          onRate={(star) => onRateTrack(track.id, star)}
+                          onCommentChange={(text) => onCommentChange(track.id, text)}
+                          mobile
+                          hideStars
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {filteredTracks.map((track, index) => {
                 const isSelected = currentTrack?.id === track.id;
                 const isThisPlaying = isSelected && isPlaying;
 
@@ -225,7 +285,8 @@ export default function TrackList({
                     </div>
                   </div>
                 );
-              })
+              })}
+              </>
             )}
           </div>
         </div>

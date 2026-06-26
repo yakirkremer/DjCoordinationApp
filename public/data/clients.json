@@ -12,5 +12,12 @@
     "loginCode": "N2KZKA",
     "clientType": "after",
     "createdAt": "2026-06-26T11:27:48.251Z"
+  },
+  {
+    "id": "client_1782476394794_f4nik",
+    "name": "Admin",
+    "loginCode": "KREMER",
+    "clientType": "full-wedding",
+    "createdAt": "2026-06-26T12:19:54.794Z"
   }
 ]

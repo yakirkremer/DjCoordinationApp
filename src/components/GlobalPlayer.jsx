@@ -1,7 +1,25 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
 import TrackArtwork from "./TrackArtwork";
-import { normalizePreviewCue, isWithinPreviewCue } from "../lib/previewCue";
+import { normalizePreviewCue, isWithinPreviewCue, MIN_PREVIEW_LENGTH, computeLinkedCue } from "../lib/previewCue";
+
+const PLAYER_EXPAND_KEY = "kramer-player-expanded";
+const LINK_CUES_KEY = "kramer-link-cues-v1";
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const handler = (event) => setMatches(event.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [query]);
+
+  return matches;
+}
 
 export default function GlobalPlayer({
   currentTrack,
@@ -11,16 +29,70 @@ export default function GlobalPlayer({
   setCurrentTime,
   formatTime,
   onUpdateTrack,
+  onUpdateTrackCue,
   isAdmin = false,
   resolveTrackUrl,
+  embedded = false,
 }) {
   const waveformRef = useRef(null);
+  const waveCanvasRef = useRef(null);
   const wavesurferRef = useRef(null);
+  const draggingRef = useRef(null);
+  const cueRef = useRef({ startTime: 0, endTime: 60 });
+  const durationRef = useRef(0);
+  const linkSpanRef = useRef(60);
+  const linkCuesRef = useRef(false);
+  const [linkCues, setLinkCues] = useState(() => {
+    try {
+      return sessionStorage.getItem(LINK_CUES_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
   const [duration, setDuration] = useState(0);
   const [showElapsed, setShowElapsed] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      return sessionStorage.getItem(PLAYER_EXPAND_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded((prev) => {
+      const next = !prev;
+      try {
+        sessionStorage.setItem(PLAYER_EXPAND_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
+
+  const useMiniPlayer = isMobile && !isAdmin;
+  const isCollapsed = useMiniPlayer && !expanded;
 
   const cue = useMemo(() => normalizePreviewCue(currentTrack), [currentTrack]);
+
+  useEffect(() => {
+    linkCuesRef.current = linkCues;
+    try {
+      sessionStorage.setItem(LINK_CUES_KEY, linkCues ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [linkCues]);
+
+  useEffect(() => {
+    if (!draggingRef.current) {
+      cueRef.current = { startTime: cue.startTime, endTime: cue.endTime };
+    }
+  }, [cue.startTime, cue.endTime]);
+
   const previewLength = cue.endTime - cue.startTime;
   const progressInCue = Math.max(0, Math.min(currentTime - cue.startTime, previewLength));
   const remainInCue = Math.max(0, previewLength - progressInCue);
@@ -30,14 +102,103 @@ export default function GlobalPlayer({
   const cueOutPct = duration > 0 ? (cue.endTime / duration) * 100 : 100;
   const playheadPct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const seekToCueIn = (ws) => {
-    if (!ws) return;
-    const dur = ws.getDuration();
-    if (!dur) return;
-    const start = Math.min(cue.startTime, Math.max(0, dur - 1));
-    ws.setTime(start);
-    setCurrentTime(start);
-  };
+  const seekToCueIn = useCallback(
+    (ws) => {
+      if (!ws) return;
+      const dur = ws.getDuration();
+      if (!dur) return;
+      const start = Math.min(cue.startTime, Math.max(0, dur - 1));
+      ws.setTime(start);
+      setCurrentTime(start);
+    },
+    [cue.startTime, setCurrentTime]
+  );
+
+  const timeFromClientX = useCallback(
+    (clientX) => {
+      const rect = waveCanvasRef.current?.getBoundingClientRect();
+      if (!rect || duration <= 0) return 0;
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      return Math.round(pct * duration);
+    },
+    [duration]
+  );
+
+  const applyCuePair = useCallback(
+    (next) => {
+      if (!currentTrack || !next) return;
+      cueRef.current = next;
+      if (onUpdateTrackCue) {
+        onUpdateTrackCue(currentTrack.id, next);
+      } else {
+        onUpdateTrack(currentTrack.id, "startTime", next.startTime);
+        onUpdateTrack(currentTrack.id, "endTime", next.endTime);
+      }
+    },
+    [currentTrack, onUpdateTrack, onUpdateTrackCue]
+  );
+
+  const applyCueDrag = useCallback(
+    (which, time) => {
+      if (!currentTrack) return;
+      const dur = durationRef.current;
+      if (dur <= 0) return;
+
+      if (linkCuesRef.current) {
+        const next = computeLinkedCue(which, time, linkSpanRef.current, dur);
+        if (next) applyCuePair(next);
+        return;
+      }
+
+      const { startTime, endTime } = cueRef.current;
+      const maxStart = Math.max(0, endTime - MIN_PREVIEW_LENGTH);
+      const minEnd = Math.min(dur, startTime + MIN_PREVIEW_LENGTH);
+
+      if (which === "start") {
+        const nextStart = Math.max(0, Math.min(time, maxStart));
+        cueRef.current = { ...cueRef.current, startTime: nextStart };
+        onUpdateTrack(currentTrack.id, "startTime", nextStart);
+      } else {
+        const nextEnd = Math.max(minEnd, Math.min(time, dur));
+        cueRef.current = { ...cueRef.current, endTime: nextEnd };
+        onUpdateTrack(currentTrack.id, "endTime", nextEnd);
+      }
+    },
+    [applyCuePair, currentTrack, onUpdateTrack]
+  );
+
+  const startDrag = useCallback(
+    (which) => (e) => {
+      if (!isAdmin) return;
+      e.preventDefault();
+      e.stopPropagation();
+      draggingRef.current = which;
+      linkSpanRef.current = Math.max(
+        MIN_PREVIEW_LENGTH,
+        cueRef.current.endTime - cueRef.current.startTime
+      );
+
+      const onMove = (ev) => applyCueDrag(which, timeFromClientX(ev.clientX));
+      const onUp = () => {
+        draggingRef.current = null;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [applyCueDrag, isAdmin, timeFromClientX]
+  );
+
+  const setCueFromPlayhead = useCallback(
+    (which) => {
+      if (!currentTrack || duration <= 0) return;
+      const t = Math.round(wavesurferRef.current?.getCurrentTime() ?? currentTime);
+      applyCueDrag(which, t);
+    },
+    [applyCueDrag, currentTime, currentTrack, duration]
+  );
 
   useEffect(() => {
     if (!currentTrack || !waveformRef.current) return;
@@ -93,6 +254,10 @@ export default function GlobalPlayer({
         if (cancelled) return;
         const dur = wavesurferRef.current.getDuration();
         setDuration(dur);
+        durationRef.current = dur;
+        if (!currentTrack.duration || currentTrack.duration !== Math.floor(dur)) {
+          onUpdateTrack(currentTrack.id, "duration", Math.floor(dur));
+        }
         seekToCueIn(wavesurferRef.current);
 
         if (isPlaying) {
@@ -106,7 +271,7 @@ export default function GlobalPlayer({
 
       wavesurferRef.current.on("timeupdate", (time) => {
         setCurrentTime(time);
-        if (time >= cue.endTime) {
+        if (!isAdmin && time >= cue.endTime) {
           wavesurferRef.current.pause();
           setIsPlaying(false);
           seekToCueIn(wavesurferRef.current);
@@ -115,6 +280,8 @@ export default function GlobalPlayer({
 
       wavesurferRef.current.on("interaction", () => {
         const time = wavesurferRef.current.getCurrentTime();
+        setCurrentTime(time);
+        if (isAdmin) return;
         if (time < cue.startTime) {
           seekToCueIn(wavesurferRef.current);
         } else if (time >= cue.endTime) {
@@ -142,24 +309,82 @@ export default function GlobalPlayer({
         }
       }
     };
-  }, [currentTrack?.id, cue.startTime, cue.endTime, resolveTrackUrl]);
+  }, [currentTrack?.id, resolveTrackUrl]);
 
   useEffect(() => {
     if (!wavesurferRef.current) return;
 
     if (isPlaying) {
-      if (!isWithinPreviewCue(cue, wavesurferRef.current.getCurrentTime())) {
+      if (!isAdmin && !isWithinPreviewCue(cue, wavesurferRef.current.getCurrentTime())) {
         seekToCueIn(wavesurferRef.current);
       }
       wavesurferRef.current.play().catch(() => setIsPlaying(false));
     } else {
       wavesurferRef.current.pause();
     }
-  }, [isPlaying, cue.startTime, cue.endTime]);
+  }, [isPlaying, isAdmin, cue.startTime, cue.endTime, seekToCueIn, setIsPlaying]);
+
+  const previewPlay = () => {
+    if (!wavesurferRef.current) return;
+    const t = wavesurferRef.current.getCurrentTime();
+    if (t < cue.startTime || t >= cue.endTime) {
+      seekToCueIn(wavesurferRef.current);
+    }
+    setIsPlaying(true);
+  };
+
+  const progressPct = previewLength > 0 ? (progressInCue / previewLength) * 100 : 0;
 
   return (
-    <div className="xdj-az-player shrink-0" dir="ltr">
-      {/* Deck info strip */}
+    <div
+      className={`xdj-az-player shrink-0 ${embedded ? "is-embedded" : ""} ${
+        useMiniPlayer ? (expanded ? "is-expanded" : "is-collapsed") : ""
+      }`}
+      dir="ltr"
+    >
+      {useMiniPlayer && (
+        <div className="xdj-az-player-mini">
+          <div className="xdj-az-player-mini-row">
+            <div className="xdj-az-player-mini-art">
+              <TrackArtwork track={currentTrack} />
+            </div>
+            <div className="xdj-az-player-mini-meta">
+              <h4 className="xdj-az-player-mini-title">{currentTrack.title}</h4>
+              <p className="xdj-az-player-mini-artist">{currentTrack.artist}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="xdj-az-player-mini-btn"
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
+              {isPlaying ? (
+                <span className="xdj-az-pause-bars">
+                  <span />
+                  <span />
+                </span>
+              ) : (
+                <span className="xdj-az-play-tri" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              className="xdj-az-player-mini-expand"
+              aria-label={expanded ? "Collapse player" : "Expand player"}
+            >
+              {expanded ? "▼" : "▲"}
+            </button>
+          </div>
+          <div className="xdj-az-player-mini-progress">
+            <div
+              className="xdj-az-player-mini-progress-fill"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="xdj-az-player-deck-bar">
         <div className="xdj-az-player-deck-left">
           <span className="xdj-az-deck-badge">1</span>
@@ -170,7 +395,9 @@ export default function GlobalPlayer({
         </div>
         <div className="xdj-az-player-deck-center">
           <span className="xdj-az-player-tag">{currentTrack.bucket}</span>
-          <span className="xdj-az-player-tag xdj-az-player-tag-dim">PREVIEW CUE</span>
+          <span className="xdj-az-player-tag xdj-az-player-tag-dim">
+            {isAdmin ? "ADMIN CUE EDIT" : "PREVIEW CUE"}
+          </span>
         </div>
         <div className="xdj-az-player-deck-right">
           {loadError ? (
@@ -186,7 +413,6 @@ export default function GlobalPlayer({
       </div>
 
       <div className="xdj-az-player-body">
-        {/* Jog / artwork display */}
         <div className="xdj-az-jog-wrap">
           <div className={`xdj-az-jog ${isPlaying ? "is-spinning" : ""}`}>
             <div className="xdj-az-jog-inner">
@@ -196,28 +422,55 @@ export default function GlobalPlayer({
           <span className="xdj-az-jog-label">DECK 1</span>
         </div>
 
-        {/* Enlarged waveform */}
         <div className="xdj-az-wave-panel">
           <div className="xdj-az-wave-enlarged">
             <div className="xdj-az-cue-markers-top">
               {duration > 0 && (
                 <>
-                  <span className="xdj-az-cue-flag xdj-az-cue-in" style={{ left: `${cueInPct}%` }}>
+                  <span
+                    className={`xdj-az-cue-flag xdj-az-cue-in ${isAdmin ? "is-draggable" : ""}`}
+                    style={{ left: `${cueInPct}%` }}
+                    onPointerDown={isAdmin ? startDrag("start") : undefined}
+                    title={isAdmin ? "גרור CUE IN (A)" : undefined}
+                  >
                     A
                   </span>
-                  <span className="xdj-az-cue-flag xdj-az-cue-out" style={{ left: `${cueOutPct}%` }}>
+                  <span
+                    className={`xdj-az-cue-flag xdj-az-cue-out ${isAdmin ? "is-draggable" : ""}`}
+                    style={{ left: `${cueOutPct}%` }}
+                    onPointerDown={isAdmin ? startDrag("end") : undefined}
+                    title={isAdmin ? "גרור CUE OUT (B)" : undefined}
+                  >
                     B
                   </span>
                 </>
               )}
             </div>
-            <div className="xdj-az-wave-canvas">
-              <div ref={waveformRef} className="w-full" />
+            <div className="xdj-az-wave-canvas" ref={waveCanvasRef}>
+              <div ref={waveformRef} className="xdj-az-waveform-host w-full" />
               {duration > 0 && (
-                <div
-                  className="xdj-az-cue-region"
-                  style={{ left: `${cueInPct}%`, width: `${cueOutPct - cueInPct}%` }}
-                />
+                <>
+                  <div
+                    className="xdj-az-cue-region"
+                    style={{ left: `${cueInPct}%`, width: `${cueOutPct - cueInPct}%` }}
+                  />
+                  {isAdmin && (
+                    <div className="xdj-az-cue-overlay" aria-hidden>
+                      <div
+                        className="xdj-az-cue-handle xdj-az-cue-handle-in"
+                        style={{ left: `${cueInPct}%` }}
+                        onPointerDown={startDrag("start")}
+                        title="גרור CUE IN"
+                      />
+                      <div
+                        className="xdj-az-cue-handle xdj-az-cue-handle-out"
+                        style={{ left: `${cueOutPct}%` }}
+                        onPointerDown={startDrag("end")}
+                        title="גרור CUE OUT"
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="xdj-az-cue-markers-bottom">
@@ -230,19 +483,31 @@ export default function GlobalPlayer({
             </div>
           </div>
 
-          {/* Overall waveform overview */}
           <div className="xdj-az-wave-overview">
-            <div className="xdj-az-overview-track">
-              <div
-                className="xdj-az-overview-played"
-                style={{ width: `${playheadPct}%` }}
-              />
+            <div className={`xdj-az-overview-track ${isAdmin ? "is-editable" : ""}`}>
+              <div className="xdj-az-overview-played" style={{ width: `${playheadPct}%` }} />
               <div className="xdj-az-overview-playhead" style={{ left: `${playheadPct}%` }} />
               {duration > 0 && (
-                <div
-                  className="xdj-az-overview-cue"
-                  style={{ left: `${cueInPct}%`, width: `${cueOutPct - cueInPct}%` }}
-                />
+                <>
+                  <div
+                    className="xdj-az-overview-cue"
+                    style={{ left: `${cueInPct}%`, width: `${cueOutPct - cueInPct}%` }}
+                  />
+                  {isAdmin && (
+                    <>
+                      <div
+                        className="xdj-az-overview-cue-handle xdj-az-overview-cue-handle-in"
+                        style={{ left: `${cueInPct}%` }}
+                        onPointerDown={startDrag("start")}
+                      />
+                      <div
+                        className="xdj-az-overview-cue-handle xdj-az-overview-cue-handle-out"
+                        style={{ left: `${cueOutPct}%` }}
+                        onPointerDown={startDrag("end")}
+                      />
+                    </>
+                  )}
+                </>
               )}
             </div>
             <div className="xdj-az-overview-labels">
@@ -252,7 +517,6 @@ export default function GlobalPlayer({
           </div>
         </div>
 
-        {/* Transport + time */}
         <div className="xdj-az-transport-panel">
           <button
             type="button"
@@ -263,14 +527,29 @@ export default function GlobalPlayer({
             <span className={`xdj-az-time-label ${showElapsed ? "is-active" : ""}`}>TIME</span>
             <span className={`xdj-az-time-label ${!showElapsed ? "is-active" : ""}`}>REMAIN</span>
             <span className="xdj-az-time-value">{formatTime(displayTime)}</span>
-            <span className="xdj-az-time-ms">.{String(Math.floor((currentTime % 1) * 100)).padStart(2, "0")}</span>
+            <span className="xdj-az-time-ms">
+              .{String(Math.floor((currentTime % 1) * 100)).padStart(2, "0")}
+            </span>
           </button>
+
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={previewPlay}
+              className="xdj-az-transport-btn"
+              aria-label="Play preview region"
+              title="נגן אזור התצוגה המקדימה (A→B)"
+            >
+              <span className="xdj-az-play-tri" />
+            </button>
+          ) : null}
 
           <button
             type="button"
             onClick={() => setIsPlaying(!isPlaying)}
             className={`xdj-az-transport-btn ${isPlaying ? "is-playing" : ""}`}
             aria-label={isPlaying ? "Pause" : "Play"}
+            title={isAdmin ? "נגן / השהה (מלא)" : undefined}
           >
             {isPlaying ? (
               <span className="xdj-az-pause-bars">
@@ -289,36 +568,51 @@ export default function GlobalPlayer({
         </div>
       </div>
 
-      {/* Cue info strip */}
       <div className="xdj-az-player-cue-bar">
         <div className="xdj-az-cue-stat">
           <span className="xdj-az-cue-stat-label">CUE IN</span>
           {isAdmin ? (
-            <input
-              type="number"
-              value={cue.startTime}
-              onChange={(e) => onUpdateTrack(currentTrack.id, "startTime", e.target.value)}
-              className="xdj-az-cue-input"
-            />
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                value={cue.startTime}
+                onChange={(e) => onUpdateTrack(currentTrack.id, "startTime", e.target.value)}
+                className="xdj-az-cue-input"
+              />
+              <button
+                type="button"
+                className="xdj-az-cue-set-btn"
+                onClick={() => setCueFromPlayhead("start")}
+                title="קבע IN לפי מיקום הנגן"
+              >
+                SET
+              </button>
+            </div>
           ) : (
-            <span className="xdj-az-cue-stat-value xdj-az-cue-in-val">
-              {formatTime(cue.startTime)}
-            </span>
+            <span className="xdj-az-cue-stat-value xdj-az-cue-in-val">{formatTime(cue.startTime)}</span>
           )}
         </div>
         <div className="xdj-az-cue-stat">
           <span className="xdj-az-cue-stat-label">CUE OUT</span>
           {isAdmin ? (
-            <input
-              type="number"
-              value={cue.endTime}
-              onChange={(e) => onUpdateTrack(currentTrack.id, "endTime", e.target.value)}
-              className="xdj-az-cue-input"
-            />
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                value={cue.endTime}
+                onChange={(e) => onUpdateTrack(currentTrack.id, "endTime", e.target.value)}
+                className="xdj-az-cue-input"
+              />
+              <button
+                type="button"
+                className="xdj-az-cue-set-btn"
+                onClick={() => setCueFromPlayhead("end")}
+                title="קבע OUT לפי מיקום הנגן"
+              >
+                SET
+              </button>
+            </div>
           ) : (
-            <span className="xdj-az-cue-stat-value xdj-az-cue-out-val">
-              {formatTime(cue.endTime)}
-            </span>
+            <span className="xdj-az-cue-stat-value xdj-az-cue-out-val">{formatTime(cue.endTime)}</span>
           )}
         </div>
         <div className="xdj-az-cue-stat">
@@ -329,6 +623,16 @@ export default function GlobalPlayer({
           <span className="xdj-az-cue-stat-label">POSITION</span>
           <span className="xdj-az-cue-stat-value">{formatTime(currentTime)}</span>
         </div>
+        {isAdmin && (
+          <label className="xdj-az-link-cues" title="גרירת A או B מזיזה את שניהם יחד (אורך קבוע)">
+            <input
+              type="checkbox"
+              checked={linkCues}
+              onChange={(e) => setLinkCues(e.target.checked)}
+            />
+            <span>קשר סמנים</span>
+          </label>
+        )}
       </div>
     </div>
   );

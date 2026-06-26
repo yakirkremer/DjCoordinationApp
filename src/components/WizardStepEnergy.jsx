@@ -15,7 +15,7 @@ export default function WizardStepEnergy({ energyLevel, onSelect, title, descrip
             key={level.id}
             type="button"
             onClick={() => onSelect(level.id)}
-            className={`p-5 rounded-sm border text-right transition-all ${
+            className={`wizard-option-touch p-5 rounded-sm border text-right transition-all ${
               energyLevel === level.id
                 ? "border-xdj-cyan bg-xdj-cyan/10 shadow-[0_0_20px_rgba(0,200,232,0.15)]"
                 : "border-xdj-border bg-[#0a0a0c] hover:border-xdj-muted"
