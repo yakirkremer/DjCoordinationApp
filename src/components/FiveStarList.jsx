@@ -22,7 +22,7 @@ export default function FiveStarList({ tracks }) {
                   <svg className="track-rating-pill-icon" viewBox="0 0 24 24" aria-hidden>
                     <path
                       fill="currentColor"
-                      d="M7 22h4V9.3L5.4 4.6C4.8 3.6 5.5 2.25 6.7 2.25H9c.4 0 .8.2 1 .5l2.2 3.2H20c1.1 0 2 .9 2 2v6.8c0 .8-.5 1.5-1.2 1.9l-5.4 3.1c-.4.2-.8.4-1.3.4H11c-.6 0-1.1-.3-1.4-.8L7 22z"
+                      d="M23 10a2 2 0 0 0-2-2h-6.68l.96-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10a2 2 0 0 0 2 2h10l3.6-7.2c.3-.6.9-1 1.4-1.8V10zM1 21h4V9H1v12z"
                     />
                   </svg>
                   אהבתי

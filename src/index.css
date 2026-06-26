@@ -2021,15 +2021,15 @@ body {
 }
 
 .track-rating-icon {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.2rem;
+  height: 1.2rem;
   flex-shrink: 0;
   display: block;
 }
 
 .track-rating--touch .track-rating-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .track-rating-icon--ok {
