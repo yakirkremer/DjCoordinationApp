@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import StarRating from "./StarRating";
+import TrackRating from "./TrackRating";
 import TrackCommentInput from "./TrackCommentInput";
+import { normalizeTrackRating } from "../lib/trackRating";
 
 export default function TrackFeedback({
   rating,
@@ -9,14 +10,15 @@ export default function TrackFeedback({
   onCommentChange,
   compact = false,
   mobile = false,
-  hideStars = false,
+  hideRating = false,
 }) {
   const [showComment, setShowComment] = useState(Boolean(comment));
+  const activeRating = normalizeTrackRating(rating);
 
   if (compact && !mobile) {
     return (
       <div onClick={(e) => e.stopPropagation()}>
-        <StarRating rating={rating} onRate={onRate} compact />
+        <TrackRating rating={activeRating} onRate={onRate} compact />
       </div>
     );
   }
@@ -24,8 +26,8 @@ export default function TrackFeedback({
   if (mobile) {
     return (
       <div onClick={(e) => e.stopPropagation()}>
-        {!hideStars && (
-          <StarRating rating={rating} onRate={onRate} compact touchFriendly />
+        {!hideRating && (
+          <TrackRating rating={activeRating} onRate={onRate} compact touchFriendly />
         )}
         {!showComment ? (
           <button
@@ -49,7 +51,7 @@ export default function TrackFeedback({
       className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4"
       onClick={(e) => e.stopPropagation()}
     >
-      <StarRating rating={rating} onRate={onRate} />
+      <TrackRating rating={activeRating} onRate={onRate} />
       <TrackCommentInput value={comment} onChange={onCommentChange} />
     </div>
   );

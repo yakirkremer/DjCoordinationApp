@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import TrackCommentInput from "./TrackCommentInput";
 import TrackFeedback from "./TrackFeedback";
+import TrackRating from "./TrackRating";
 import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
-import StarRating from "./StarRating";
+import { getTrackRating } from "../lib/trackRating";
 import { getPreviewLength } from "../lib/previewCue";
 
 function FolderIcon({ open }) {
@@ -96,7 +97,7 @@ export default function TrackList({
       <div className="xdj-az-toolbar">
         <div className="xdj-az-toolbar-left">
           <div className="xdj-az-breadcrumb">
-            <span className="xdj-az-crumb-root">KRAMER POOL</span>
+            <span className="xdj-az-crumb-root">kremer POOL</span>
             <span className="xdj-az-crumb-sep">›</span>
             <span className="xdj-az-crumb-active">{activeTab || "—"}</span>
           </div>
@@ -179,9 +180,9 @@ export default function TrackList({
                             <div className="xdj-az-track-card-artist">{track.artist}</div>
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
-                            <StarRating
-                              rating={ratings[track.id] || 0}
-                              onRate={(star) => onRateTrack(track.id, star)}
+                            <TrackRating
+                              rating={getTrackRating(ratings, track.id)}
+                              onRate={(value) => onRateTrack(track.id, value)}
                               compact
                               touchFriendly
                             />
@@ -203,12 +204,12 @@ export default function TrackList({
                           </div>
                         )}
                         <TrackFeedback
-                          rating={ratings[track.id] || 0}
+                          rating={getTrackRating(ratings, track.id)}
                           comment={comments[track.id] || ""}
-                          onRate={(star) => onRateTrack(track.id, star)}
+                          onRate={(value) => onRateTrack(track.id, value)}
                           onCommentChange={(text) => onCommentChange(track.id, text)}
                           mobile
-                          hideStars
+                          hideRating
                         />
                       </div>
                     );
@@ -266,9 +267,9 @@ export default function TrackList({
 
                     <div className="xdj-az-col xdj-az-col-rate" onClick={(e) => e.stopPropagation()}>
                       <TrackFeedback
-                        rating={ratings[track.id] || 0}
+                        rating={getTrackRating(ratings, track.id)}
                         comment={comments[track.id] || ""}
-                        onRate={(star) => onRateTrack(track.id, star)}
+                        onRate={(value) => onRateTrack(track.id, value)}
                         onCommentChange={(text) => onCommentChange(track.id, text)}
                         compact
                       />

@@ -3,10 +3,10 @@ import React from "react";
 export default function FiveStarList({ tracks }) {
   return (
     <section className="bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-800" dir="rtl">
-      <h3 className="text-lg font-bold text-gray-100 mb-4">שירים עם 5 כוכבים</h3>
+      <h3 className="text-lg font-bold text-gray-100 mb-4">שירים שהזוג אהב</h3>
 
       {tracks.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-4">עדיין אין שירים שקיבלו 5 כוכבים</p>
+        <p className="text-sm text-gray-500 text-center py-4">עדיין אין שירים שסומנו כאהובים</p>
       ) : (
         <div className="divide-y divide-gray-800">
           {tracks.map((track) => (
@@ -18,7 +18,7 @@ export default function FiveStarList({ tracks }) {
                     {track.artist} • <span className="text-purple-400">{track.bucket}</span>
                   </p>
                 </div>
-                <span className="text-amber-400 text-lg shrink-0">★★★★★</span>
+                <span className="track-rating-pill track-rating-pill--like shrink-0">אהבתי</span>
               </div>
               {track.comment && (
                 <p className="text-xs text-gray-400 italic border-r-2 border-purple-500 pr-3">

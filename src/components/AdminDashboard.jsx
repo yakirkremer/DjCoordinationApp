@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import { loadFeedback } from "../lib/trackFeedbackStorage";
-import { getCategoryBreakdown, getFiveStarTracks } from "../lib/feedbackAnalytics";
+import { getCategoryBreakdown, getLikedTracks } from "../lib/feedbackAnalytics";
 import { getClientTypeLabel } from "../lib/clientTypes";
 import CategoryBreakdown from "./CategoryBreakdown";
 import FiveStarList from "./FiveStarList";
@@ -46,7 +46,7 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
     feedback?.selectedCategories ?? [],
     feedback?.categoryRatings ?? {}
   );
-  const fiveStarTracks = getFiveStarTracks(
+  const likedTracks = getLikedTracks(
     tracks,
     feedback?.ratings ?? {},
     feedback?.comments ?? {}
@@ -93,7 +93,7 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
             clientType={client?.clientType}
           />
           <CategoryBreakdown breakdown={breakdown} />
-          <FiveStarList tracks={fiveStarTracks} />
+          <FiveStarList tracks={likedTracks} />
         </>
       )}
     </div>

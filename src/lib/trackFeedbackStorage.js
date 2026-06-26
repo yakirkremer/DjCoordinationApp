@@ -1,9 +1,10 @@
 import { DEFAULT_PREFERENCES, mergePreferences } from "./preferences";
 import { fetchFeedback, saveFeedback as saveFeedbackApi } from "./api/dataApi";
 import { OFFICIAL_CATEGORIES } from "./categories";
+import { migrateTrackRatings } from "./trackRating";
 
 export function feedbackStorageKey(clientId) {
-  return `kramer-music-track-feedback-v1-${clientId}`;
+  return `kremer-music-track-feedback-v1-${clientId}`;
 }
 
 export function emptyFeedback(defaultCategories = OFFICIAL_CATEGORIES) {
@@ -19,7 +20,7 @@ export function emptyFeedback(defaultCategories = OFFICIAL_CATEGORIES) {
 export function normalizeFeedback(parsed, defaultCategories) {
   if (!parsed) return emptyFeedback(defaultCategories);
   return {
-    ratings: parsed.ratings ?? {},
+    ratings: migrateTrackRatings(parsed.ratings ?? {}),
     comments: parsed.comments ?? {},
     selectedCategories: Array.isArray(parsed.selectedCategories)
       ? parsed.selectedCategories

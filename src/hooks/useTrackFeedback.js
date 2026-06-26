@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { loadFeedback, saveFeedback } from "../lib/trackFeedbackStorage";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import { DEFAULT_PREFERENCES } from "../lib/preferences";
+import {
+  DEFAULT_TRACK_RATING,
+  normalizeTrackRating,
+} from "../lib/trackRating";
 
 export default function useTrackFeedback(clientId = null) {
   const [ratings, setRatings] = useState({});
@@ -75,7 +79,21 @@ export default function useTrackFeedback(clientId = null) {
   const rateTrack = useCallback(
     (trackId, rating) => {
       setRatings((prev) => {
-        const next = { ...prev, [trackId]: prev[trackId] === rating ? 0 : rating };
+        const current = normalizeTrackRating(prev[trackId]);
+        const nextRating = normalizeTrackRating(rating);
+        const next = { ...prev };
+
+        if (current === nextRating) {
+          if (nextRating === DEFAULT_TRACK_RATING) {
+            delete next[trackId];
+          } else {
+            next[trackId] = DEFAULT_TRACK_RATING;
+          }
+        } else {
+          next[trackId] =
+            nextRating === DEFAULT_TRACK_RATING ? DEFAULT_TRACK_RATING : nextRating;
+        }
+
         persist({ ratings: next });
         return next;
       });

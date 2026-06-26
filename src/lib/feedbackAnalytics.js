@@ -1,3 +1,5 @@
+import { normalizeTrackRating, TRACK_RATING } from "./trackRating";
+
 export function getCategoryBreakdown(allCategories, selectedCategories, categoryRatings = {}) {
   const selected = new Set(selectedCategories);
   const selectedCount = allCategories.filter((c) => selected.has(c)).length;
@@ -16,11 +18,16 @@ export function getCategoryBreakdown(allCategories, selectedCategories, category
   };
 }
 
-export function getFiveStarTracks(tracks, ratings, comments = {}) {
+export function getLikedTracks(tracks, ratings, comments = {}) {
   return tracks
-    .filter((t) => !t.isMissing && ratings[t.id] === 5)
+    .filter((t) => !t.isMissing && normalizeTrackRating(ratings[t.id]) === TRACK_RATING.LIKE)
     .map((track) => ({
       ...track,
       comment: comments[track.id] ?? "",
     }));
+}
+
+/** @deprecated Use getLikedTracks */
+export function getFiveStarTracks(tracks, ratings, comments = {}) {
+  return getLikedTracks(tracks, ratings, comments);
 }

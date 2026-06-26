@@ -1977,3 +1977,107 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+/* ── Track rating (like / ok / dislike) ───────────────────── */
+
+.track-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.track-rating--compact {
+  gap: 0.25rem;
+}
+
+.track-rating-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #2a2a32;
+  background: rgba(0, 0, 0, 0.35);
+  color: #8b8b96;
+  font-size: 0.65rem;
+  line-height: 1;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.track-rating--compact .track-rating-btn {
+  padding: 0.28rem;
+}
+
+.track-rating--touch .track-rating-btn {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  justify-content: center;
+}
+
+.track-rating-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.track-rating-label {
+  white-space: nowrap;
+}
+
+.track-rating-btn--like.is-active {
+  border-color: #22c55e;
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.16);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.25);
+}
+
+.track-rating-btn--like.is-active .track-rating-dot {
+  background: #22c55e;
+  opacity: 1;
+}
+
+.track-rating-btn--ok.is-active {
+  border-color: #eab308;
+  color: #fef08a;
+  background: rgba(234, 179, 8, 0.16);
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
+}
+
+.track-rating-btn--ok.is-active .track-rating-dot {
+  background: #eab308;
+  opacity: 1;
+}
+
+.track-rating-btn--dislike.is-active {
+  border-color: #ef4444;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.16);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.22);
+}
+
+.track-rating-btn--dislike.is-active .track-rating-dot {
+  background: #ef4444;
+  opacity: 1;
+}
+
+.track-rating-btn:hover:not(.is-active) {
+  border-color: #4b4b58;
+  color: #c8c8d0;
+}
+
+.track-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.track-rating-pill--like {
+  border: 1px solid #22c55e;
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.14);
+}
