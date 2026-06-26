@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "steps": [
+    {
+      "id": "event-details",
+      "stepType": "questions",
+      "title": "פרטי האירוע",
+      "description": "ספרו לנו מתי ואיפה האירוע שלכם — זה עוזר לדיג'יי להתכונן מראש.",
+      "questions": [
+        {
+          "id": "eventDate",
+          "type": "date",
+          "label": "תאריך האירוע",
+          "required": true,
+          "audience": "all",
+          "fieldKey": "eventDate"
+        },
+        {
+          "id": "eventLocation",
+          "type": "text",
+          "label": "מיקום האירוע",
+          "required": true,
+          "audience": "all",
+          "fieldKey": "eventLocation",
+          "placeholder": "שם האולם, עיר..."
+        }
+      ],
+      "audience": "all"
+    },
+    {
+      "id": "energy",
+      "stepType": "energy",
+      "title": "רמת אנרגיה",
+      "description": "בחרו את האווירה הכללית של האירוע.",
+      "questions": [],
+      "audience": "all"
+    },
+    {
+      "id": "genres",
+      "stepType": "genres",
+      "title": "סגנונות מוזיקה",
+      "description": "סמנו קטגוריות ודרגו כל סגנון מ-1 עד 5 כוכבים.",
+      "questions": [],
+      "audience": "all"
+    },
+    {
+      "id": "phases",
+      "stepType": "phases",
+      "title": "שלבי האירוע",
+      "description": "לכל שלב באירוע, בחרו אילו סגנונות מתאימים.",
+      "questions": [],
+      "audience": "full-wedding"
+    },
+    {
+      "id": "playlists",
+      "stepType": "playlists",
+      "title": "רשימות והערות",
+      "description": "ספרו לדיג'יי מה חובה לנגן ומה להימנע ממנו.",
+      "questions": [],
+      "audience": "all"
+    },
+    {
+      "id": "summary",
+      "stepType": "summary",
+      "title": "סיכום",
+      "description": "בדקו שהכל נכון לפני שממשיכים לדירוג השירים.",
+      "questions": [],
+      "audience": "all"
+    }
+  ]
+}

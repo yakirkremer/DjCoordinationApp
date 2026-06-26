@@ -1,0 +1,155 @@
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
+export const DATA_DIR = path.join(ROOT, "public", "data");
+
+export const DATA_FILES = {
+  clients: "clients.json",
+  formSchema: "form-schema.json",
+  feedback: "feedback.json",
+  catalog: "catalog.json",
+};
+
+export async function ensureDataDir() {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+}
+
+export async function readJsonFile(filename, fallback) {
+  await ensureDataDir();
+  try {
+    const raw = await fs.readFile(path.join(DATA_DIR, filename), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+export async function writeJsonFile(filename, data) {
+  await ensureDataDir();
+  const filePath = path.join(DATA_DIR, filename);
+  const tmpPath = `${filePath}.tmp`;
+  await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), "utf8");
+  await fs.rename(tmpPath, filePath);
+}
+
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+
+export function sendJson(res, status, payload) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(payload));
+}
+
+export async function handleDataApi(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  if (!url.pathname.startsWith("/api/data/")) return false;
+
+  const resource = url.pathname.slice("/api/data/".length);
+
+  try {
+    if (resource === "clients") {
+      if (req.method === "GET") {
+        const clients = await readJsonFile(DATA_FILES.clients, []);
+        sendJson(res, 200, clients);
+        return true;
+      }
+      if (req.method === "PUT") {
+        const body = JSON.parse(await readBody(req));
+        if (!Array.isArray(body)) {
+          sendJson(res, 400, { error: "Expected array" });
+          return true;
+        }
+        await writeJsonFile(DATA_FILES.clients, body);
+        sendJson(res, 200, { ok: true });
+        return true;
+      }
+    }
+
+    if (resource === "form-schema") {
+      if (req.method === "GET") {
+        const schema = await readJsonFile(DATA_FILES.formSchema, null);
+        sendJson(res, 200, schema);
+        return true;
+      }
+      if (req.method === "PUT") {
+        const body = JSON.parse(await readBody(req));
+        await writeJsonFile(DATA_FILES.formSchema, body);
+        sendJson(res, 200, { ok: true });
+        return true;
+      }
+    }
+
+    if (resource === "feedback") {
+      if (req.method === "GET") {
+        const clientId = url.searchParams.get("clientId");
+        const all = await readJsonFile(DATA_FILES.feedback, {});
+        if (clientId) {
+          sendJson(res, 200, all[clientId] ?? null);
+          return true;
+        }
+        sendJson(res, 200, all);
+        return true;
+      }
+      if (req.method === "PUT") {
+        const body = JSON.parse(await readBody(req));
+        const { clientId, data } = body;
+        if (!clientId) {
+          sendJson(res, 400, { error: "clientId required" });
+          return true;
+        }
+        const all = await readJsonFile(DATA_FILES.feedback, {});
+        if (data == null) {
+          delete all[clientId];
+        } else {
+          all[clientId] = data;
+        }
+        await writeJsonFile(DATA_FILES.feedback, all);
+        sendJson(res, 200, { ok: true });
+        return true;
+      }
+    }
+
+    if (resource === "catalog") {
+      if (req.method === "GET") {
+        const catalog = await readJsonFile(DATA_FILES.catalog, []);
+        sendJson(res, 200, catalog);
+        return true;
+      }
+      if (req.method === "PUT") {
+        const body = JSON.parse(await readBody(req));
+        if (!Array.isArray(body)) {
+          sendJson(res, 400, { error: "Expected array" });
+          return true;
+        }
+        await writeJsonFile(DATA_FILES.catalog, body);
+        sendJson(res, 200, { ok: true });
+        return true;
+      }
+    }
+
+    sendJson(res, 404, { error: "Not found" });
+    return true;
+  } catch (err) {
+    sendJson(res, 500, { error: err.message || "Server error" });
+    return true;
+  }
+}
+
+export function createDataApiMiddleware() {
+  return (req, res, next) => {
+    handleDataApi(req, res).then((handled) => {
+      if (!handled) next();
+    });
+  };
+}

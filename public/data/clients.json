@@ -1,0 +1,23 @@
+[
+  {
+    "id": "client_1782473263999_wid00",
+    "name": "John",
+    "loginCode": "M6UI3W",
+    "clientType": "full-wedding",
+    "createdAt": "2026-06-26T11:27:43.999Z"
+  },
+  {
+    "id": "client_1782473268251_x50k8",
+    "name": "Doe",
+    "loginCode": "N2KZKA",
+    "clientType": "after",
+    "createdAt": "2026-06-26T11:27:48.251Z"
+  },
+  {
+    "id": "client_1782476394794_f4nik",
+    "name": "Admin",
+    "loginCode": "KREMER",
+    "clientType": "full-wedding",
+    "createdAt": "2026-06-26T12:19:54.794Z"
+  }
+]
