@@ -18,7 +18,15 @@ export default function FiveStarList({ tracks }) {
                     {track.artist} • <span className="text-purple-400">{track.bucket}</span>
                   </p>
                 </div>
-                <span className="track-rating-pill track-rating-pill--like shrink-0">אהבתי</span>
+                <span className="track-rating-pill track-rating-pill--like shrink-0">
+                  <svg className="track-rating-pill-icon" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      fill="currentColor"
+                      d="M7 22h4V9.3L5.4 4.6C4.8 3.6 5.5 2.25 6.7 2.25H9c.4 0 .8.2 1 .5l2.2 3.2H20c1.1 0 2 .9 2 2v6.8c0 .8-.5 1.5-1.2 1.9l-5.4 3.1c-.4.2-.8.4-1.3.4H11c-.6 0-1.1-.3-1.4-.8L7 22z"
+                    />
+                  </svg>
+                  אהבתי
+                </span>
               </div>
               {track.comment && (
                 <p className="text-xs text-gray-400 italic border-r-2 border-purple-500 pr-3">
