@@ -2,6 +2,21 @@ import { createDropboxAnalyzeMiddleware } from "./dropboxAnalyze.js";
 
 let cachedAccessToken = null;
 let tokenExpiresAt = 0;
+const temporaryLinkCache = new Map();
+
+function getCachedTemporaryLink(dropboxPath) {
+  const cached = temporaryLinkCache.get(dropboxPath);
+  if (!cached) return null;
+  if (Date.now() >= cached.expiresAt - 60_000) {
+    temporaryLinkCache.delete(dropboxPath);
+    return null;
+  }
+  return cached.link;
+}
+
+function setCachedTemporaryLink(dropboxPath, link, expiresAt) {
+  temporaryLinkCache.set(dropboxPath, { link, expiresAt });
+}
 
 export async function refreshDropboxToken(env = process.env) {
   if (cachedAccessToken && Date.now() < tokenExpiresAt - 60_000) {
@@ -71,6 +86,13 @@ export function createDropboxApiMiddleware(getAccessToken = () => refreshDropbox
           return;
         }
 
+        const cachedLink = getCachedTemporaryLink(dropboxPath);
+        if (cachedLink) {
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ link: cachedLink }));
+          return;
+        }
+
         const linkRes = await fetch("https://api.dropboxapi.com/2/files/get_temporary_link", {
           method: "POST",
           headers: {
@@ -87,6 +109,10 @@ export function createDropboxApiMiddleware(getAccessToken = () => refreshDropbox
         }
 
         const data = await linkRes.json();
+        const expiresAt = data.metadata?.expires
+          ? new Date(data.metadata.expires).getTime()
+          : Date.now() + 3 * 60 * 60 * 1000;
+        setCachedTemporaryLink(dropboxPath, data.link, expiresAt);
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify({ link: data.link }));
       } catch (err) {

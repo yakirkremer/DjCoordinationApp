@@ -17,6 +17,7 @@ import useDropbox from "./hooks/useDropbox";
 import { OFFICIAL_CATEGORIES } from "./lib/categories";
 import { normalizePreviewCue } from "./lib/previewCue";
 import { resolveTrackAudioUrl, verifyLocalTrack } from "./lib/trackAudioUrl";
+import useAudioPreload from "./hooks/useAudioPreload";
 import { loadDropboxState, loadDropboxCatalog, saveDropboxCatalog } from "./lib/dropbox/storage";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
 
@@ -65,6 +66,12 @@ export default function DJPoolDemo() {
       }),
     [musicSource, dropboxClient]
   );
+
+  const preloadContext = { musicSource, dropboxClient };
+  const canPreload =
+    catalogStatus === "ready" && tracks.some((t) => t.isMissing !== true);
+
+  useAudioPreload(tracks, preloadContext, currentTrack?.id ?? null, canPreload);
 
   useEffect(() => {
     let cancelled = false;
