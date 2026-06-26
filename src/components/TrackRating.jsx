@@ -6,25 +6,24 @@ import {
   normalizeTrackRating,
 } from "../lib/trackRating";
 
+const THUMB_UP_PATH =
+  "M23 10a2 2 0 0 0-2-2h-6.68l.96-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10a2 2 0 0 0 2 2h10l3.6-7.2c.3-.6.9-1 1.4-1.8V10zM1 21h4V9H1v12z";
+
 function RatingIcon({ type }) {
   if (type === TRACK_RATING.LIKE) {
     return (
       <svg className="track-rating-icon" viewBox="0 0 24 24" aria-hidden>
-        <path
-          fill="currentColor"
-          d="M23 10a2 2 0 0 0-2-2h-6.68l.96-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10a2 2 0 0 0 2 2h10l3.6-7.2c.3-.6.9-1 1.4-1.8V10zM1 21h4V9H1v12z"
-        />
+        <path fill="currentColor" d={THUMB_UP_PATH} />
       </svg>
     );
   }
 
   if (type === TRACK_RATING.DISLIKE) {
     return (
-      <svg className="track-rating-icon" viewBox="0 0 24 24" aria-hidden>
-        <path
-          fill="currentColor"
-          d="M19 15h4V3h-4v12zM15 19.66V9h-5.5l.58-2.71c.12-.57.04-1.15-.24-1.65L8.67 2.6A2.5 2.5 0 0 0 4.5 4.5L6.65 8.28c.2.36.35.76.35 1.22v10.16c0 .74.6 1.34 1.34 1.34h5.32c.74 0 1.34-.6 1.34-1.34z"
-        />
+      <svg className="track-rating-icon track-rating-icon--down" viewBox="0 0 24 24" aria-hidden>
+        <g transform="translate(0 24) scale(1 -1)">
+          <path fill="currentColor" d={THUMB_UP_PATH} />
+        </g>
       </svg>
     );
   }
