@@ -2037,6 +2037,23 @@ body {
   height: 1.15rem;
 }
 
+.track-rating-ok-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.track-rating--touch .track-rating-ok-text {
+  font-size: 0.82rem;
+  min-width: 1.5rem;
+}
+
 .track-rating-label {
   white-space: nowrap;
   font-weight: 600;

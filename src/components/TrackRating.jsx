@@ -29,15 +29,11 @@ function RatingIcon({ type }) {
     );
   }
 
-  return (
-    <svg className="track-rating-icon track-rating-icon--ok" viewBox="0 0 24 24" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zM8.5 17.5c0-1.2 1.57-2.25 3.5-2.25s3.5 1.05 3.5 2.25v.75H8.5v-.75z"
-        opacity="0.95"
-      />
-    </svg>
-  );
+  if (type === TRACK_RATING.OK) {
+    return <span className="track-rating-ok-text">OK</span>;
+  }
+
+  return null;
 }
 
 export default function TrackRating({
@@ -72,7 +68,9 @@ export default function TrackRating({
             }`}
           >
             <RatingIcon type={option.value} />
-            {!compact && <span className="track-rating-label">{option.labelHe}</span>}
+            {!compact && option.value !== TRACK_RATING.OK && (
+              <span className="track-rating-label">{option.labelHe}</span>
+            )}
           </button>
         );
       })}
