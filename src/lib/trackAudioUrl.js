@@ -3,7 +3,8 @@ export function getLocalTrackUrl(track) {
 }
 
 export function usesDropboxStream(track, musicSource) {
-  return musicSource === "dropbox" && Boolean(track.dropboxPath);
+  if (!track.dropboxPath) return false;
+  return musicSource === "dropbox" || track.source === "dropbox";
 }
 
 export async function resolveTrackAudioUrl(track, { musicSource, dropboxClient }) {

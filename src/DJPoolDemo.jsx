@@ -107,6 +107,13 @@ export default function DJPoolDemo() {
             )
           : await Promise.all(
               data.map(async (track) => {
+                if (track.dropboxPath) {
+                  return normalizePreviewCue({
+                    ...track,
+                    isMissing: false,
+                    source: track.source || "dropbox",
+                  });
+                }
                 const exists = await verifyLocalTrack(track);
                 return normalizePreviewCue({
                   ...track,
