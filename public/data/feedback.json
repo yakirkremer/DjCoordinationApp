@@ -1,0 +1,33 @@
+{
+  "client_1782473263999_wid00": {
+    "ratings": {},
+    "comments": {},
+    "selectedCategories": [
+      "Israeli",
+      "Loazi",
+      "Mizrahit",
+      "Oldies",
+      "Hip Hop",
+      "Regatton",
+      "Trance",
+      "Techno"
+    ],
+    "categoryRatings": {},
+    "preferences": {
+      "wizardCompleted": true,
+      "eventDate": "",
+      "eventLocation": "",
+      "energyLevel": "mixed",
+      "phases": {
+        "reception": [],
+        "dancing": [],
+        "dessert": [],
+        "hora": []
+      },
+      "mustPlay": [],
+      "doNotPlay": [],
+      "djNotes": "",
+      "customAnswers": {}
+    }
+  }
+}
