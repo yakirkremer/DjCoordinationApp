@@ -2,7 +2,8 @@ import React from "react";
 import { ENERGY_LEVELS, EVENT_PHASES } from "../lib/preferences";
 import { getFieldValue } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
-import { getClientTypeLabel } from "../lib/clientTypes";
+import { getClientTypeLabel, normalizeClientType } from "../lib/clientTypes";
+import WeddingTimelineSummary from "./WeddingTimelineSummary";
 
 export default function ClientPreferencesSummary({ preferences, formSchema, clientType }) {
   if (!preferences) return null;
@@ -65,6 +66,13 @@ export default function ClientPreferencesSummary({ preferences, formSchema, clie
                 );
               })
           )}
+        </div>
+      )}
+
+      {normalizeClientType(clientType) === "full-wedding" &&
+        preferences.weddingTimeline?.length > 0 && (
+        <div className="mb-4">
+          <WeddingTimelineSummary items={preferences.weddingTimeline} />
         </div>
       )}
 

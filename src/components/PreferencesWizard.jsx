@@ -5,6 +5,7 @@ import WizardStepGenres from "./WizardStepGenres";
 import WizardStepEnergy from "./WizardStepEnergy";
 import WizardStepPhases from "./WizardStepPhases";
 import WizardStepPlaylists from "./WizardStepPlaylists";
+import WizardStepTimeline from "./WizardStepTimeline";
 import WizardStepSummary from "./WizardStepSummary";
 import { validateQuestionsStep } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
@@ -123,6 +124,16 @@ export default function PreferencesWizard({
             phases={preferences.phases}
             availableCategories={selectedCategories}
             onTogglePhaseGenre={handleTogglePhaseGenre}
+            title={currentStepDef.title}
+            description={currentStepDef.description}
+          />
+        );
+      case "timeline":
+        return (
+          <WizardStepTimeline
+            preferences={preferences}
+            templateItems={currentStepDef.timelineItems ?? []}
+            onUpdatePreferences={onUpdatePreferences}
             title={currentStepDef.title}
             description={currentStepDef.description}
           />

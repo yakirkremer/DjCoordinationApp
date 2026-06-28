@@ -5,16 +5,28 @@ const SCHEMA_KEY = "kramer-music-form-schema-v1";
 
 function normalizeSchema(parsed) {
   if (!parsed?.steps?.length) return structuredClone(DEFAULT_FORM_SCHEMA);
+
+  let steps = parsed.steps.map((step) => ({
+    ...step,
+    audience: step.audience ?? "all",
+    timelineItems: Array.isArray(step.timelineItems) ? step.timelineItems : [],
+    questions: (Array.isArray(step.questions) ? step.questions : []).map((q) => ({
+      ...q,
+      audience: q.audience ?? "all",
+    })),
+  }));
+
+  for (const defStep of DEFAULT_FORM_SCHEMA.steps) {
+    if (!steps.some((s) => s.id === defStep.id)) {
+      const summaryIdx = steps.findIndex((s) => s.stepType === "summary");
+      const insertAt = summaryIdx >= 0 ? summaryIdx : steps.length;
+      steps = [...steps.slice(0, insertAt), structuredClone(defStep), ...steps.slice(insertAt)];
+    }
+  }
+
   return {
     version: parsed.version ?? 1,
-    steps: parsed.steps.map((step) => ({
-      ...step,
-      audience: step.audience ?? "all",
-      questions: (Array.isArray(step.questions) ? step.questions : []).map((q) => ({
-        ...q,
-        audience: q.audience ?? "all",
-      })),
-    })),
+    steps,
   };
 }
 

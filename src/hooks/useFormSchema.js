@@ -5,6 +5,7 @@ import {
   generateStepId,
   DEFAULT_FORM_SCHEMA,
 } from "../lib/defaultFormSchema";
+import { generateTimelineItemId } from "../lib/weddingTimeline";
 
 export default function useFormSchema() {
   const [schema, setSchema] = useState(() => structuredClone(DEFAULT_FORM_SCHEMA));
@@ -134,6 +135,50 @@ export default function useFormSchema() {
     });
   }, []);
 
+  const addTimelineItem = useCallback((stepId) => {
+    const item = {
+      id: generateTimelineItemId(),
+      time: "",
+      label: "",
+      notes: "",
+    };
+    setSchema((prev) => ({
+      ...prev,
+      steps: prev.steps.map((s) =>
+        s.id === stepId
+          ? { ...s, timelineItems: [...(s.timelineItems ?? []), item] }
+          : s
+      ),
+    }));
+  }, []);
+
+  const updateTimelineItem = useCallback((stepId, itemId, patch) => {
+    setSchema((prev) => ({
+      ...prev,
+      steps: prev.steps.map((s) =>
+        s.id === stepId
+          ? {
+              ...s,
+              timelineItems: (s.timelineItems ?? []).map((item) =>
+                item.id === itemId ? { ...item, ...patch } : item
+              ),
+            }
+          : s
+      ),
+    }));
+  }, []);
+
+  const deleteTimelineItem = useCallback((stepId, itemId) => {
+    setSchema((prev) => ({
+      ...prev,
+      steps: prev.steps.map((s) =>
+        s.id === stepId
+          ? { ...s, timelineItems: (s.timelineItems ?? []).filter((item) => item.id !== itemId) }
+          : s
+      ),
+    }));
+  }, []);
+
   const restoreDefault = useCallback(async () => {
     const fresh = await resetFormSchema();
     setSchema(fresh);
@@ -150,6 +195,9 @@ export default function useFormSchema() {
     updateQuestion,
     deleteQuestion,
     moveStep,
+    addTimelineItem,
+    updateTimelineItem,
+    deleteTimelineItem,
     restoreDefault,
     defaultSchema: DEFAULT_FORM_SCHEMA,
   };

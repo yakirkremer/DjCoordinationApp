@@ -71,18 +71,24 @@ async function seedDirectoryIfEmpty(seedDir, targetDir) {
   return copied;
 }
 
-/** First boot on an empty Render disk — copy bundled JSON (and any seed music) from the image. */
+/** First boot only — never overwrite existing disk data (e.g. Render /var/data). */
 export async function seedStorageIfEmpty() {
-  const seedDataDir = path.join(BOOTSTRAP_ROOT, "data");
-  const fallbackDataDir = path.join(ROOT, "public", "data");
-  const seedMusicDir = path.join(BOOTSTRAP_ROOT, "music");
+  const catalogPath = path.join(DATA_DIR, "catalog.json");
+  if (await fileExists(catalogPath)) {
+    return 0;
+  }
 
+  const seedDataDir = path.join(BOOTSTRAP_ROOT, "data");
+  const seedMusicDir = path.join(BOOTSTRAP_ROOT, "music");
   let copied = 0;
 
   if (await fileExists(seedDataDir)) {
     copied += await seedDirectoryIfEmpty(seedDataDir, DATA_DIR);
-  } else if (await fileExists(fallbackDataDir)) {
-    copied += await seedDirectoryIfEmpty(fallbackDataDir, DATA_DIR);
+  } else if (!process.env.RENDER) {
+    const localDataDir = path.join(ROOT, "public", "data");
+    if (await fileExists(localDataDir)) {
+      copied += await seedDirectoryIfEmpty(localDataDir, DATA_DIR);
+    }
   }
 
   if (await fileExists(seedMusicDir)) {

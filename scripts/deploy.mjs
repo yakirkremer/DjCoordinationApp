@@ -1,4 +1,5 @@
 import { execSync, spawnSync } from "child_process";
+import { RUNTIME_DATA_PATHS } from "./runtimeDataPaths.js";
 
 const REMOTE = process.env.DEPLOY_REMOTE || "DjCordApp";
 const BRANCH = process.env.DEPLOY_BRANCH || "main";
@@ -31,9 +32,17 @@ try {
     console.log("No file changes to commit.");
   } else {
     run("git add -A");
-    const commit = spawnSync("git", ["commit", "-m", message], { stdio: "inherit" });
-    if (commit.status !== 0) {
-      process.exit(commit.status ?? 1);
+    for (const filePath of RUNTIME_DATA_PATHS) {
+      spawnSync("git", ["reset", "HEAD", "--", filePath], { stdio: "ignore" });
+    }
+    const staged = capture("git diff --cached --name-only");
+    if (staged) {
+      const commit = spawnSync("git", ["commit", "-m", message], { stdio: "inherit" });
+      if (commit.status !== 0) {
+        process.exit(commit.status ?? 1);
+      }
+    } else {
+      console.log("Only local runtime data changed — skipped commit (catalog/clients stay local).");
     }
   }
 

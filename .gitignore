@@ -11,6 +11,14 @@ node_modules
 dist
 storage-bootstrap
 .env
+
+# Runtime data & uploads — local only, never push to Render via git
+public/data/catalog.json
+public/data/clients.json
+public/data/feedback.json
+public/data/form-schema.json
+public/music/**
+!public/music/.gitkeep
 dist-ssr
 *.local
 

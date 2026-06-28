@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { QUESTION_TYPES, canDeleteStep } from "../lib/defaultFormSchema";
 import { AUDIENCE_OPTIONS } from "../lib/formFilter";
+import FormTimelineEditor from "./FormTimelineEditor";
 
 function QuestionEditor({ question, stepId, onUpdate, onDelete, canDelete }) {
   return (
@@ -106,6 +107,9 @@ export default function FormBuilder({
   deleteQuestion,
   moveStep,
   restoreDefault,
+  addTimelineItem,
+  updateTimelineItem,
+  deleteTimelineItem,
 }) {
   const [activeStepId, setActiveStepId] = useState(schema.steps[0]?.id ?? "");
 
@@ -283,7 +287,18 @@ export default function FormBuilder({
             </div>
           )}
 
-          {activeStep.stepType !== "questions" && activeStep.stepType !== "summary" && (
+          {activeStep.stepType === "timeline" && (
+            <FormTimelineEditor
+              items={activeStep.timelineItems ?? []}
+              onAdd={() => addTimelineItem(activeStep.id)}
+              onUpdate={(itemId, patch) => updateTimelineItem(activeStep.id, itemId, patch)}
+              onDelete={(itemId) => deleteTimelineItem(activeStep.id, itemId)}
+            />
+          )}
+
+          {activeStep.stepType !== "questions" &&
+            activeStep.stepType !== "summary" &&
+            activeStep.stepType !== "timeline" && (
             <p className="text-xs text-xdj-muted border border-xdj-border rounded-sm p-3">
               שלב מובנה — ניתן לערוך כותרת ותיאור בלבד. התוכן נקבע אוטומטית במערכת.
             </p>

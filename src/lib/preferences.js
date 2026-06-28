@@ -27,6 +27,7 @@ export const DEFAULT_PREFERENCES = {
   doNotPlay: [],
   djNotes: "",
   customAnswers: {},
+  weddingTimeline: [],
 };
 
 export function mergePreferences(saved) {
@@ -45,5 +46,6 @@ export function mergePreferences(saved) {
       saved.customAnswers && typeof saved.customAnswers === "object"
         ? saved.customAnswers
         : {},
+    weddingTimeline: Array.isArray(saved.weddingTimeline) ? saved.weddingTimeline : [],
   };
 }

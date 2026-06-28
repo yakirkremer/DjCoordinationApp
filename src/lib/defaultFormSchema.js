@@ -1,3 +1,5 @@
+import { DEFAULT_WEDDING_TIMELINE } from "./weddingTimeline.js";
+
 export const QUESTION_TYPES = [
   { id: "text", label: "טקסט קצר" },
   { id: "textarea", label: "טקסט ארוך" },
@@ -40,6 +42,15 @@ export const DEFAULT_FORM_SCHEMA = {
           placeholder: "שם האולם, עיר...",
         },
       ],
+    },
+    {
+      id: "timeline",
+      stepType: "timeline",
+      title: "לוח זמנים",
+      description: "עדכנו את לוח הזמנים של האירוע והוסיפו אבני דרך משלכם.",
+      audience: "full-wedding",
+      timelineItems: DEFAULT_WEDDING_TIMELINE.map((item) => ({ ...item })),
+      questions: [],
     },
     {
       id: "genres",

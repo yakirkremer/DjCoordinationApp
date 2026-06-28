@@ -10,7 +10,7 @@ import {
   saveClients as saveClientsApi,
   deleteFeedback,
 } from "../lib/api/dataApi";
-import { migrateLocalStorageToServer } from "../lib/migrateLocalStorage";
+import { migrateLocalStorageToServer, shouldMigrateLocalStorage } from "../lib/migrateLocalStorage";
 import * as dataApi from "../lib/api/dataApi";
 
 const ACTIVE_CLIENT_KEY = "kremer-music-active-client-v1";
@@ -47,7 +47,9 @@ export default function useClients() {
 
     (async () => {
       try {
-        await migrateLocalStorageToServer(dataApi);
+        if (shouldMigrateLocalStorage()) {
+          await migrateLocalStorageToServer(dataApi);
+        }
         const data = await fetchClients();
         if (!cancelled) {
           setClients(Array.isArray(data) ? data.map(normalizeClient) : []);

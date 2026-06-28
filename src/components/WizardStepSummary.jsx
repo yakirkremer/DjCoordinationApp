@@ -2,6 +2,7 @@ import React from "react";
 import { ENERGY_LEVELS, EVENT_PHASES } from "../lib/preferences";
 import { getFieldValue } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
+import WeddingTimelineSummary from "./WeddingTimelineSummary";
 
 export default function WizardStepSummary({
   formSchema,
@@ -68,6 +69,10 @@ export default function WizardStepSummary({
           <span className="text-xdj-muted">רמת אנרגיה: </span>
           <span className="text-xdj-text">{energy?.label ?? "—"}</span>
         </div>
+        )}
+
+        {hasStep("timeline") && (
+          <WeddingTimelineSummary items={preferences.weddingTimeline} />
         )}
 
         {hasStep("phases") &&
