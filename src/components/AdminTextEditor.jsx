@@ -107,7 +107,7 @@ export default function AdminTextEditor() {
         </p>
         <h2 className="text-lg font-semibold text-xdj-gold mb-1">{t("admin.textEditorTitle")}</h2>
         <p className="text-xs text-xdj-muted max-w-3xl leading-relaxed">{t("admin.textEditorSubtitle")}</p>
-        <p className="text-[11px] text-xdj-muted mt-2 max-w-3xl">{t("admin.textEditorVarsHint")}</p>
+        <p className="text-[11px] text-xdj-cyan mt-2 max-w-3xl">{t("admin.siteTextEditHint")}</p>
         <div className="flex flex-wrap gap-2 mt-3 text-[11px] text-xdj-muted">
           <span>{t("admin.textEditorFormNote")}</span>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import EditableText from "./EditableText";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function ClientLogin({ onLogin }) {
@@ -22,8 +23,12 @@ export default function ClientLogin({ onLogin }) {
     <section className="panel-luxury rounded-sm p-8 max-w-md mx-auto" dir={dir}>
       <div className="text-center mb-8">
         <p className="font-lcd text-[10px] tracking-[0.3em] text-xdj-cyan uppercase mb-2">Kramer Music</p>
-        <h2 className="text-xl font-semibold text-xdj-gold">{t("login.title")}</h2>
-        <p className="text-xs text-xdj-muted mt-2 leading-relaxed">{t("login.subtitle")}</p>
+        <h2 className="text-xl font-semibold text-xdj-gold">
+          <EditableText k="login.title" />
+        </h2>
+        <p className="text-xs text-xdj-muted mt-2 leading-relaxed">
+          <EditableText k="login.subtitle" />
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -47,7 +52,7 @@ export default function ClientLogin({ onLogin }) {
           type="submit"
           className="btn-luxury-primary px-4 py-3 rounded-sm text-sm tracking-widest min-h-[44px] text-base"
         >
-          {t("login.submit")}
+          <EditableText k="login.submit" />
         </button>
       </form>
     </section>

@@ -22,7 +22,9 @@ import AdminSettings from "./components/AdminSettings";
 import AdminTextEditor from "./components/AdminTextEditor";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
-import TutorialPage from "./components/TutorialPage";
+import SiteTextEditPopover from "./components/SiteTextEditPopover";
+import SiteTextEditToggle from "./components/SiteTextEditToggle";
+import SiteTextEditBanner from "./components/SiteTextEditBanner";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
@@ -682,6 +684,7 @@ export default function DJPoolDemo() {
         {t("a11y.skipToContent")}
       </a>
       <AccessibilityToolbar />
+      {isAdmin ? <SiteTextEditBanner /> : null}
       {(isAdmin || activeClient || guestView === "guide" || guestView === "tutorial") && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
@@ -725,6 +728,7 @@ export default function DJPoolDemo() {
           )}
           {isAdmin && (
             <>
+              <SiteTextEditToggle />
               <button onClick={downloadJSON} className="btn-luxury-gold px-4 py-2 rounded-sm text-xs">
                 {t("header.exportJson")}
               </button>
@@ -875,6 +879,7 @@ export default function DJPoolDemo() {
           <GlobalPlayer {...playerProps} embedded={false} />
         </div>
       )}
+      {isAdmin ? <SiteTextEditPopover /> : null}
     </div>
   );
 }

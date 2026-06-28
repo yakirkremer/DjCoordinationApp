@@ -43,6 +43,24 @@ import { fetchAppSettings, saveAppSettings } from "../api/dataApi.js";
 
 const AppSettingsContext = createContext(null);
 
+const SITE_TEXT_EDIT_KEY = "kremer-site-text-edit-v1";
+
+function readSiteTextEditMode() {
+  try {
+    return sessionStorage.getItem(SITE_TEXT_EDIT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeSiteTextEditMode(on) {
+  try {
+    sessionStorage.setItem(SITE_TEXT_EDIT_KEY, on ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
 export function AppSettingsProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULT_APP_SETTINGS);
   const [ready, setReady] = useState(false);
@@ -54,6 +72,8 @@ export function AppSettingsProvider({ children }) {
   const [accessibility, setAccessibilityState] = useState(
     () => readStoredAccessibility() ?? DEFAULT_A11Y_PREFERENCES
   );
+  const [siteTextEditMode, setSiteTextEditModeState] = useState(readSiteTextEditMode);
+  const [siteTextEditKey, setSiteTextEditKey] = useState(null);
 
   const activeTheme = personalTheme ?? settings.theme ?? DEFAULT_THEME_ID;
   const activePlayerStyle = personalPlayerStyle ?? settings.playerStyle ?? DEFAULT_PLAYER_STYLE_ID;
@@ -127,6 +147,24 @@ export function AppSettingsProvider({ children }) {
   useEffect(() => {
     applyAccessibility(accessibility);
   }, [accessibility]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("site-text-edit-mode", siteTextEditMode);
+  }, [siteTextEditMode]);
+
+  const setSiteTextEditMode = useCallback((on) => {
+    setSiteTextEditModeState(on);
+    writeSiteTextEditMode(on);
+    if (!on) setSiteTextEditKey(null);
+  }, []);
+
+  const openSiteTextEditor = useCallback((key) => {
+    setSiteTextEditKey(key);
+  }, []);
+
+  const closeSiteTextEditor = useCallback(() => {
+    setSiteTextEditKey(null);
+  }, []);
 
   const setLocale = useCallback((next) => {
     setLocaleState(next);
@@ -237,11 +275,20 @@ export function AppSettingsProvider({ children }) {
       t,
       dir,
       isRtl,
+      siteTextEditMode,
+      setSiteTextEditMode,
+      siteTextEditKey,
+      openSiteTextEditor,
+      closeSiteTextEditor,
     }),
-    [ready, settings, locale, setLocale, updateSettings, activeTheme, setTheme, activePlayerStyle, setPlayerStyle, activeBrowserStyle, setBrowserStyle, activeWaveformStyle, setWaveformStyle, accessibility, setAccessibility, resetAccessibility, t, dir, isRtl]
+    [ready, settings, locale, setLocale, updateSettings, activeTheme, setTheme, activePlayerStyle, setPlayerStyle, activeBrowserStyle, setBrowserStyle, activeWaveformStyle, setWaveformStyle, accessibility, setAccessibility, resetAccessibility, t, dir, isRtl, siteTextEditMode, setSiteTextEditMode, siteTextEditKey, openSiteTextEditor, closeSiteTextEditor]
   );
 
-  return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;
+  return (
+    <AppSettingsContext.Provider value={value}>
+      {children}
+    </AppSettingsContext.Provider>
+  );
 }
 
 export function useAppSettingsContext() {

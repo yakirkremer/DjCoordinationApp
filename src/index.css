@@ -3708,6 +3708,79 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
   max-height: calc(100dvh - 18rem);
 }
 
+/* ── Live site text edit mode ──────────────────────────────── */
+
+.site-text-edit-banner {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  padding: 0.4rem 0.75rem;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--color-xdj-cyan);
+  background: rgba(0, 200, 232, 0.12);
+  border-bottom: 1px solid rgba(0, 200, 232, 0.35);
+}
+
+.site-text-edit-mode .site-text-editable {
+  outline: 1px dashed rgba(0, 200, 232, 0.65);
+  outline-offset: 2px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.12s ease, outline-color 0.12s ease;
+}
+
+.site-text-edit-mode .site-text-editable:hover,
+.site-text-edit-mode .site-text-editable:focus-visible {
+  background: rgba(0, 200, 232, 0.12);
+  outline-color: var(--color-xdj-cyan);
+}
+
+.site-text-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.site-text-edit-popover {
+  width: min(100%, 28rem);
+  max-height: min(90dvh, 32rem);
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+.site-text-edit-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.site-text-edit-close {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-xdj-muted);
+  padding: 0.15rem 0.35rem;
+}
+
+.site-text-edit-close:hover {
+  color: var(--color-xdj-text);
+}
+
+.site-text-edit-key {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--color-xdj-cyan);
+  word-break: break-all;
+}
+
 /* ── Genre vibe meter ─────────────────────────────────────── */
 
 .genre-vibe-meter {
