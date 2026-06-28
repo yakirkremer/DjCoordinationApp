@@ -21,7 +21,7 @@ export async function readGenreList() {
   return cachedGenres;
 }
 
-function getCachedGenres() {
+export function getCachedGenres() {
   return cachedGenres || normalizeGenres();
 }
 

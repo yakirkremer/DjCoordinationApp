@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { assertValidGenre } from "./genreStorage.js";
+import { assertValidGenre, getCachedGenres } from "./genreStorage.js";
 import { DEFAULT_DROP_TYPE } from "../src/lib/dropTypes.js";
 import {
   ensureTrackVersions,
