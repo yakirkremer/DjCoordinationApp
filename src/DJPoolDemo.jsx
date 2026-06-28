@@ -21,6 +21,7 @@ import AccessibilityToolbar from "./components/AccessibilityToolbar";
 import AdminSettings from "./components/AdminSettings";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
+import TutorialPage from "./components/TutorialPage";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
@@ -672,7 +673,7 @@ export default function DJPoolDemo() {
         {t("a11y.skipToContent")}
       </a>
       <AccessibilityToolbar />
-      {(isAdmin || activeClient || guestView === "guide") && (
+      {(isAdmin || activeClient || guestView === "guide" || guestView === "tutorial") && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
         <div className="flex flex-col items-center sm:items-start gap-2 w-full sm:w-auto">
@@ -691,10 +692,14 @@ export default function DJPoolDemo() {
                     ? t("header.wizard", { name: activeClient.name })
                     : clientScreen === "guide"
                       ? t("header.guide")
-                      : t("header.home", { name: activeClient.name })
+                      : clientScreen === "tutorial"
+                        ? t("header.tutorial")
+                        : t("header.home", { name: activeClient.name })
                 : guestView === "guide"
                   ? t("header.guide")
-                  : t("header.guestSubtitle")}
+                  : guestView === "tutorial"
+                    ? t("header.tutorial")
+                    : t("header.guestSubtitle")}
           </p>
         </div>
 
@@ -728,7 +733,7 @@ export default function DJPoolDemo() {
         id="main-content"
         tabIndex={-1}
         className={`app-main-safe flex-1 min-h-0 max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2 sm:pb-4 flex flex-col ${
-          isCoupleBrowse || isAdmin || (activeClient && (clientScreen === "home" || clientScreen === "guide")) || guestView === "guide"
+          isCoupleBrowse || isAdmin || (activeClient && (clientScreen === "home" || clientScreen === "guide" || clientScreen === "tutorial")) || guestView === "guide" || guestView === "tutorial"
             ? "overflow-hidden"
             : "overflow-y-auto"
         }`}
@@ -747,11 +752,19 @@ export default function DJPoolDemo() {
             <div className="flex-1 min-h-0 overflow-y-auto">
               <DropsAndGenresGuide onBack={() => setGuestView("welcome")} />
             </div>
+          ) : guestView === "tutorial" ? (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <TutorialPage
+                onBack={() => setGuestView("welcome")}
+                onOpenGuide={() => setGuestView("guide")}
+              />
+            </div>
           ) : (
             <WelcomePage
               onLogin={handleClientLogin}
               onEnterAdmin={handleEnterAdmin}
               onOpenGuide={() => setGuestView("guide")}
+              onOpenTutorial={() => setGuestView("tutorial")}
             />
           )
         ) : !coupleReady ? (
@@ -770,12 +783,20 @@ export default function DJPoolDemo() {
               onStartWizard={handleStartWizard}
               onBrowseMusic={() => setClientScreen("browse")}
               onOpenGuide={() => setClientScreen("guide")}
+              onOpenTutorial={() => setClientScreen("tutorial")}
               onLogout={handleClientLogout}
             />
           </div>
         ) : clientScreen === "guide" ? (
           <div className="flex-1 min-h-0 overflow-y-auto">
             <DropsAndGenresGuide onBack={() => setClientScreen("home")} />
+          </div>
+        ) : clientScreen === "tutorial" ? (
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <TutorialPage
+              onBack={() => setClientScreen("home")}
+              onOpenGuide={() => setClientScreen("guide")}
+            />
           </div>
         ) : clientScreen === "wizard" ? (
           <PreferencesWizard

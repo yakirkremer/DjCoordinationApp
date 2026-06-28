@@ -51,6 +51,7 @@ const he = {
     clientLogin: "יש לי קוד כניסה לחתונה",
     adminLogin: "כניסת מנהל / דיג'יי",
     openGuide: "מה ההבדל בין סגנונות ודרופים?",
+    openTutorial: "איך המערכת עובדת?",
   },
   login: {
     title: "ברוכים הבאים",
@@ -67,6 +68,7 @@ const he = {
     wizard: "שלום {name} — טופס העדפות",
     home: "שלום {name}",
     guide: "מדריך סגנונות ודרופים",
+    tutorial: "מדריך שימוש",
     exitAdmin: "חזרה לדף הבית",
     exportJson: "EXPORT JSON",
   },
@@ -86,6 +88,7 @@ const he = {
     startForm: "התחל טופס העדפות",
     browseMusic: "גלוש ודרג שירים",
     openGuide: "מדריך סגנונות ודרופים",
+    openTutorial: "מדריך שימוש",
     emptyHint: 'עדיין לא מילאתם העדפות. לחצו על "התחל טופס העדפות" כדי להתחיל.',
     categoryTracksTitle: "שירים לפי סגנון",
     categoryTracksHint: "שירים שסימנתם בירוק (אהבתי) או בכתום (לא אהבתי) בזמן הדירוג",
@@ -305,6 +308,148 @@ const he = {
       "לאותו שיר יכולות להיות כמה גרסאות עם דרופ שונה. בזמן ההאזנה בחרו את הדרופ שמתאים לכם — הדירוג נשמר לשיר, לא לגרסה.",
     dropFallback: "גרסת {drop} — עריכה ייעודית של השיר בסגנון זה.",
   },
+  tutorial: {
+    kicker: "מדריך שימוש",
+    title: "איך המערכת עובדת — שלב אחר שלב",
+    intro:
+      "מדריך זה מסביר את כל שלבי התהליך: מה ממלאים בטופס, אילו אפשרויות יש בכל שלב, ואיך לדרג שירים בקטלוג. אפשר לחזור לכאן בכל עת מהלוח בקרה.",
+    weddingOnly: "חתונה מלאה",
+    optionsTitle: "מה אפשר לבחור?",
+    footerTitle: "רוצים להבין סגנונות ודרופים?",
+    footerBody:
+      "בשלב הדירוג תפגשו שני מושגים — סגנון (ז'אנר) ודרופ (גרסת עריכה). יש לנו מדריך נפרד שמסביר כל קטגוריה וסוג דרופ בפירוט.",
+    openGuide: "פתחו את מדריך הסגנונות והדרופים",
+    openTutorial: "איך המערכת עובדת?",
+    steps: {
+      login: {
+        short: "כניסה",
+        title: "כניסה עם קוד גישה",
+        description:
+          "הדיג'יי שולח לכם קוד כניסה אישי. הזינו אותו במסך הראשי כדי להיכנס לאזור האישי שלכם — שם תמלאו העדפות ותדרגו שירים.",
+        optionCount: 3,
+        options: {
+          0: "קוד כניסה — מחרוזת שקיבלתם מהדיג'יי (למשל \u2066KREMER\u2069)",
+          1: "כניסת מנהל — לדיג'יי בלבד, לניהול הקטלוג והלקוחות",
+          2: "ההתקדמות נשמרת — אפשר לצאת ולחזור מאותה נקודה",
+        },
+      },
+      dashboard: {
+        short: "לוח בקרה",
+        title: "לוח הבקרה האישי",
+        description:
+          "לאחר הכניסה תגיעו ללוח בקרה שמציג את סטטוס הטופס, רמת האנרגיה, כמה שירים אהבתם והערות שנוספו. מכאן מתחילים את הטופס, גולשים במוזיקה, או פותחים מדריכים.",
+        optionCount: 4,
+        options: {
+          0: "התחל / המשך / ערוך טופס העדפות",
+          1: "גלוש ודרג שירים — נפתח אחרי השלמת הטופס",
+          2: "מדריך סגנונות ודרופים — הסבר על ז'אנרים וגרסאות",
+          3: "סטטיסטיקות — סטטוס טופס, אנרגיה, שירים שאהבתם, הערות",
+        },
+      },
+      eventDetails: {
+        short: "פרטי אירוע",
+        title: "פרטי האירוע",
+        description:
+          "השלב הראשון בטופס. מזינים את התאריך והמיקום של האירוע, וייתכנו שאלות נוספות שהדיג'יי הגדיר (למשל סוג אירוע, מספר אורחים). שדות חובה מסומנים — לא ניתן להמשיך בלי למלא אותם.",
+        optionCount: 3,
+        options: {
+          0: "תאריך האירוע — שדה תאריך",
+          1: "מיקום האירוע — שם האולם, עיר וכו'",
+          2: "שאלות מותאמות — שדות נוספים שהדיג'יי הוסיף לטופס",
+        },
+      },
+      timeline: {
+        short: "לוח זמנים",
+        title: "לוח זמנים לחתונה",
+        description:
+          "בחתונה מלאה — בונים את לוח הזמנים של הערב: קבלת פנים, חופה, ארוחה, ריקודים ועוד. לכל אבן דרך מגדירים שעה, שם והערות. אפשר להוסיף שלבים משלכם או לערוך את ברירות המחדל.",
+        optionCount: 4,
+        options: {
+          0: "שעה — לכל שלב (למשל \u206618:00, 22:00\u2069)",
+          1: "שם השלב — קבלת פנים, חופה, ריקודים...",
+          2: "הערות — פרטים חופשיים לדיג'יי (אופציונלי)",
+          3: "הוספה / מחיקה — שלבים מותאמים אישית",
+        },
+      },
+      genres: {
+        short: "סגנונות",
+        title: "סגנונות מוזיקה",
+        description:
+          "בוחרים אילו סגנונות מתאימים לכם. לוחצים על כרטיס סגנון כדי לשמוע שירים מהקטלוג, ואז מדרגים בין 1 ל-5 כמה הסגנון מתאים — מ\"לא בשבילנו\" ועד \"חובה!\". חובה לדרג לפחות סגנון אחד כדי להמשיך.",
+        optionCount: 5,
+        options: {
+          0: "כרטיסי סגנון — \u2066Israeli, Techno, Mizrahit\u2069 ועוד",
+          1: "האזנה — לחיצה פותחת רשימת שירים עם נגן",
+          2: "מד דירוג 1–5 — \"לא בשבילנו\" → \"חובה!\"",
+          3: "בחירה אוטומטית — סגנון שדירגתם נכנס לרשימה",
+          4: "עדכון — אפשר לחזור ולשנות דירוג בכל עת",
+        },
+      },
+      energy: {
+        short: "אנרגיה",
+        title: "רמת אנרגיה",
+        description:
+          "בוחרים את האווירה הכללית של האירוע. זה עוזר לדיג'יי לתכנן את מעברי האנרגיה לאורך הערב — לא רק אילו סגנונות, אלא גם באיזה קצב.",
+        optionCount: 3,
+        options: {
+          0: "רגוע — אווירה נעימה ושקטה",
+          1: "מעורב — שילוב של רגוע ומסיבה",
+          2: "מסיבה — אנרגיה גבוהה ורחבה",
+        },
+      },
+      phases: {
+        short: "שלבי אירוע",
+        title: "מוזיקה לפי שלבי האירוע",
+        description:
+          "בחתונה מלאה — לכל שלב בערב (קבלת פנים, ריקודים, קינוח, הורה) בוחרים אילו מהסגנונות שסימנתם מתאימים. אפשר לבחור כמה סגנונות לכל שלב.",
+        optionCount: 4,
+        options: {
+          0: "קבלת פנים — סגנונות לכניסה וקבלת האורחים",
+          1: "ריקודים — מה שרוצים על הרחבה",
+          2: "קינוח — רגע שקט יותר באמצע",
+          3: "הורה — סגנונות לריקוד ההורה",
+        },
+      },
+      playlists: {
+        short: "רשימות",
+        title: "רשימות שירים והערות",
+        description:
+          "מעבירים לדיג'יי מידע חשוב שלא מכוסה בשאר השלבים: שירים שחייבים לנגן, מה אסור, והערות חופשיות.",
+        optionCount: 3,
+        options: {
+          0: "חובה לנגן — שירים או אמנים שהחתן/החתנה חייבים לשמוע",
+          1: "לא לנגן — שירים או סגנונות שאסור לנגן",
+          2: "הערות חופשיות — כל מידע נוסף לדיג'יי",
+        },
+      },
+      summary: {
+        short: "סיכום",
+        title: "סיכום וסיום הטופס",
+        description:
+          "בודקים שכל מה שמילאתם נכון — תאריך, סגנונות, אנרגיה, שלבים ורשימות. לוחצים \"סיים\" כדי לפתוח את קטלוג השירים לדירוג.",
+        optionCount: 3,
+        options: {
+          0: "סקירה — כל הבחירות מוצגות בקצרה",
+          1: "חזרה לשלב — לחיצה על שלב קודם לעריכה",
+          2: "סיום — פותח גישה לגלישה ודירוג שירים",
+        },
+      },
+      browse: {
+        short: "דירוג שירים",
+        title: "גלישה ודירוג שירים",
+        description:
+          "אחרי סיום הטופס — גולשים בקטלוג לפי הסגנונות שבחרתם. לכל שיר: מקשיבים, בוחרים גרסת דרופ, מדרגים (אהבתי / בסדר / לא אהבתי), ויכולים להוסיף הערה.",
+        optionCount: 5,
+        options: {
+          0: "סינון לפי סגנון — רק מה שבחרתם בטופס",
+          1: "נגן + גל קול — האזנה לקטע מתוך השיר",
+          2: "בחירת דרופ — אותו שיר יכול להיות בכמה גרסאות",
+          3: "דירוג — 👎 לא אהבתי · \u2066OK\u2069 בסדר · 👍 אהבתי",
+          4: "הערה — טקסט חופשי לדיג'יי על השיר",
+        },
+      },
+    },
+  },
 };
 
 const en = {
@@ -354,6 +499,7 @@ const en = {
     clientLogin: "I have an event access code",
     adminLogin: "Admin / DJ login",
     openGuide: "What are styles and drops?",
+    openTutorial: "How does it work?",
   },
   login: {
     title: "Welcome",
@@ -370,6 +516,7 @@ const en = {
     wizard: "Hello {name} — preferences form",
     home: "Hello {name}",
     guide: "Styles & drops guide",
+    tutorial: "How-to guide",
     exitAdmin: "Back to home",
     exportJson: "EXPORT JSON",
   },
@@ -389,6 +536,7 @@ const en = {
     startForm: "Start preferences form",
     browseMusic: "Browse & rate tracks",
     openGuide: "Styles & drops guide",
+    openTutorial: "How-to guide",
     emptyHint: 'No preferences yet. Click "Start preferences form" to begin.',
     categoryTracksTitle: "Tracks by style",
     categoryTracksHint: "Songs you marked green (like) or orange (dislike) while rating",
@@ -607,6 +755,148 @@ const en = {
     dropsIntro:
       "One song can have several versions with different drops. Pick the drop you prefer when listening — your rating applies to the song, not the version.",
     dropFallback: "{drop} version — a dedicated edit of the track in this style.",
+  },
+  tutorial: {
+    kicker: "How-to guide",
+    title: "How the system works — step by step",
+    intro:
+      "This guide walks through every stage: what to fill in the preferences form, what choices you have at each step, and how to rate tracks in the catalog. You can return here anytime from your dashboard.",
+    weddingOnly: "Full wedding",
+    optionsTitle: "What can you choose?",
+    footerTitle: "Want to understand styles and drops?",
+    footerBody:
+      "When rating tracks you'll see two concepts — style (genre) and drop (edit version). We have a separate guide that explains every category and drop type in detail.",
+    openGuide: "Open the styles & drops guide",
+    openTutorial: "How does it work?",
+    steps: {
+      login: {
+        short: "Login",
+        title: "Sign in with your access code",
+        description:
+          "Your DJ sends you a personal access code. Enter it on the welcome screen to reach your private area — where you fill preferences and rate tracks.",
+        optionCount: 3,
+        options: {
+          0: "Access code — the string from your DJ (e.g. KREMER)",
+          1: "Admin login — for the DJ only, to manage catalog and clients",
+          2: "Progress is saved — leave and return from the same point",
+        },
+      },
+      dashboard: {
+        short: "Dashboard",
+        title: "Your personal dashboard",
+        description:
+          "After signing in you land on a dashboard showing form status, energy level, liked tracks, and comments. From here you start the form, browse music, or open guides.",
+        optionCount: 4,
+        options: {
+          0: "Start / continue / edit preferences form",
+          1: "Browse & rate tracks — unlocks after completing the form",
+          2: "Styles & drops guide — explains genres and versions",
+          3: "Stats — form status, energy, liked tracks, comments",
+        },
+      },
+      eventDetails: {
+        short: "Event info",
+        title: "Event details",
+        description:
+          "The first form step. Enter your event date and location, plus any extra questions the DJ configured (e.g. event type, guest count). Required fields must be filled before continuing.",
+        optionCount: 3,
+        options: {
+          0: "Event date — date picker",
+          1: "Event location — venue name, city, etc.",
+          2: "Custom questions — extra fields the DJ added to the form",
+        },
+      },
+      timeline: {
+        short: "Timeline",
+        title: "Wedding timeline",
+        description:
+          "For full weddings — build the evening schedule: reception, ceremony, dinner, dancing, and more. Set time, label, and notes for each milestone. Add custom steps or edit defaults.",
+        optionCount: 4,
+        options: {
+          0: "Time — for each step (e.g. 18:00, 22:00)",
+          1: "Step name — reception, ceremony, dancing...",
+          2: "Notes — free text for the DJ (optional)",
+          3: "Add / delete — custom milestones",
+        },
+      },
+      genres: {
+        short: "Styles",
+        title: "Music styles",
+        description:
+          "Pick which styles fit your event. Tap a style card to hear catalog tracks, then rate 1–5 how much you like it — from \"not for us\" to \"must have!\". You must rate at least one style to continue.",
+        optionCount: 5,
+        options: {
+          0: "Style cards — Israeli, Techno, Mizrahit, etc.",
+          1: "Listen — tap opens a track list with player",
+          2: "1–5 vibe meter — \"not for us\" → \"must have!\"",
+          3: "Auto-select — rated styles are added to your list",
+          4: "Update anytime — return and change ratings later",
+        },
+      },
+      energy: {
+        short: "Energy",
+        title: "Energy level",
+        description:
+          "Choose the overall vibe of the event. This helps the DJ plan energy flow through the night — not just which styles, but at what pace.",
+        optionCount: 3,
+        options: {
+          0: "Chill — relaxed, easy atmosphere",
+          1: "Mixed — balance of chill and party",
+          2: "Party — high energy dance floor",
+        },
+      },
+      phases: {
+        short: "Phases",
+        title: "Music by event phase",
+        description:
+          "For full weddings — for each part of the evening (reception, dancing, dessert, hora) pick which of your selected styles fit. Multiple styles per phase are allowed.",
+        optionCount: 4,
+        options: {
+          0: "Reception — styles for guest arrival",
+          1: "Dancing — what you want on the floor",
+          2: "Dessert — a quieter moment mid-event",
+          3: "Hora — styles for the hora dance",
+        },
+      },
+      playlists: {
+        short: "Lists",
+        title: "Playlists & notes",
+        description:
+          "Tell the DJ what the rest of the form doesn't cover: must-play songs, do-not-play items, and free-form notes.",
+        optionCount: 3,
+        options: {
+          0: "Must play — songs or artists the couple must hear",
+          1: "Do not play — songs or styles that are off limits",
+          2: "Free notes — any extra info for the DJ",
+        },
+      },
+      summary: {
+        short: "Summary",
+        title: "Review & finish the form",
+        description:
+          "Check everything looks right — date, styles, energy, phases, and lists. Tap finish to unlock the track catalog for rating.",
+        optionCount: 3,
+        options: {
+          0: "Review — all choices shown at a glance",
+          1: "Jump back — tap a previous step to edit",
+          2: "Finish — opens browse & track rating",
+        },
+      },
+      browse: {
+        short: "Rate tracks",
+        title: "Browse & rate tracks",
+        description:
+          "After the form — browse the catalog by your selected styles. For each track: listen, pick a drop version, rate (like / ok / dislike), and optionally add a comment.",
+        optionCount: 5,
+        options: {
+          0: "Filter by style — only what you picked in the form",
+          1: "Player + waveform — hear a preview clip",
+          2: "Drop picker — one song can have several versions",
+          3: "Rating — 👎 dislike · OK · 👍 like",
+          4: "Comment — free text note for the DJ",
+        },
+      },
+    },
   },
 };
 

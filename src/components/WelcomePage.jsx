@@ -3,7 +3,7 @@ import ClientLogin from "./ClientLogin";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide }) {
+export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide, onOpenTutorial }) {
   const [showClientLogin, setShowClientLogin] = useState(false);
   const { t, dir } = useI18n();
 
@@ -46,8 +46,15 @@ export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide }) {
             </button>
             <button
               type="button"
-              onClick={onOpenGuide}
+              onClick={onOpenTutorial}
               className="text-xs text-xdj-cyan hover:text-xdj-text py-2 underline-offset-2 hover:underline"
+            >
+              {t("welcome.openTutorial")}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="text-xs text-xdj-muted hover:text-xdj-text py-2 underline-offset-2 hover:underline"
             >
               {t("welcome.openGuide")}
             </button>

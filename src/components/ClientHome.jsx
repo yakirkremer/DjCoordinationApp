@@ -18,6 +18,7 @@ export default function ClientHome({
   onStartWizard,
   onBrowseMusic,
   onOpenGuide,
+  onOpenTutorial,
   onLogout,
 }) {
   const { t, dir } = useI18n();
@@ -103,6 +104,13 @@ export default function ClientHome({
               {t("home.browseMusic")}
             </button>
           )}
+          <button
+            type="button"
+            onClick={onOpenTutorial}
+            className="btn-luxury px-5 py-3 rounded-sm text-sm min-h-[44px]"
+          >
+            {t("home.openTutorial")}
+          </button>
           <button
             type="button"
             onClick={onOpenGuide}
