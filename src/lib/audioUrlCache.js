@@ -3,7 +3,8 @@ const warmingUrls = new Set();
 
 export function getTrackCacheKey(track) {
   if (track?.bucket && track?.filename) {
-    return `local:${track.bucket}/${track.filename}`;
+    const version = track.audioVersion ? `:v${track.audioVersion}` : "";
+    return `local:${track.bucket}/${track.filename}${version}`;
   }
   return null;
 }

@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
+import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, "dist");
@@ -37,7 +38,9 @@ async function serveStatic(req, res) {
         res.end(data);
         return;
       } catch {
-        /* fall through to dist */
+        res.statusCode = 404;
+        res.end("Not found");
+        return;
       }
     }
   }
@@ -70,6 +73,7 @@ async function serveStatic(req, res) {
 
 const dataApi = createDataApiMiddleware();
 const uploadMusic = createUploadMusicMiddleware();
+const dropboxImport = createDropboxImportMiddleware();
 
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -83,7 +87,9 @@ const server = createServer((req, res) => {
 
   dataApi(req, res, () => {
     uploadMusic(req, res, () => {
-      serveStatic(req, res);
+      dropboxImport(req, res, () => {
+        serveStatic(req, res);
+      });
     });
   });
 });

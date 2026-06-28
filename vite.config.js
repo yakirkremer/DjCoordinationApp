@@ -1,7 +1,10 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
+import path from "path";
 import react from "@vitejs/plugin-react";
 import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
+import { createDropboxImportMiddleware, refreshDropboxToken } from "./server/dropboxImport.js";
+import { publicFilesGuardPlugin } from "./server/publicFilesGuard.js";
 
 function dataApiPlugin() {
   const attach = (server) => {
@@ -15,7 +18,30 @@ function dataApiPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), dataApiPlugin()],
-  appType: "spa",
+function dropboxImportPlugin(env) {
+  const middleware = createDropboxImportMiddleware(() => refreshDropboxToken(env));
+  const attach = (server) => {
+    server.middlewares.use(middleware);
+  };
+  return {
+    name: "dropbox-import-api",
+    configureServer: attach,
+    configurePreviewServer: attach,
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  return {
+    plugins: [
+      react(),
+      publicFilesGuardPlugin({
+        publicRoot: path.join(process.cwd(), "public"),
+        distRoot: path.join(process.cwd(), "dist"),
+      }),
+      dataApiPlugin(),
+      dropboxImportPlugin(env),
+    ],
+    appType: "spa",
+  };
 });

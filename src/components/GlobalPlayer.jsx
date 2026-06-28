@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
 import TrackArtwork from "./TrackArtwork";
+import TrackReloadButton from "./TrackReloadButton";
 import { normalizePreviewCue, isWithinPreviewCue, MIN_PREVIEW_LENGTH, computeLinkedCue } from "../lib/previewCue";
+import { getTrackSourceSummary } from "../lib/trackSource";
 
 const PLAYER_EXPAND_KEY = "kramer-player-expanded";
 const LINK_CUES_KEY = "kramer-link-cues-v1";
@@ -33,6 +35,8 @@ export default function GlobalPlayer({
   isAdmin = false,
   resolveTrackUrl,
   embedded = false,
+  onTrackReloaded,
+  onPlaybackFailed,
 }) {
   const waveformRef = useRef(null);
   const waveCanvasRef = useRef(null);
@@ -77,6 +81,10 @@ export default function GlobalPlayer({
   const isCollapsed = useMiniPlayer && !expanded;
 
   const cue = useMemo(() => normalizePreviewCue(currentTrack), [currentTrack]);
+  const trackSource = useMemo(
+    () => (currentTrack ? getTrackSourceSummary(currentTrack) : null),
+    [currentTrack]
+  );
 
   useEffect(() => {
     linkCuesRef.current = linkCues;
@@ -264,7 +272,10 @@ export default function GlobalPlayer({
       });
 
       wavesurferRef.current.on("error", () => {
-        if (!cancelled) setLoadError("Playback error — file may be missing or corrupt.");
+        if (!cancelled) {
+          setLoadError("Playback error — file may be missing or corrupt.");
+          onPlaybackFailed?.(currentTrack.id);
+        }
       });
 
       wavesurferRef.current.on("timeupdate", (time) => {
@@ -307,7 +318,7 @@ export default function GlobalPlayer({
         }
       }
     };
-  }, [currentTrack?.id, resolveTrackUrl]);
+  }, [currentTrack?.id, currentTrack?.audioVersion, resolveTrackUrl]);
 
   useEffect(() => {
     if (!wavesurferRef.current) return;
@@ -396,9 +407,30 @@ export default function GlobalPlayer({
           <span className="xdj-az-player-tag xdj-az-player-tag-dim">
             {isAdmin ? "ADMIN CUE EDIT" : "PREVIEW CUE"}
           </span>
+          {isAdmin && trackSource ? (
+            <span
+              className={`xdj-az-player-tag text-[9px] max-w-[min(100%,280px)] truncate ${
+                trackSource.status === "missing" ? "text-red-400" : "text-xdj-muted"
+              }`}
+              title={[trackSource.playbackUrl, trackSource.diskPath].filter(Boolean).join(" · ")}
+            >
+              {trackSource.status === "missing" ? "⚠ חסר: " : "▶ "}
+              {trackSource.playbackUrl}
+            </span>
+          ) : null}
         </div>
         <div className="xdj-az-player-deck-right">
-          {loadError ? (
+          {isAdmin && onTrackReloaded && currentTrack && (loadError || currentTrack.isMissing) ? (
+            <TrackReloadButton
+              track={currentTrack}
+              onReloaded={(updated) => {
+                setLoadError(null);
+                onTrackReloaded(updated);
+              }}
+              compact
+              label="טען קובץ"
+            />
+          ) : loadError ? (
             <span className="text-xs text-xdj-orange" title={loadError}>
               STREAM ERR
             </span>

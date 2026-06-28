@@ -10,12 +10,17 @@ import AdminDashboard from "./components/AdminDashboard";
 import FormBuilder from "./components/FormBuilder";
 import PreferencesWizard from "./components/PreferencesWizard";
 import TrackUploadPanel from "./components/TrackUploadPanel";
+import DropboxImportPanel from "./components/DropboxImportPanel";
+import TrackReloadButton from "./components/TrackReloadButton";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
+import useDropboxImport from "./hooks/useDropboxImport";
 import { OFFICIAL_CATEGORIES } from "./lib/categories";
 import { normalizePreviewCue } from "./lib/previewCue";
-import { resolveTrackAudioUrl, verifyLocalTrack } from "./lib/trackAudioUrl";
+import { resolveTrackAudioUrl, verifyLocalTrack, verifyTracks } from "./lib/trackAudioUrl";
+import { deleteTrack } from "./lib/api/uploadTrack";
+import { countMissingTracks } from "./lib/trackSource";
 import useAudioPreload from "./hooks/useAudioPreload";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
 
@@ -50,7 +55,9 @@ export default function DJPoolDemo() {
 
   const formSchemaApi = useFormSchema();
   const { schema: formSchema, ready: formReady } = formSchemaApi;
+  const dropboxImport = useDropboxImport();
   const catalogSaveTimer = useRef(null);
+  const verifyTrackTimer = useRef({});
 
   const appReady = clientsReady && formReady && catalogStatus === "ready";
   const coupleReady = !activeClient || feedbackReady;
@@ -79,13 +86,10 @@ export default function DJPoolDemo() {
           data = await res.json();
         }
 
-        const verifiedTracks = await Promise.all(
-          data.map(async (track) => {
-            const exists = await verifyLocalTrack(track);
-            return normalizePreviewCue({
-              ...track,
-              isMissing: !exists,
-            });
+        const verifiedTracks = await verifyTracks(
+          data.map((track) => {
+            const { isMissing, ...rest } = track;
+            return normalizePreviewCue(rest);
           })
         );
 
@@ -112,7 +116,8 @@ export default function DJPoolDemo() {
   const persistCatalog = useCallback((nextTracks) => {
     clearTimeout(catalogSaveTimer.current);
     catalogSaveTimer.current = setTimeout(() => {
-      saveCatalog(nextTracks).catch((err) => console.error("Catalog save failed:", err));
+      const forSave = nextTracks.map(({ audioVersion, isMissing, ...track }) => track);
+      saveCatalog(forSave).catch((err) => console.error("Catalog save failed:", err));
     }, 250);
   }, []);
 
@@ -136,6 +141,27 @@ export default function DJPoolDemo() {
         if (prev?.id !== id) return prev;
         return normalizePreviewCue({ ...prev, [field]: val });
       });
+
+      if (field === "filename" || field === "bucket") {
+        clearTimeout(verifyTrackTimer.current[id]);
+        verifyTrackTimer.current[id] = setTimeout(() => {
+          setTracks((prev) => {
+            const track = prev.find((t) => t.id === id);
+            if (track) {
+              verifyLocalTrack(track).then((exists) => {
+                const isMissing = !exists;
+                setTracks((current) =>
+                  current.map((t) => (t.id === id ? { ...t, isMissing } : t))
+                );
+                setCurrentTrack((current) =>
+                  current?.id === id ? { ...current, isMissing } : current
+                );
+              });
+            }
+            return prev;
+          });
+        }, 500);
+      }
     },
     [persistCatalog]
   );
@@ -159,13 +185,24 @@ export default function DJPoolDemo() {
     [persistCatalog]
   );
 
-  const handleDeleteTrack = (id) => {
-    const updated = tracks.filter((t) => t.id !== id);
-    setTracks(updated);
-    persistCatalog(updated);
-    if (currentTrack?.id === id) {
-      setCurrentTrack(updated[0] || null);
-      setIsPlaying(false);
+  const handleDeleteTrack = async (id) => {
+    const track = tracks.find((t) => t.id === id);
+    const label = track ? `${track.title} — ${track.artist}` : "שיר זה";
+    const confirmed = window.confirm(
+      `למחוק את "${label}"?\n\nיימחק מהקטלוג וגם קובץ ה-MP3 מהשרת (אם קיים).`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteTrack(id);
+      const updated = tracks.filter((t) => t.id !== id);
+      setTracks(updated);
+      if (currentTrack?.id === id) {
+        setCurrentTrack(updated.find((t) => !t.isMissing) || updated[0] || null);
+        setIsPlaying(false);
+      }
+    } catch (err) {
+      window.alert(err.message || "מחיקה נכשלה");
     }
   };
 
@@ -181,9 +218,15 @@ export default function DJPoolDemo() {
   };
 
   const handleAdminPreviewTrack = (track, { play = false } = {}) => {
-    if (track.isMissing) return;
     const normalized = normalizePreviewCue(track);
     const isSame = currentTrack?.id === normalized.id;
+
+    if (normalized.isMissing) {
+      setCurrentTrack(normalized);
+      setIsPlaying(false);
+      return;
+    }
+
     setCurrentTrack(normalized);
     setCurrentTime(normalized.startTime);
     if (play) {
@@ -209,15 +252,57 @@ export default function DJPoolDemo() {
   };
 
   const handleTrackUploaded = (newTrack) => {
-    const normalized = normalizePreviewCue({ ...newTrack, isMissing: false });
-    const updated = [...tracks, normalized];
+    handleTracksImported([newTrack]);
+  };
+
+  const handleTracksImported = (importedTracks) => {
+    if (!importedTracks?.length) return;
+    const normalized = importedTracks.map((t) => normalizePreviewCue({ ...t, isMissing: false }));
+    const updated = [...tracks, ...normalized];
     setTracks(updated);
     setCatalogStatus("ready");
     persistCatalog(updated);
-    setCurrentTrack(normalized);
-    setCurrentTime(normalized.startTime ?? 0);
+    const first = normalized[0];
+    setCurrentTrack(first);
+    setCurrentTime(first.startTime ?? 0);
     setIsPlaying(false);
   };
+
+  const handleTrackReloaded = useCallback(
+    (reloadedTrack) => {
+      const normalized = normalizePreviewCue({
+        ...reloadedTrack,
+        isMissing: false,
+        audioVersion: Date.now(),
+      });
+      const updated = tracks.map((t) => (t.id === normalized.id ? normalized : t));
+      setTracks(updated);
+      persistCatalog(updated);
+      if (currentTrack?.id === normalized.id) {
+        setCurrentTrack(normalized);
+        setCurrentTime(normalized.startTime ?? 0);
+        setIsPlaying(false);
+      }
+    },
+    [tracks, currentTrack?.id, persistCatalog]
+  );
+
+  const handleRefreshTrackFiles = useCallback(async () => {
+    const verified = await verifyTracks(tracks);
+    const normalized = verified.map((t) => normalizePreviewCue(t));
+    setTracks(normalized);
+    setCurrentTrack((ct) => {
+      if (!ct) return ct;
+      const fresh = normalized.find((t) => t.id === ct.id);
+      return fresh ? fresh : ct;
+    });
+  }, [tracks]);
+
+  const handleTrackPlaybackFailed = useCallback((trackId) => {
+    setTracks((prev) => prev.map((t) => (t.id === trackId ? { ...t, isMissing: true } : t)));
+    setCurrentTrack((prev) => (prev?.id === trackId ? { ...prev, isMissing: true } : prev));
+    setIsPlaying(false);
+  }, []);
 
   const isCoupleBrowse =
     !isAdmin && activeClient && coupleReady && preferences.wizardCompleted;
@@ -240,33 +325,60 @@ export default function DJPoolDemo() {
     isAdmin,
     resolveTrackUrl,
     embedded: isAdminCatalog,
+    onTrackReloaded: handleTrackReloaded,
+    onPlaybackFailed: handleTrackPlaybackFailed,
   };
 
   useEffect(() => {
     if (!isAdminCatalog || catalogStatus !== "ready") return;
-    if (currentTrack && !currentTrack.isMissing) return;
+    if (currentTrack) return;
     const first = tracks.find((t) => !t.isMissing);
     if (first) {
       setCurrentTrack(normalizePreviewCue(first));
       setCurrentTime(first.startTime ?? 0);
     }
-  }, [isAdminCatalog, catalogStatus, tracks, currentTrack?.id, currentTrack?.isMissing]);
+  }, [isAdminCatalog, catalogStatus, tracks, currentTrack]);
 
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
       return (
         <div className="admin-catalog-layout flex flex-col flex-1 min-h-0 gap-3">
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col gap-3">
             <TrackUploadPanel onUploaded={handleTrackUploaded} />
+            <DropboxImportPanel
+              dropbox={dropboxImport}
+              existingTracks={tracks}
+              onImported={handleTracksImported}
+            />
           </div>
 
           <div className="admin-catalog-player shrink-0">
             {currentTrack && !currentTrack.isMissing ? (
               <GlobalPlayer {...playerProps} />
-            ) : (
-              <div className="admin-catalog-player-empty panel-luxury p-4 text-center">
+            ) : currentTrack?.isMissing ? (
+              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir="rtl">
                 <p className="font-lcd text-xs text-xdj-muted">PREVIEW EDITOR</p>
-                <p className="text-xs text-xdj-muted mt-1">בחר שיר מהטבלה למטה כדי לנגן ולגרור סמני A / B</p>
+                <p className="text-sm font-semibold text-xdj-text mt-2">{currentTrack.title}</p>
+                <p className="text-xs text-xdj-muted">{currentTrack.artist}</p>
+                <p className="text-xs text-red-400 mt-2 font-medium">קובץ חסר — לא ניתן לנגן עד שתעלה MP3</p>
+                <div className="mt-4 flex justify-center">
+                  <TrackReloadButton
+                    track={currentTrack}
+                    onReloaded={handleTrackReloaded}
+                    label="טען מחדש"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir="rtl">
+                <p className="font-lcd text-xs text-xdj-muted">PREVIEW EDITOR</p>
+                {countMissingTracks(tracks) > 0 ? (
+                  <p className="text-xs text-red-400 mt-2 font-medium">
+                    ⚠ {countMissingTracks(tracks)} שירים ללא קובץ בשרת — ראה עמודת &quot;מקור נגינה&quot; בטבלה
+                  </p>
+                ) : (
+                  <p className="text-xs text-xdj-muted mt-1">בחר שיר מהטבלה למטה כדי לנגן ולגרור סמני A / B</p>
+                )}
               </div>
             )}
           </div>
@@ -278,6 +390,8 @@ export default function DJPoolDemo() {
               onUpdateTrack={handleUpdateTrack}
               onDeleteTrack={handleDeleteTrack}
               onPreviewTrack={handleAdminPreviewTrack}
+              onTrackReloaded={handleTrackReloaded}
+              onRefreshTrackFiles={handleRefreshTrackFiles}
             />
           </div>
         </div>
