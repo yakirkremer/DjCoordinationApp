@@ -15,4 +15,5 @@ export const DEFAULT_APP_SETTINGS = {
   dropTypes: DEFAULT_DROP_TYPES,
   dropTypeColors: normalizeDropTypeColors(DEFAULT_DROP_TYPES),
   genreTrackOrders: {},
+  textOverrides: { he: {}, en: {} },
 };

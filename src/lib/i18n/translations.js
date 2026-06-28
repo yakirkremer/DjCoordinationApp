@@ -136,6 +136,7 @@ const he = {
       form: "FORM",
       analytics: "INSIGHTS",
       settings: "SETTINGS",
+      copy: "TEXT",
     },
     previewEditor: "PREVIEW EDITOR",
     missingFile: "קובץ חסר — לא ניתן לנגן עד שתעלה MP3",
@@ -227,6 +228,23 @@ const he = {
     trackOrderHint: "בחרו סגנון משמאל, גררו שורות לשינוי הסדר — כך יופיעו ללקוחות. שירי דרופ ממוסגרים (Techno וכו') לא ניתנים לגרירה.",
     trackOrderSelect: "בחרו שיר מהרשימה לתצוגה מקדימה",
     trackOrderFailed: "שמירת הסדר נכשלה",
+    textEditorTitle: "עריכת טקסטים באתר",
+    textEditorSubtitle: "שנו כל טקסט שמוצג למבקרים — ברוכים הבאים, טופס, מדריכים, כפתורים ועוד. השינויים נשמרים לכל האתר.",
+    textEditorLocale: "שפה לעריכה",
+    textEditorSearch: "חיפוש לפי מפתח או טקסט…",
+    textEditorKey: "מפתח",
+    textEditorDefault: "ברירת מחדל",
+    textEditorCustom: "טקסט באתר",
+    textEditorResetKey: "איפוס",
+    textEditorResetLocale: "איפוס כל {locale}",
+    textEditorSave: "שמור טקסטים",
+    textEditorSaved: "טקסטים נשמרו",
+    textEditorFailed: "שמירת טקסטים נכשלה",
+    textEditorOverrideCount: "{count} שינויים ב-{locale}",
+    textEditorVarsHint: "שמרו על placeholders כמו {name} או {count} — הם מוחלפים בנתונים אמיתיים.",
+    textEditorNoResults: "אין תוצאות לחיפוש",
+    textEditorFormNote: "טקסטים בטופס ההעדפות (שלבים ושאלות) נערכים בלשונית FORM.",
+    textEditorGuideNote: "תיאורי סגנונות ודרופים בודדים נערכים בקובץ המדריך — כאן משנים את כותרות המדריך והטקסטים הכלליים.",
     versionFileRequired: "נדרש קובץ אודיו",
     versionAddFailed: "הוספת גרסה נכשלה",
     dropTypesTitle: "סוגי דרופ לגרסאות",
@@ -584,6 +602,7 @@ const en = {
       form: "FORM",
       analytics: "INSIGHTS",
       settings: "SETTINGS",
+      copy: "TEXT",
     },
     previewEditor: "PREVIEW EDITOR",
     missingFile: "File missing — upload an MP3 to play",
@@ -675,6 +694,23 @@ const en = {
     trackOrderHint: "Pick a genre on the left, drag rows to reorder — clients see this order. Drop-mirror rows (Techno etc.) cannot be dragged.",
     trackOrderSelect: "Select a track from the list to preview",
     trackOrderFailed: "Failed to save track order",
+    textEditorTitle: "Site copy editor",
+    textEditorSubtitle: "Change any visitor-facing text — welcome screen, form labels, guides, buttons, and more. Saved site-wide for all users.",
+    textEditorLocale: "Editing language",
+    textEditorSearch: "Search by key or text…",
+    textEditorKey: "Key",
+    textEditorDefault: "Default",
+    textEditorCustom: "Site text",
+    textEditorResetKey: "Reset",
+    textEditorResetLocale: "Reset all {locale}",
+    textEditorSave: "Save copy",
+    textEditorSaved: "Copy saved",
+    textEditorFailed: "Failed to save copy",
+    textEditorOverrideCount: "{count} override(s) in {locale}",
+    textEditorVarsHint: "Keep placeholders like {name} or {count} — they are replaced with real data.",
+    textEditorNoResults: "No matches for your search",
+    textEditorFormNote: "Preference form step titles and questions are edited in the FORM tab.",
+    textEditorGuideNote: "Individual genre and drop descriptions use the guide content file — here you edit guide headings and general UI copy.",
     versionFileRequired: "Audio file required",
     versionAddFailed: "Failed to add version",
     dropTypesTitle: "Version drop types",
@@ -902,7 +938,13 @@ const en = {
 
 export const translations = { he, en };
 
-export function translate(locale, key, vars = {}) {
+export function translate(locale, key, vars = {}, overrides = null) {
+  const normalizedOverrides = overrides && typeof overrides === "object" ? overrides : null;
+  const custom = normalizedOverrides?.[locale]?.[key];
+  if (typeof custom === "string" && custom.length > 0) {
+    return custom.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : ""));
+  }
+
   const parts = key.split(".");
   let node = translations[locale] ?? translations.he;
   for (const part of parts) {

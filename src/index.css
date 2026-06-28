@@ -3695,6 +3695,19 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
   box-shadow: 0 0 6px rgba(0, 200, 232, 0.5);
 }
 
+.admin-text-section-toggle:hover {
+  color: var(--color-xdj-text);
+}
+
+.admin-text-section-body {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.5rem;
+}
+
+.admin-text-editor-scroll {
+  max-height: calc(100dvh - 18rem);
+}
+
 /* ── Genre vibe meter ─────────────────────────────────────── */
 
 .genre-vibe-meter {

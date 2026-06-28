@@ -35,6 +35,7 @@ import {
   getBrowserRowSizeById,
 } from "../browserRowSize.js";
 import { DEFAULT_APP_SETTINGS } from "../defaultAppSettings.js";
+import { normalizeTextOverrides } from "./textOverrides.js";
 import { normalizeDropTypes } from "../dropTypes.js";
 import { normalizeDropTypeColors } from "../dropTypeColors.js";
 import { normalizeGenres } from "../categories.js";
@@ -81,6 +82,9 @@ export function AppSettingsProvider({ children }) {
           browserRowSize: getBrowserRowSizeById(
             remote?.browserRowSize ?? DEFAULT_APP_SETTINGS.browserRowSize
           ).id,
+          textOverrides: normalizeTextOverrides(
+            remote?.textOverrides ?? DEFAULT_APP_SETTINGS.textOverrides
+          ),
         };
         setSettings(merged);
         setLocaleState((prev) => readStoredLocale() ?? merged.defaultLocale ?? "he");
@@ -175,6 +179,9 @@ export function AppSettingsProvider({ children }) {
         dropTypes,
         patch.dropTypeColors ?? settings.dropTypeColors
       ),
+      textOverrides: patch.textOverrides
+        ? normalizeTextOverrides(patch.textOverrides)
+        : normalizeTextOverrides(settings.textOverrides),
     };
     delete next.genreRenames;
     delete next.genreRemoved;
@@ -202,7 +209,10 @@ export function AppSettingsProvider({ children }) {
     return next;
   }, [settings, personalTheme, personalPlayerStyle, personalBrowserStyle, personalWaveformStyle]);
 
-  const t = useCallback((key, vars) => translate(locale, key, vars), [locale]);
+  const t = useCallback(
+    (key, vars) => translate(locale, key, vars, settings.textOverrides),
+    [locale, settings.textOverrides]
+  );
   const dir = localeDir(locale);
   const isRtl = dir === "rtl";
 

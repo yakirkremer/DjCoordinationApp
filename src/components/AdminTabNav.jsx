@@ -1,7 +1,7 @@
 import React from "react";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-const TAB_IDS = ["catalog", "organize", "order", "clients", "form", "analytics", "settings"];
+const TAB_IDS = ["catalog", "organize", "order", "clients", "form", "copy", "analytics", "settings"];
 
 export default function AdminTabNav({ activeTab, onTabChange }) {
   const { t, dir } = useI18n();

@@ -19,6 +19,7 @@ import LanguageSwitcher from "./components/LanguageSwitcher";
 import AppearanceSwitcher from "./components/AppearanceSwitcher";
 import AccessibilityToolbar from "./components/AccessibilityToolbar";
 import AdminSettings from "./components/AdminSettings";
+import AdminTextEditor from "./components/AdminTextEditor";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
 import TutorialPage from "./components/TutorialPage";
@@ -656,6 +657,13 @@ export default function DJPoolDemo() {
     }
     if (adminTab === "form") {
       return <FormBuilder {...formSchemaApi} schema={formSchema} />;
+    }
+    if (adminTab === "copy") {
+      return (
+        <div className="flex flex-col flex-1 min-h-0">
+          <AdminTextEditor />
+        </div>
+      );
     }
     if (adminTab === "settings") {
       return (
