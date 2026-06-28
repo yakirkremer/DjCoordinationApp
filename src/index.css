@@ -2404,3 +2404,120 @@ html[data-theme="midnight"] .luxury-bg {
     display: block;
   }
 }
+
+.track-version-picker {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.track-version-picker.is-compact .track-version-picker-toggle {
+  font-size: 0.625rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.track-version-picker-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 0.25rem;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--color-xdj-cyan);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.track-version-picker-toggle:hover {
+  border-color: var(--color-xdj-cyan);
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.track-version-picker-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
+}
+
+.track-version-picker-chevron {
+  font-size: 0.5rem;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.track-version-picker-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.track-version-picker-missing {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.track-version-picker-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.2rem);
+  inset-inline-start: 0;
+  min-width: 10rem;
+  max-width: min(18rem, 90vw);
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 0.35rem;
+  background: var(--color-xdj-panel, #0d1117);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.track-version-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: none;
+  border-radius: 0.2rem;
+  background: transparent;
+  color: var(--color-xdj-text);
+  font-size: 0.7rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.track-version-picker-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.track-version-picker-item.is-active {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--color-xdj-cyan);
+}
+
+.track-version-picker-item.is-missing {
+  opacity: 0.65;
+}
+
+.admin-track-versions-panel {
+  padding: 0.75rem 1rem 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--color-xdj-border);
+}
+
+.admin-track-version-row {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-track-version-row:last-child {
+  border-bottom: none;
+}

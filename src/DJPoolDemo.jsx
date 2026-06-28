@@ -27,6 +27,11 @@ import { countMissingTracks } from "./lib/trackSource";
 import useAudioPreload from "./hooks/useAudioPreload";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
 import { useI18n } from "./lib/i18n/AppSettingsContext";
+import {
+  applyActiveVersion,
+  ensureTrackVersions,
+  stripTrackForCatalogSave,
+} from "./lib/trackVersions";
 
 export default function DJPoolDemo() {
   const { t, dir } = useI18n();
@@ -63,6 +68,17 @@ export default function DJPoolDemo() {
   const { schema: formSchema, ready: formReady } = formSchemaApi;
   const dropboxImport = useDropboxImport();
   const catalogSaveTimer = useRef(null);
+  const [activeVersionIds, setActiveVersionIds] = useState({});
+
+  const resolvePlaybackTrack = useCallback(
+    (track, versionId) => {
+      if (!track) return null;
+      const normalized = ensureTrackVersions(track);
+      const verId = versionId ?? activeVersionIds[track.id] ?? normalized.activeVersionId;
+      return normalizePreviewCue(applyActiveVersion(normalized, verId));
+    },
+    [activeVersionIds]
+  );
 
   const appReady = clientsReady && formReady && catalogStatus === "ready";
   const coupleReady = !activeClient || feedbackReady;
@@ -92,10 +108,7 @@ export default function DJPoolDemo() {
         }
 
         const verifiedTracks = await verifyTracks(
-          data.map((track) => {
-            const { isMissing, ...rest } = track;
-            return normalizePreviewCue(rest);
-          })
+          data.map((track) => normalizePreviewCue(ensureTrackVersions(track)))
         );
 
         if (cancelled) return;
@@ -121,9 +134,20 @@ export default function DJPoolDemo() {
   const persistCatalog = useCallback((nextTracks) => {
     clearTimeout(catalogSaveTimer.current);
     catalogSaveTimer.current = setTimeout(() => {
-      const forSave = nextTracks.map(({ audioVersion, isMissing, ...track }) => track);
+      const forSave = nextTracks.map(stripTrackForCatalogSave);
       saveCatalog(forSave).catch((err) => console.error("Catalog save failed:", err));
     }, 250);
+  }, []);
+
+  const patchTrackField = useCallback((track, field, val) => {
+    const activeId = track.activeVersionId || track.defaultVersionId;
+    if (field === "startTime" || field === "endTime" || field === "duration") {
+      const versions = (track.versions || []).map((v) =>
+        v.id === activeId ? { ...v, [field]: val } : v
+      );
+      return normalizePreviewCue(applyActiveVersion({ ...track, versions }, activeId));
+    }
+    return normalizePreviewCue({ ...track, [field]: val });
   }, []);
 
   const handleUpdateTrack = useCallback(
@@ -136,7 +160,7 @@ export default function DJPoolDemo() {
       setTracks((prev) => {
         const updated = prev.map((t) => {
           if (t.id !== id) return t;
-          return normalizePreviewCue({ ...t, [field]: val });
+          return patchTrackField(ensureTrackVersions(t), field, val);
         });
         persistCatalog(updated);
         return updated;
@@ -144,10 +168,11 @@ export default function DJPoolDemo() {
 
       setCurrentTrack((prev) => {
         if (prev?.id !== id) return prev;
-        return normalizePreviewCue({ ...prev, [field]: val });
+        const base = tracks.find((t) => t.id === id) || prev;
+        return patchTrackField(ensureTrackVersions(base), field, val);
       });
     },
-    [persistCatalog]
+    [persistCatalog, patchTrackField, tracks]
   );
 
   const handleUpdateTrackCue = useCallback(
@@ -155,7 +180,11 @@ export default function DJPoolDemo() {
       setTracks((prev) => {
         const updated = prev.map((t) => {
           if (t.id !== id) return t;
-          return normalizePreviewCue({ ...t, startTime, endTime });
+          const activeId = t.activeVersionId || t.defaultVersionId;
+          const versions = (t.versions || []).map((v) =>
+            v.id === activeId ? { ...v, startTime, endTime } : v
+          );
+          return normalizePreviewCue(applyActiveVersion({ ...t, versions }, activeId));
         });
         persistCatalog(updated);
         return updated;
@@ -163,10 +192,35 @@ export default function DJPoolDemo() {
 
       setCurrentTrack((prev) => {
         if (prev?.id !== id) return prev;
-        return normalizePreviewCue({ ...prev, startTime, endTime });
+        const base = tracks.find((t) => t.id === id) || prev;
+        const activeId = base.activeVersionId || base.defaultVersionId;
+        const versions = (base.versions || []).map((v) =>
+          v.id === activeId ? { ...v, startTime, endTime } : v
+        );
+        return normalizePreviewCue(applyActiveVersion({ ...base, versions }, activeId));
       });
     },
-    [persistCatalog]
+    [persistCatalog, tracks]
+  );
+
+  const handleSelectVersion = useCallback(
+    (trackId, versionId) => {
+      setActiveVersionIds((prev) => ({ ...prev, [trackId]: versionId }));
+      setTracks((prev) =>
+        prev.map((t) => {
+          if (t.id !== trackId) return t;
+          return applyActiveVersion(ensureTrackVersions(t), versionId);
+        })
+      );
+      setCurrentTrack((prev) => {
+        if (prev?.id !== trackId) return prev;
+        const base = tracks.find((t) => t.id === trackId);
+        if (!base) return prev;
+        return normalizePreviewCue(applyActiveVersion(ensureTrackVersions(base), versionId));
+      });
+      setIsPlaying(false);
+    },
+    [tracks]
   );
 
   const handleDeleteTrack = async (id) => {
@@ -189,8 +243,8 @@ export default function DJPoolDemo() {
   };
 
   const handleTrackSelect = (track) => {
-    const normalized = normalizePreviewCue(track);
-    if (currentTrack?.id === normalized.id) {
+    const normalized = resolvePlaybackTrack(track);
+    if (currentTrack?.id === normalized.id && currentTrack?.activeVersionId === normalized.activeVersionId) {
       setIsPlaying(!isPlaying);
     } else {
       setCurrentTrack(normalized);
@@ -200,7 +254,7 @@ export default function DJPoolDemo() {
   };
 
   const handleAdminPreviewTrack = (track, { play = false } = {}) => {
-    const normalized = normalizePreviewCue(track);
+    const normalized = resolvePlaybackTrack(track);
     const isSame = currentTrack?.id === normalized.id;
 
     if (normalized.isMissing) {
@@ -239,21 +293,26 @@ export default function DJPoolDemo() {
 
   const handleTracksImported = (importedTracks) => {
     if (!importedTracks?.length) return;
-    const normalized = importedTracks.map((t) => normalizePreviewCue({ ...t, isMissing: false }));
+    const normalized = importedTracks.map((t) =>
+      normalizePreviewCue({ ...ensureTrackVersions(t), isMissing: false })
+    );
     const updated = [...tracks, ...normalized];
     setTracks(updated);
     setCatalogStatus("ready");
     persistCatalog(updated);
-    const first = normalized[0];
+    const first = resolvePlaybackTrack(normalized[0]);
     setCurrentTrack(first);
-    setCurrentTime(first.startTime ?? 0);
+    setCurrentTime(first?.startTime ?? 0);
     setIsPlaying(false);
   };
 
   const handleTrackReloaded = useCallback(
     (reloadedTrack) => {
       const normalized = normalizePreviewCue({
-        ...reloadedTrack,
+        ...applyActiveVersion(
+          ensureTrackVersions(reloadedTrack),
+          activeVersionIds[reloadedTrack.id] || reloadedTrack.activeVersionId
+        ),
         isMissing: false,
         audioVersion: Date.now(),
       });
@@ -266,13 +325,16 @@ export default function DJPoolDemo() {
         setIsPlaying(false);
       }
     },
-    [tracks, currentTrack?.id, persistCatalog]
+    [tracks, currentTrack?.id, persistCatalog, activeVersionIds]
   );
 
   const handleTrackSaved = useCallback(
     (savedTrack) => {
       const normalized = normalizePreviewCue({
-        ...savedTrack,
+        ...applyActiveVersion(
+          ensureTrackVersions(savedTrack),
+          activeVersionIds[savedTrack.id] || savedTrack.activeVersionId
+        ),
         audioVersion: Date.now(),
       });
       setTracks((prev) => {
@@ -284,7 +346,7 @@ export default function DJPoolDemo() {
         setCurrentTrack(normalized);
       }
     },
-    [currentTrack?.id, persistCatalog]
+    [currentTrack?.id, persistCatalog, activeVersionIds]
   );
 
   const handleRefreshTrackFiles = useCallback(async () => {
@@ -314,8 +376,15 @@ export default function DJPoolDemo() {
   const isAdminCatalog = isAdmin && adminTab === "catalog";
   const showFooterPlayer = showPlayer && !isAdminCatalog;
 
+  const catalogTrackForPlayer = currentTrack
+    ? tracks.find((t) => t.id === currentTrack.id) ?? null
+    : null;
+
   const playerProps = {
     currentTrack,
+    catalogTrack: catalogTrackForPlayer,
+    activeVersionId: currentTrack?.activeVersionId,
+    onSelectVersion: handleSelectVersion,
     isPlaying,
     setIsPlaying,
     currentTime,
@@ -335,7 +404,7 @@ export default function DJPoolDemo() {
     if (currentTrack) return;
     const first = tracks.find((t) => !t.isMissing);
     if (first) {
-      setCurrentTrack(normalizePreviewCue(first));
+      setCurrentTrack(resolvePlaybackTrack(first));
       setCurrentTime(first.startTime ?? 0);
     }
   }, [isAdminCatalog, catalogStatus, tracks, currentTrack]);
@@ -442,6 +511,8 @@ export default function DJPoolDemo() {
             <AdminTable
               tracks={tracks}
               currentTrack={currentTrack}
+              activeVersionIds={activeVersionIds}
+              onSelectVersion={handleSelectVersion}
               onTrackSaved={handleTrackSaved}
               onDeleteTrack={handleDeleteTrack}
               onPreviewTrack={handleAdminPreviewTrack}
@@ -582,10 +653,14 @@ export default function DJPoolDemo() {
 
             <div className="flex-1 min-h-0">
               <TrackList
-                tracks={tracks.filter(
-                  (t) => t.isMissing !== true && selectedCategories.includes(t.bucket)
-                )}
+                tracks={tracks.filter((t) => {
+                  const normalized = ensureTrackVersions(t);
+                  const playable = normalized.versions.some((v) => !v.isMissing);
+                  return playable && selectedCategories.includes(t.bucket);
+                })}
                 currentTrack={currentTrack}
+                activeVersionIds={activeVersionIds}
+                onSelectVersion={handleSelectVersion}
                 isPlaying={isPlaying}
                 onTrackSelect={handleTrackSelect}
                 onPlayPause={() => currentTrack && handleTrackSelect(currentTrack)}

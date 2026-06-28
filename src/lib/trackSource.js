@@ -1,4 +1,5 @@
 import { getLocalTrackUrl } from "./trackAudioUrl.js";
+import { ensureTrackVersions } from "./trackVersions.js";
 
 export function getTrackPlaybackUrl(track) {
   if (!track?.bucket || !track?.filename) return null;
@@ -12,6 +13,14 @@ export function getTrackDiskPath(track) {
 
 export function getTrackOriginPath(track) {
   return track?.dropboxSourcePath || track?.dropboxPath || null;
+}
+
+export function countMissingTracks(tracks) {
+  return tracks.filter((t) => {
+    const normalized = ensureTrackVersions(t);
+    if (!normalized.versions.length) return true;
+    return normalized.versions.every((v) => v.isMissing);
+  }).length;
 }
 
 export function getTrackSourceSummary(track, t) {
@@ -57,8 +66,4 @@ export function getTrackSourceSummary(track, t) {
     kindLabel: "העלאה / קובץ מקומי",
     alert: null,
   };
-}
-
-export function countMissingTracks(tracks) {
-  return tracks.filter((t) => t.isMissing === true).length;
 }

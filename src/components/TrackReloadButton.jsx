@@ -4,6 +4,7 @@ import { ACCEPT_AUDIO } from "../lib/audioFormats";
 
 export default function TrackReloadButton({
   track,
+  versionId,
   onReloaded,
   className = "",
   label = "טען קובץ",
@@ -30,6 +31,7 @@ export default function TrackReloadButton({
     try {
       const updated = await reloadTrackFile({
         trackId: track.id,
+        versionId,
         file,
         bucket: track.bucket,
         filename: file.name,

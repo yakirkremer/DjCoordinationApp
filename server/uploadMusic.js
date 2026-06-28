@@ -1,6 +1,6 @@
 import { parseMultipart, readRequestBody } from "./parseMultipart.js";
 import { sendJson } from "./dataStore.js";
-import { saveTrackToCatalog, reloadTrackFile, deleteTrackFromCatalog, updateTrackInCatalog } from "./catalogMusic.js";
+import { saveTrackToCatalog, reloadTrackFile, deleteTrackFromCatalog, updateTrackInCatalog, addVersionToTrack, deleteVersionFromCatalog } from "./catalogMusic.js";
 
 export async function handleMusicUpload(req, res) {
   const contentType = req.headers["content-type"] || "";
@@ -92,6 +92,7 @@ export async function handleMusicReload(req, res) {
   try {
     const track = await reloadTrackFile({
       trackId: fields.trackId,
+      versionId: fields.versionId || null,
       bucket: fields.bucket,
       filename: filePart.filename || fields.filename,
       buffer: filePart.data,
@@ -118,10 +119,86 @@ export async function handleMusicUpdate(req, res) {
   }
 
   try {
-    const track = await updateTrackInCatalog(body.trackId, body.updates ?? body);
+    const track = await updateTrackInCatalog(body.trackId, body.updates ?? {}, body.versionId);
     sendJson(res, 200, { track });
   } catch (err) {
     sendJson(res, 400, { error: err.message || "Update failed" });
+  }
+}
+
+export async function handleMusicAddVersion(req, res) {
+  const contentType = req.headers["content-type"] || "";
+  const boundaryMatch = contentType.match(/boundary=(.+)$/i);
+  if (!boundaryMatch) {
+    sendJson(res, 400, { error: "Expected multipart form data" });
+    return;
+  }
+
+  let buffer;
+  try {
+    buffer = await readRequestBody(req);
+  } catch (err) {
+    sendJson(res, 413, { error: err.message || "Upload too large" });
+    return;
+  }
+
+  const parts = parseMultipart(buffer, boundaryMatch[1].trim());
+  const fields = {};
+  let filePart = null;
+
+  for (const part of parts) {
+    if (!part.name) continue;
+    if (part.filename) {
+      filePart = part;
+    } else {
+      fields[part.name] = part.data.toString("utf8").trim();
+    }
+  }
+
+  if (!fields.trackId) {
+    sendJson(res, 400, { error: "Missing track id" });
+    return;
+  }
+
+  if (!filePart?.data?.length) {
+    sendJson(res, 400, { error: "No audio file provided" });
+    return;
+  }
+
+  try {
+    const track = await addVersionToTrack({
+      trackId: fields.trackId,
+      filename: filePart.filename || "version.mp3",
+      buffer: filePart.data,
+      drop: fields.drop,
+      remixer: fields.remixer,
+    });
+    sendJson(res, 201, { track });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Add version failed" });
+  }
+}
+
+export async function handleMusicDeleteVersion(req, res) {
+  let body;
+  try {
+    const raw = await readRequestBody(req, 4096);
+    body = JSON.parse(raw.toString("utf8"));
+  } catch {
+    sendJson(res, 400, { error: "Invalid request body" });
+    return;
+  }
+
+  if (!body.trackId || !body.versionId) {
+    sendJson(res, 400, { error: "Missing track id or version id" });
+    return;
+  }
+
+  try {
+    const track = await deleteVersionFromCatalog(body.trackId, body.versionId);
+    sendJson(res, 200, { track });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Delete version failed" });
   }
 }
 
@@ -176,6 +253,20 @@ export function createUploadMusicMiddleware() {
       handleMusicUpdate(req, res).catch((err) => {
         console.error("Update failed:", err);
         sendJson(res, 500, { error: err.message || "Update failed" });
+      });
+      return;
+    }
+    if (req.method === "POST" && url.pathname === "/api/music/add-version") {
+      handleMusicAddVersion(req, res).catch((err) => {
+        console.error("Add version failed:", err);
+        sendJson(res, 500, { error: err.message || "Add version failed" });
+      });
+      return;
+    }
+    if (req.method === "POST" && url.pathname === "/api/music/delete-version") {
+      handleMusicDeleteVersion(req, res).catch((err) => {
+        console.error("Delete version failed:", err);
+        sendJson(res, 500, { error: err.message || "Delete version failed" });
       });
       return;
     }

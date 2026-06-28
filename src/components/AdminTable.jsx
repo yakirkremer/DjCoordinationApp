@@ -1,20 +1,20 @@
 import React, { useState, useCallback } from "react";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import TrackReloadButton from "./TrackReloadButton";
+import TrackVersionPicker from "./TrackVersionPicker";
+import AdminTrackVersions from "./AdminTrackVersions";
 import { countMissingTracks, getTrackSourceSummary } from "../lib/trackSource";
+import { ensureTrackVersions } from "../lib/trackVersions";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 import { updateTrack } from "../lib/api/uploadTrack";
 
-const EDITABLE_FIELDS = ["title", "artist", "filename", "bucket", "startTime", "endTime"];
+const EDITABLE_FIELDS = ["title", "artist", "bucket"];
 
 function pickEditable(track) {
   return {
     title: track.title ?? "",
     artist: track.artist ?? "",
-    filename: track.filename ?? "",
     bucket: track.bucket ?? OFFICIAL_CATEGORIES[0],
-    startTime: track.startTime ?? 0,
-    endTime: track.endTime ?? 0,
   };
 }
 
@@ -25,6 +25,8 @@ function draftsEqual(a, b) {
 export default function AdminTable({
   tracks,
   currentTrack,
+  activeVersionIds = {},
+  onSelectVersion,
   onTrackSaved,
   onDeleteTrack,
   onPreviewTrack,
@@ -39,6 +41,7 @@ export default function AdminTable({
   const [drafts, setDrafts] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [rowError, setRowError] = useState({});
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   const hasUnsaved = Object.keys(drafts).length > 0;
 
@@ -114,6 +117,15 @@ export default function AdminTable({
     }
   };
 
+  const toggleExpanded = (trackId) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
+  };
+
   const handleDelete = async (id) => {
     if (!onDeleteTrack || deletingId) return;
     setDeletingId(id);
@@ -180,34 +192,36 @@ export default function AdminTable({
                 {t("admin.colActions")}
               </th>
               <th className="p-4">{t("admin.colTitle")}</th>
-              <th className="p-4">{t("admin.colFilename")}</th>
+              <th className="p-4 w-36">{t("admin.colVersions")}</th>
               <th className="p-4 min-w-[200px]">{t("admin.colSource")}</th>
               <th className="p-4">{t("admin.colBucket")}</th>
-              <th className="p-4 w-24">התחלה (S)</th>
-              <th className="p-4 w-24">סיום (S)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-xdj-border/30">
             {tracks.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-8 text-center">
+                <td colSpan={6} className="p-8 text-center">
                   <p className="font-lcd text-xs text-xdj-muted">{t("admin.emptyTable")}</p>
                   <p className="text-xs text-xdj-muted mt-2">{t("admin.emptyTableHint")}</p>
                 </td>
               </tr>
             ) : null}
             {tracks.map((track) => {
+              const normalized = ensureTrackVersions(track);
               const row = getDraft(track);
               const isSelected = currentTrack?.id === track.id;
+              const activeVersionId = activeVersionIds[track.id] || normalized.activeVersionId;
               const canPreview = !track.isMissing;
               const needsReload = track.isMissing === true;
               const source = getTrackSourceSummary(track, t);
               const dirty = isRowDirty(track);
               const saving = savingId === track.id;
+              const isExpanded = expandedIds.has(track.id);
+              const versionCount = normalized.versions?.length ?? 1;
 
               return (
+                <React.Fragment key={track.id}>
                 <tr
-                  key={track.id}
                   onClick={() => onPreviewTrack(track)}
                   className={`xdj-browser-row transition-colors cursor-pointer ${
                     isSelected ? "bg-xdj-cyan/10 ring-1 ring-inset ring-xdj-cyan/30" : "hover:bg-xdj-cyan/5"
@@ -257,6 +271,7 @@ export default function AdminTable({
                       {onTrackReloaded ? (
                         <TrackReloadButton
                           track={track}
+                          versionId={activeVersionId}
                           onReloaded={onTrackReloaded}
                           compact
                           label={needsReload ? t("admin.reload") : t("admin.replace")}
@@ -302,18 +317,26 @@ export default function AdminTable({
                       ) : (
                         <span className="text-xs text-gray-500 mt-1">{track.artist}</span>
                       )}
+                      <div className="mt-2">
+                        <TrackVersionPicker
+                          track={track}
+                          activeVersionId={activeVersionId}
+                          onSelectVersion={onSelectVersion}
+                          compact
+                        />
+                      </div>
                     </div>
                   </td>
-                  <td className="p-3 text-sm font-mono text-gray-400" onClick={(e) => e.stopPropagation()}>
-                    {editMode ? (
-                      <input
-                        className="bg-transparent border-b border-xdj-border focus:border-xdj-cyan outline-none w-full"
-                        value={row.filename}
-                        onChange={(e) => handleDraftChange(track.id, "filename", e.target.value)}
-                      />
-                    ) : (
-                      <span>{track.filename}</span>
-                    )}
+                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(track.id)}
+                      className={`text-[10px] px-2 py-1 rounded border w-full min-h-[32px] ${
+                        isExpanded ? "border-xdj-gold text-xdj-gold" : "border-xdj-border text-xdj-muted"
+                      }`}
+                    >
+                      {versionCount} {t("admin.versionsShort")} {isExpanded ? "▲" : "▼"}
+                    </button>
                   </td>
                   <td className="p-3 text-xs" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col gap-1.5 min-w-0">
@@ -354,31 +377,20 @@ export default function AdminTable({
                       <span className="text-xs text-gray-200">{track.bucket}</span>
                     )}
                   </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    {editMode ? (
-                      <input
-                        type="number"
-                        className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-full text-center text-purple-400"
-                        value={row.startTime}
-                        onChange={(e) => handleDraftChange(track.id, "startTime", e.target.value)}
-                      />
-                    ) : (
-                      <span className="text-purple-400 text-sm tabular-nums">{track.startTime}</span>
-                    )}
-                  </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    {editMode ? (
-                      <input
-                        type="number"
-                        className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-full text-center text-pink-400"
-                        value={row.endTime}
-                        onChange={(e) => handleDraftChange(track.id, "endTime", e.target.value)}
-                      />
-                    ) : (
-                      <span className="text-pink-400 text-sm tabular-nums">{track.endTime}</span>
-                    )}
-                  </td>
                 </tr>
+                {isExpanded ? (
+                  <AdminTrackVersions
+                    track={track}
+                    currentTrack={currentTrack}
+                    activeVersionId={activeVersionId}
+                    editMode={editMode}
+                    onSelectVersion={onSelectVersion}
+                    onPreviewTrack={onPreviewTrack}
+                    onTrackSaved={onTrackSaved}
+                    onTrackReloaded={onTrackReloaded}
+                  />
+                ) : null}
+                </React.Fragment>
               );
             })}
           </tbody>

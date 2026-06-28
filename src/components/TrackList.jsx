@@ -4,8 +4,14 @@ import TrackFeedback from "./TrackFeedback";
 import TrackRating from "./TrackRating";
 import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
+import TrackVersionPicker from "./TrackVersionPicker";
 import { getTrackRating } from "../lib/trackRating";
 import { getPreviewLength } from "../lib/previewCue";
+import { applyActiveVersion, ensureTrackVersions } from "../lib/trackVersions";
+
+function playbackTrack(track, activeVersionIds) {
+  return applyActiveVersion(ensureTrackVersions(track), activeVersionIds[track.id]);
+}
 
 function FolderIcon({ open }) {
   return (
@@ -44,6 +50,8 @@ function TransportIcon({ type }) {
 export default function TrackList({
   tracks,
   currentTrack,
+  activeVersionIds = {},
+  onSelectVersion,
   isPlaying,
   onTrackSelect,
   onPlayPause,
@@ -68,7 +76,7 @@ export default function TrackList({
     }
   }, [categoriesKey, activeTab, categoriesInTracks]);
 
-  const folderTracks = tracks.filter((t) => t.bucket === activeTab && t.isMissing !== true);
+  const folderTracks = tracks.filter((t) => t.bucket === activeTab);
   const query = searchQuery.trim().toLowerCase();
   const filteredTracks = query
     ? folderTracks.filter(
@@ -164,6 +172,7 @@ export default function TrackList({
                   {filteredTracks.map((track) => {
                     const isSelected = currentTrack?.id === track.id;
                     const isThisPlaying = isSelected && isPlaying;
+                    const playTrack = playbackTrack(track, activeVersionIds);
 
                     return (
                       <div
@@ -178,6 +187,12 @@ export default function TrackList({
                           <div className="xdj-az-track-card-meta">
                             <div className="xdj-az-track-card-title">{track.title}</div>
                             <div className="xdj-az-track-card-artist">{track.artist}</div>
+                            <TrackVersionPicker
+                              track={track}
+                              activeVersionId={activeVersionIds[track.id]}
+                              onSelectVersion={onSelectVersion}
+                              compact
+                            />
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
                             <TrackRating
@@ -197,7 +212,7 @@ export default function TrackList({
                             }}
                           >
                             <PreviewWaveform
-                              track={track}
+                              track={playTrack}
                               isActive={isSelected}
                               isPlaying={isThisPlaying}
                             />
@@ -219,6 +234,7 @@ export default function TrackList({
                 {filteredTracks.map((track, index) => {
                 const isSelected = currentTrack?.id === track.id;
                 const isThisPlaying = isSelected && isPlaying;
+                const playTrack = playbackTrack(track, activeVersionIds);
 
                 return (
                   <div
@@ -244,7 +260,7 @@ export default function TrackList({
                         }}
                       >
                         <PreviewWaveform
-                          track={track}
+                          track={playTrack}
                           isActive={isSelected}
                           isPlaying={isThisPlaying}
                         />
@@ -253,6 +269,13 @@ export default function TrackList({
 
                     <div className="xdj-az-col xdj-az-col-title">
                       <span className="xdj-az-track-title">{track.title}</span>
+                      <TrackVersionPicker
+                        track={track}
+                        activeVersionId={activeVersionIds[track.id]}
+                        onSelectVersion={onSelectVersion}
+                        compact
+                        className="mt-0.5"
+                      />
                     </div>
 
                     <div className="xdj-az-col xdj-az-col-artist hidden md:block">
@@ -261,7 +284,7 @@ export default function TrackList({
 
                     <div className="xdj-az-col xdj-az-col-time hidden sm:block">
                       <span className="xdj-az-track-time">
-                        {formatTime(getPreviewLength(track))}
+                        {formatTime(getPreviewLength(playTrack))}
                       </span>
                     </div>
 

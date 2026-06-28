@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import WaveSurfer from "wavesurfer.js";
 import TrackArtwork from "./TrackArtwork";
 import TrackReloadButton from "./TrackReloadButton";
+import TrackVersionPicker from "./TrackVersionPicker";
 import { normalizePreviewCue, isWithinPreviewCue, MIN_PREVIEW_LENGTH, computeLinkedCue } from "../lib/previewCue";
 import { getTrackSourceSummary } from "../lib/trackSource";
 
@@ -25,6 +26,9 @@ function useMediaQuery(query) {
 
 export default function GlobalPlayer({
   currentTrack,
+  catalogTrack,
+  activeVersionId,
+  onSelectVersion,
   isPlaying,
   setIsPlaying,
   currentTime,
@@ -360,6 +364,15 @@ export default function GlobalPlayer({
             <div className="xdj-az-player-mini-meta">
               <h4 className="xdj-az-player-mini-title">{currentTrack.title}</h4>
               <p className="xdj-az-player-mini-artist">{currentTrack.artist}</p>
+              {catalogTrack && onSelectVersion ? (
+                <TrackVersionPicker
+                  track={catalogTrack}
+                  activeVersionId={activeVersionId}
+                  onSelectVersion={onSelectVersion}
+                  compact
+                  className="mt-0.5"
+                />
+              ) : null}
             </div>
             <button
               type="button"
@@ -400,6 +413,14 @@ export default function GlobalPlayer({
           <div className="xdj-az-player-track-meta">
             <h4 className="xdj-az-player-title">{currentTrack.title}</h4>
             <p className="xdj-az-player-artist">{currentTrack.artist}</p>
+            {catalogTrack && onSelectVersion ? (
+              <TrackVersionPicker
+                track={catalogTrack}
+                activeVersionId={activeVersionId}
+                onSelectVersion={onSelectVersion}
+                className="mt-1"
+              />
+            ) : null}
           </div>
         </div>
         <div className="xdj-az-player-deck-center">
@@ -423,6 +444,7 @@ export default function GlobalPlayer({
           {isAdmin && onTrackReloaded && currentTrack && (loadError || currentTrack.isMissing) ? (
             <TrackReloadButton
               track={currentTrack}
+              versionId={activeVersionId || currentTrack.activeVersionId}
               onReloaded={(updated) => {
                 setLoadError(null);
                 onTrackReloaded(updated);

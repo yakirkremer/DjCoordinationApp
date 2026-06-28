@@ -3,6 +3,7 @@ import {
   setCachedAudioUrl,
   warmAudioUrl,
 } from "./audioUrlCache.js";
+import { applyActiveVersion, ensureTrackVersions } from "./trackVersions.js";
 
 export function getLocalTrackUrl(track) {
   return `/music/${track.bucket}/analyzed/${encodeURIComponent(track.filename)}`;
@@ -63,14 +64,23 @@ export async function verifyLocalTrack(track) {
   }
 }
 
-export async function verifyTracks(tracks) {
-  const results = await Promise.all(
-    tracks.map(async (track) => {
-      const exists = await verifyLocalTrack(track);
-      return { ...track, isMissing: !exists };
+export async function verifyCatalogTrack(track) {
+  const base = ensureTrackVersions(track);
+  const versions = await Promise.all(
+    base.versions.map(async (version) => {
+      const exists = await verifyLocalTrack({
+        bucket: base.bucket,
+        filename: version.filename,
+        activeVersionId: version.id,
+      });
+      return { ...version, isMissing: !exists };
     })
   );
-  return results;
+  return applyActiveVersion({ ...base, versions }, base.activeVersionId);
+}
+
+export async function verifyTracks(tracks) {
+  return Promise.all(tracks.map((track) => verifyCatalogTrack(track)));
 }
 
 function pickPreloadTracks(tracks, { aroundTrackId = null, limit = 8 } = {}) {
