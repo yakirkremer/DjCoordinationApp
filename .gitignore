@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+storage-bootstrap
 .env
 dist-ssr
 *.local

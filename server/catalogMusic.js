@@ -1,11 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 import { OFFICIAL_CATEGORIES } from "../src/lib/categories.js";
 import { readJsonFile, writeJsonFile, DATA_FILES } from "./dataStore.js";
+import { MUSIC_ROOT } from "./storagePaths.js";
 
-const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
-export const MUSIC_ROOT = path.join(ROOT, "public", "music");
+export { MUSIC_ROOT };
 export const MAX_MUSIC_BYTES = 80 * 1024 * 1024;
 
 export function sanitizeFilename(name) {

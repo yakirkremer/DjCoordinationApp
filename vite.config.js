@@ -32,11 +32,15 @@ function dropboxImportPlugin(env) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const storageRoot = env.STORAGE_ROOT
+    ? path.resolve(env.STORAGE_ROOT)
+    : path.join(process.cwd(), "public");
+
   return {
     plugins: [
       react(),
       publicFilesGuardPlugin({
-        publicRoot: path.join(process.cwd(), "public"),
+        publicRoot: storageRoot,
         distRoot: path.join(process.cwd(), "dist"),
       }),
       dataApiPlugin(),

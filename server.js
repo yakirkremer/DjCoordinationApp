@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
+import { initStorage, STORAGE_ROOT } from "./server/storagePaths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, "dist");
@@ -28,9 +29,8 @@ async function serveStatic(req, res) {
   let pathname = decodeURIComponent(url.pathname);
 
   if (pathname.startsWith("/music/") || pathname.startsWith("/data/")) {
-    const liveRoot = path.join(__dirname, "public");
-    const filePath = path.join(liveRoot, pathname);
-    if (filePath.startsWith(liveRoot)) {
+    const filePath = path.join(STORAGE_ROOT, pathname);
+    if (filePath.startsWith(STORAGE_ROOT)) {
       try {
         const data = await readFile(filePath);
         const ext = path.extname(filePath).toLowerCase();
@@ -81,7 +81,7 @@ const server = createServer((req, res) => {
   if (url.pathname === "/health") {
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: true }));
+    res.end(JSON.stringify({ ok: true, storageRoot: STORAGE_ROOT }));
     return;
   }
 
@@ -93,6 +93,8 @@ const server = createServer((req, res) => {
     });
   });
 });
+
+await initStorage();
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Kramer Music server running on port ${PORT}`);

@@ -5,28 +5,30 @@ services:
   - type: web
     name: kremer-music
     runtime: node
-    plan: free
+    plan: starter
     region: oregon
     branch: main
     autoDeploy: true
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
+    disk:
+      name: kremer-data
+      mountPath: /var/data
+      sizeGB: 10
     envVars:
       - key: NODE_ENV
         value: production
+      - key: STORAGE_ROOT
+        value: /var/data
       - key: VITE_DROPBOX_APP_KEY
         sync: false
       - key: DROPBOX_REFRESH_TOKEN
         sync: false
 
-# Optional: upgrade to starter + persistent disk so uploads and JSON data survive redeploys.
-# Free-tier filesystem is ephemeral — writes to public/data and public/music are lost on each deploy.
+# Persistent disk layout (on Render):
+#   /var/data/music/{category}/analyzed/*.mp3
+#   /var/data/data/catalog.json, clients.json, feedback.json, form-schema.json
 #
-#  - type: web
-#    name: kremer-music
-#    plan: starter
-#    disk:
-#      name: kremer-data
-#      mountPath: /opt/render/project/src/public
-#      sizeGB: 5
+# If you already created a disk in the Render dashboard, set STORAGE_ROOT to match
+# your disk mount path exactly (Dashboard → your service → Disks → Mount path).

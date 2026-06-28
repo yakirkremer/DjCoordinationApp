@@ -7,7 +7,7 @@ export function getTrackPlaybackUrl(track) {
 
 export function getTrackDiskPath(track) {
   if (!track?.bucket || !track?.filename) return null;
-  return `public/music/${track.bucket}/analyzed/${track.filename}`;
+  return `music/${track.bucket}/analyzed/${track.filename}`;
 }
 
 export function getTrackOriginPath(track) {

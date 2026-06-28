@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { DATA_DIR } from "./storagePaths.js";
 
-const ROOT = path.join(fileURLToPath(new URL(".", import.meta.url)), "..");
-export const DATA_DIR = path.join(ROOT, "public", "data");
+export { DATA_DIR };
 
 export const DATA_FILES = {
   clients: "clients.json",

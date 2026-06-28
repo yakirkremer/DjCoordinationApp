@@ -37,7 +37,7 @@ export default function AdminTable({
   };
 
   return (
-    <section className="xdj-browser overflow-hidden">
+    <section className="xdj-browser">
       <div className="xdj-browser-header flex flex-wrap items-center justify-between gap-2">
         <span className="font-lcd text-xs tracking-[0.25em] text-xdj-cyan">CATALOG EDITOR</span>
         <div className="flex items-center gap-2">
@@ -70,17 +70,18 @@ export default function AdminTable({
         </div>
       ) : null}
 
-      <table className="w-full text-right border-collapse">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[900px] text-right border-collapse">
         <thead>
           <tr className="xdj-browser-columns text-xs">
             <th className="p-4 w-14 text-center">תצוגה</th>
+            <th className="p-4 w-32 text-center sticky right-0 z-10 bg-xdj-panel/95 backdrop-blur-sm shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">פעולות</th>
             <th className="p-4">שם השיר / אמן</th>
             <th className="p-4">קובץ (Filename)</th>
             <th className="p-4 min-w-[200px]">מקור נגינה</th>
             <th className="p-4">באקט</th>
             <th className="p-4 w-24">התחלה (S)</th>
             <th className="p-4 w-24">סיום (S)</th>
-            <th className="p-4 w-28 text-center">פעולות</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-xdj-border/30">
@@ -112,6 +113,32 @@ export default function AdminTable({
                   >
                     <span className="xdj-az-play-tri" />
                   </button>
+                </td>
+                <td
+                  className={`p-3 text-center sticky right-0 z-10 shadow-[-4px_0_8px_rgba(0,0,0,0.2)] ${
+                    isSelected ? "bg-xdj-cyan/10" : needsReload ? "bg-red-950/40" : "bg-xdj-panel/95"
+                  } backdrop-blur-sm`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex flex-col items-center gap-1.5 min-w-[88px]">
+                    {onTrackReloaded ? (
+                      <TrackReloadButton
+                        track={track}
+                        onReloaded={onTrackReloaded}
+                        compact
+                        label={needsReload ? "טען מחדש" : "החלף"}
+                      />
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(track.id)}
+                      disabled={deletingId === track.id}
+                      className="text-[10px] font-bold text-red-300 hover:text-red-100 px-2 py-1 rounded border border-red-500/50 hover:border-red-400 hover:bg-red-950/50 transition-colors disabled:opacity-40 min-h-[28px] min-w-[72px]"
+                      title="מחק שיר מהקטלוג ומהשרת"
+                    >
+                      {deletingId === track.id ? "מוחק..." : "מחק"}
+                    </button>
+                  </div>
                 </td>
                 <td className="p-3">
                   <div className="flex flex-col w-full" onClick={(e) => e.stopPropagation()}>
@@ -161,7 +188,7 @@ export default function AdminTable({
                       </p>
                     ) : null}
                     {source.diskPath ? (
-                      <p className="font-mono text-[10px] text-gray-500 break-all" title="נתיב בדיסק השרת">
+                      <p className="font-mono text-[10px] text-gray-500 break-all" title="נתיב בדיסק השרת (persistent disk ב-Render)">
                         📁 {source.diskPath}
                       </p>
                     ) : null}
@@ -204,32 +231,12 @@ export default function AdminTable({
                     onChange={(e) => onUpdateTrack(track.id, "endTime", e.target.value)}
                   />
                 </td>
-                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex flex-col items-center gap-1.5">
-                    {onTrackReloaded ? (
-                      <TrackReloadButton
-                        track={track}
-                        onReloaded={onTrackReloaded}
-                        compact
-                        label={needsReload ? "טען מחדש" : "החלף"}
-                      />
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(track.id)}
-                      disabled={deletingId === track.id}
-                      className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-gray-800 transition-colors disabled:opacity-40"
-                      title="מחק שיר מהקטלוג ומהשרת"
-                    >
-                      {deletingId === track.id ? "…" : "🗑️"}
-                    </button>
-                  </div>
-                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      </div>
     </section>
   );
 }
