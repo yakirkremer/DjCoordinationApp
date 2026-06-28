@@ -101,6 +101,11 @@ export async function seedStorageIfEmpty() {
 export async function initStorage() {
   await ensureStorageDirs();
   const seeded = await seedStorageIfEmpty();
+  const settingsPath = path.join(DATA_DIR, "app-settings.json");
+  const seedSettings = path.join(BOOTSTRAP_ROOT, "data", "app-settings.json");
+  if (!(await fileExists(settingsPath)) && (await fileExists(seedSettings))) {
+    await copyFileIfMissing(seedSettings, settingsPath);
+  }
   console.log(`Storage root: ${STORAGE_ROOT}`);
   if (seeded > 0) {
     console.log(`Seeded ${seeded} file(s) onto persistent storage`);

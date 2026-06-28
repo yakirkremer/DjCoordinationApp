@@ -13,6 +13,8 @@ import PreferencesWizard from "./components/PreferencesWizard";
 import TrackUploadPanel from "./components/TrackUploadPanel";
 import DropboxImportPanel from "./components/DropboxImportPanel";
 import TrackReloadButton from "./components/TrackReloadButton";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import AdminSettings from "./components/AdminSettings";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
@@ -24,8 +26,10 @@ import { deleteTrack } from "./lib/api/uploadTrack";
 import { countMissingTracks } from "./lib/trackSource";
 import useAudioPreload from "./hooks/useAudioPreload";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
+import { useI18n } from "./lib/i18n/AppSettingsContext";
 
 export default function DJPoolDemo() {
+  const { t, dir } = useI18n();
   const [tracks, setTracks] = useState([]);
   const [catalogStatus, setCatalogStatus] = useState("loading");
   const [catalogError, setCatalogError] = useState(null);
@@ -189,10 +193,8 @@ export default function DJPoolDemo() {
 
   const handleDeleteTrack = async (id) => {
     const track = tracks.find((t) => t.id === id);
-    const label = track ? `${track.title} — ${track.artist}` : "שיר זה";
-    const confirmed = window.confirm(
-      `למחוק את "${label}"?\n\nיימחק מהקטלוג וגם קובץ ה-MP3 מהשרת (אם קיים).`
-    );
+    const label = track ? `${track.title} — ${track.artist}` : t("admin.thisTrack");
+    const confirmed = window.confirm(t("admin.deleteConfirm", { label }));
     if (!confirmed) return;
 
     try {
@@ -204,7 +206,7 @@ export default function DJPoolDemo() {
         setIsPlaying(false);
       }
     } catch (err) {
-      window.alert(err.message || "מחיקה נכשלה");
+      window.alert(err.message || t("admin.deleteFailed"));
     }
   };
 
@@ -411,32 +413,30 @@ export default function DJPoolDemo() {
             {currentTrack && !currentTrack.isMissing ? (
               <GlobalPlayer {...playerProps} />
             ) : currentTrack?.isMissing ? (
-              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir="rtl">
-                <p className="font-lcd text-xs text-xdj-muted">PREVIEW EDITOR</p>
+              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir={dir}>
+                <p className="font-lcd text-xs text-xdj-muted">{t("admin.previewEditor")}</p>
                 <p className="text-sm font-semibold text-xdj-text mt-2">{currentTrack.title}</p>
                 <p className="text-xs text-xdj-muted">{currentTrack.artist}</p>
-                <p className="text-xs text-red-400 mt-2 font-medium">קובץ חסר — לא ניתן לנגן עד שתעלה MP3</p>
+                <p className="text-xs text-red-400 mt-2 font-medium">{t("admin.missingFile")}</p>
                 <div className="mt-4 flex justify-center">
                   <TrackReloadButton
                     track={currentTrack}
                     onReloaded={handleTrackReloaded}
-                    label="טען מחדש"
+                    label={t("admin.reload")}
                   />
                 </div>
               </div>
             ) : (
-              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir="rtl">
-                <p className="font-lcd text-xs text-xdj-muted">PREVIEW EDITOR</p>
+              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir={dir}>
+                <p className="font-lcd text-xs text-xdj-muted">{t("admin.previewEditor")}</p>
                 {tracks.length === 0 ? (
-                  <p className="text-xs text-xdj-cyan mt-2 font-medium">
-                    הקטלוג ריק — העלה שיר למעלה או ייבא מ-Dropbox
-                  </p>
+                  <p className="text-xs text-xdj-cyan mt-2 font-medium">{t("admin.emptyCatalog")}</p>
                 ) : countMissingTracks(tracks) > 0 ? (
                   <p className="text-xs text-red-400 mt-2 font-medium">
-                    ⚠ {countMissingTracks(tracks)} שירים ללא קובץ בשרת — ראה עמודת &quot;מקור נגינה&quot; בטבלה
+                    {t("admin.missingTracks", { count: countMissingTracks(tracks) })}
                   </p>
                 ) : (
-                  <p className="text-xs text-xdj-muted mt-1">בחר שיר מהטבלה למטה כדי לנגן ולגרור סמני A / B</p>
+                  <p className="text-xs text-xdj-muted mt-1">{t("admin.selectTrack")}</p>
                 )}
               </div>
             )}
@@ -462,11 +462,14 @@ export default function DJPoolDemo() {
     if (adminTab === "form") {
       return <FormBuilder {...formSchemaApi} schema={formSchema} />;
     }
+    if (adminTab === "settings") {
+      return <AdminSettings />;
+    }
     return <AdminDashboard clients={clients} tracks={tracks} formSchema={formSchema} />;
   };
 
   return (
-    <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir="rtl">
+    <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir={dir}>
       {(isAdmin || activeClient) && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
@@ -478,33 +481,34 @@ export default function DJPoolDemo() {
           />
           <p className="text-xs text-xdj-muted text-center sm:text-right max-w-md">
             {isAdmin
-              ? "מערכת ניהול קטלוג ולקוחות"
+              ? t("header.adminSubtitle")
               : activeClient
                 ? clientScreen === "browse"
-                  ? `שלום ${activeClient.name} — קטלוג מוזיקה`
+                  ? t("header.browse", { name: activeClient.name })
                   : clientScreen === "wizard"
-                    ? `שלום ${activeClient.name} — טופס העדפות`
-                    : `שלום ${activeClient.name}`
-                : "מערכת חכמה לתיאום המוזיקה לחתונה שלכם"}
+                    ? t("header.wizard", { name: activeClient.name })
+                    : t("header.home", { name: activeClient.name })
+                : t("header.guestSubtitle")}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center justify-center">
+          <LanguageSwitcher />
           {!isAdmin && activeClient && clientScreen !== "home" && (
             <button
               onClick={() => setClientScreen("home")}
               className="btn-luxury px-4 py-2 rounded-sm text-xs"
             >
-              לוח בקרה
+              {t("common.dashboard")}
             </button>
           )}
           {isAdmin && (
             <>
               <button onClick={downloadJSON} className="btn-luxury-gold px-4 py-2 rounded-sm text-xs">
-                EXPORT JSON
+                {t("header.exportJson")}
               </button>
               <button onClick={handleExitAdmin} className="btn-luxury px-4 py-2 rounded-sm text-xs">
-                חזרה לדף הבית
+                {t("header.exitAdmin")}
               </button>
             </>
           )}
@@ -567,8 +571,8 @@ export default function DJPoolDemo() {
           />
         ) : tracks.length === 0 ? (
           <div className="text-center py-8 space-y-2">
-            <p className="font-lcd text-xs text-xdj-muted">NO TRACKS IN CATALOG</p>
-            <p className="text-xs text-xdj-muted">הקטלוג ריק — פנה למנהל המערכת</p>
+            <p className="font-lcd text-xs text-xdj-muted">{t("browse.noTracks")}</p>
+            <p className="text-xs text-xdj-muted">{t("browse.emptyCatalog")}</p>
           </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">

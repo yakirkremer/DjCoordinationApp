@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import { uploadTrack } from "../lib/api/uploadTrack";
+import { ACCEPT_AUDIO, isSupportedAudioFile, stripAudioExtension } from "../lib/audioFormats";
 
 function guessMetaFromFile(file) {
-  const base = file.name.replace(/\.mp3$/i, "");
+  const base = stripAudioExtension(file.name);
   const parts = base.split(" - ");
   if (parts.length >= 2) {
     return { artist: parts[0].trim(), title: parts.slice(1).join(" - ").trim() };
@@ -26,9 +27,7 @@ export default function TrackUploadPanel({ onUploaded }) {
   const isUploading = status === "uploading";
 
   const handleFileChange = (e) => {
-    const picked = Array.from(e.target.files ?? []).filter((f) =>
-      f.name.toLowerCase().endsWith(".mp3")
-    );
+    const picked = Array.from(e.target.files ?? []).filter(isSupportedAudioFile);
     setFiles(picked);
     setError("");
     setLastResult(null);
@@ -54,7 +53,7 @@ export default function TrackUploadPanel({ onUploaded }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!files.length) {
-      setError("יש לבחור לפחות קובץ MP3 אחד");
+      setError("יש לבחור לפחות קובץ MP3 או WAV אחד");
       return;
     }
 
@@ -121,7 +120,7 @@ export default function TrackUploadPanel({ onUploaded }) {
           <p className="font-lcd text-[10px] tracking-[0.2em] text-xdj-cyan uppercase">Upload</p>
           <h2 className="text-sm font-semibold text-xdj-text mt-1">העלאת שירים לקטלוג</h2>
         </div>
-        <span className="text-[10px] text-xdj-muted">MP3 בלבד · עד 80MB לקובץ · בחירה מרובה</span>
+        <span className="text-[10px] text-xdj-muted">MP3 / WAV · המרה ל-MP3 128k · עד 80MB לקובץ</span>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -143,11 +142,11 @@ export default function TrackUploadPanel({ onUploaded }) {
           </label>
 
           <label className="flex flex-col gap-1 sm:col-span-1">
-            <span className="font-lcd text-[10px] text-xdj-muted uppercase">קבצי MP3</span>
+            <span className="font-lcd text-[10px] text-xdj-muted uppercase">קבצי MP3 / WAV</span>
             <input
               ref={inputRef}
               type="file"
-              accept=".mp3,audio/mpeg,audio/mp3"
+              accept={ACCEPT_AUDIO}
               multiple
               onChange={handleFileChange}
               disabled={isUploading}

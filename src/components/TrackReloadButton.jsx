@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { reloadTrackFile } from "../lib/api/uploadTrack";
+import { ACCEPT_AUDIO } from "../lib/audioFormats";
 
 export default function TrackReloadButton({
   track,
@@ -31,7 +32,7 @@ export default function TrackReloadButton({
         trackId: track.id,
         file,
         bucket: track.bucket,
-        filename: track.filename,
+        filename: file.name,
       });
       onReloaded?.(updated);
       setStatus("success");
@@ -47,7 +48,7 @@ export default function TrackReloadButton({
       <input
         ref={inputRef}
         type="file"
-        accept=".mp3,audio/mpeg,audio/mp3"
+        accept={ACCEPT_AUDIO}
         className="hidden"
         onChange={handleFile}
       />
@@ -60,7 +61,7 @@ export default function TrackReloadButton({
             ? "text-[10px] text-xdj-cyan hover:text-xdj-orange px-1.5 py-0.5 rounded border border-xdj-cyan/40 hover:border-xdj-orange/50 disabled:opacity-40 whitespace-nowrap"
             : "btn-luxury-primary px-3 py-1.5 rounded-sm text-xs min-h-[36px] disabled:opacity-40"
         }
-        title="העלה קובץ MP3 מחדש לשיר הזה"
+        title="העלה קובץ MP3 או WAV (יומר ל-MP3 128k)"
       >
         {status === "uploading" ? "מעלה..." : status === "success" ? "נשמר ✓" : label}
       </button>

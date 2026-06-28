@@ -17,6 +17,7 @@ public/data/catalog.json
 public/data/clients.json
 public/data/feedback.json
 public/data/form-schema.json
+public/data/app-settings.json
 public/music/**
 !public/music/.gitkeep
 dist-ssr

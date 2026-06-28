@@ -1,7 +1,12 @@
-import DJPoolDemo from './DJPoolDemo';
+import DJPoolDemo from "./DJPoolDemo";
+import { AppSettingsProvider } from "./lib/i18n/AppSettingsContext";
 
 function App() {
-  return <DJPoolDemo />;
+  return (
+    <AppSettingsProvider>
+      <DJPoolDemo />
+    </AppSettingsProvider>
+  );
 }
 
-export default App
+export default App;

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import CategoryStyleRow from "./CategoryStyleRow";
 import StarRating from "./StarRating";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function CategorySelector({
   allCategories,
@@ -9,6 +10,7 @@ export default function CategorySelector({
   onToggleCategory,
   onRateCategory,
 }) {
+  const { t, dir } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const [focusedCategory, setFocusedCategory] = useState(
     () => selectedCategories[0] || allCategories[0] || ""
@@ -38,16 +40,14 @@ export default function CategorySelector({
       : "—";
 
   return (
-    <section className="panel-luxury rounded-sm p-3 sm:p-4 mb-0 sm:mb-4 shrink-0" dir="rtl">
+    <section className="panel-luxury rounded-sm p-3 sm:p-4 mb-0 sm:mb-4 shrink-0" dir={dir}>
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="font-lcd text-[10px] tracking-[0.2em] text-xdj-cyan uppercase">
-            Style Preferences
+            {t("browse.stylePrefs")}
           </p>
-          <h2 className="text-sm font-semibold text-xdj-text mt-1">סגנונות לאירוע — בחרו ודרגו</h2>
-          <p className="text-[10px] text-xdj-muted mt-1 hidden sm:block">
-            סמנו סגנון ודרגו מ-1 עד 5 כוכבים
-          </p>
+          <h2 className="text-sm font-semibold text-xdj-text mt-1">{t("browse.title")}</h2>
+          <p className="text-[10px] text-xdj-muted mt-1 hidden sm:block">{t("browse.hint")}</p>
         </div>
         <span className="font-lcd text-[10px] text-xdj-gold tabular-nums">
           {selectedCategories.length}/{allCategories.length}
@@ -63,10 +63,10 @@ export default function CategorySelector({
         <div className="text-right min-w-0">
           <span className="text-sm font-semibold text-xdj-text block truncate">
             {selectedCategories.length > 0
-              ? `${selectedCategories.length} סגנונות נבחרו`
-              : "בחרו סגנונות מוזיקה"}
+              ? t("browse.stylesSelected", { count: selectedCategories.length })
+              : t("browse.chooseStyles")}
           </span>
-          <span className="text-[10px] text-xdj-muted">ממוצע דירוג: {avgRating}</span>
+          <span className="text-[10px] text-xdj-muted">{t("browse.avgRating", { avg: avgRating })}</span>
         </div>
         <span className={`category-mobile-chevron ${expanded ? "is-open" : ""}`}>▼</span>
       </button>

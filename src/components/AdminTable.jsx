@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import TrackReloadButton from "./TrackReloadButton";
 import { countMissingTracks, getTrackSourceSummary } from "../lib/trackSource";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function AdminTable({
   tracks,
@@ -12,6 +13,7 @@ export default function AdminTable({
   onTrackReloaded,
   onRefreshTrackFiles,
 }) {
+  const { t, dir } = useI18n();
   const missingCount = countMissingTracks(tracks);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -39,7 +41,7 @@ export default function AdminTable({
   return (
     <section className="xdj-browser">
       <div className="xdj-browser-header flex flex-wrap items-center justify-between gap-2">
-        <span className="font-lcd text-xs tracking-[0.25em] text-xdj-cyan">CATALOG EDITOR</span>
+        <span className="font-lcd text-xs tracking-[0.25em] text-xdj-cyan">{t("admin.catalogEditor")}</span>
         <div className="flex items-center gap-2">
           {onRefreshTrackFiles ? (
             <button
@@ -48,10 +50,10 @@ export default function AdminTable({
               disabled={refreshing}
               className="text-[10px] px-2 py-1 rounded border border-xdj-cyan/40 text-xdj-cyan hover:bg-xdj-cyan/10 disabled:opacity-40"
             >
-              {refreshing ? "בודק..." : "בדוק קבצים"}
+              {refreshing ? t("admin.checking") : t("admin.checkFiles")}
             </button>
           ) : null}
-          <span className="text-[10px] text-xdj-muted">לחץ שורה לעריכת תצוגה מקדימה · גרור A/B בנגן</span>
+          <span className="text-[10px] text-xdj-muted">{t("admin.rowHint")}</span>
         </div>
       </div>
 
@@ -59,14 +61,15 @@ export default function AdminTable({
         <div
           className="mx-3 mt-3 mb-1 rounded-sm border border-red-500/50 bg-red-950/40 px-4 py-3 text-right"
           role="alert"
+          dir={dir}
         >
           <p className="text-sm font-semibold text-red-300">
-            ⚠ {missingCount} שיר{missingCount === 1 ? "" : "ים"} ללא קובץ — לא ניתן לנגן
+            {t("admin.missingAlert", {
+              count: missingCount,
+              plural: missingCount === 1 ? "" : dir === "rtl" ? "ים" : "s",
+            })}
           </p>
-          <p className="text-xs text-red-200/80 mt-1">
-            הנגינה תמיד מהשרת: <code className="text-red-100">/music/&#123;קטגוריה&#125;/analyzed/&#123;קובץ&#125;</code>.
-            השתמשו ב<strong className="font-semibold"> טען מחדש </strong>או ייבוא מ-Dropbox כדי לשחזר קבצים חסרים.
-          </p>
+          <p className="text-xs text-red-200/80 mt-1">{t("admin.missingHelp")}</p>
         </div>
       ) : null}
 
@@ -74,11 +77,11 @@ export default function AdminTable({
       <table className="w-full min-w-[900px] text-right border-collapse">
         <thead>
           <tr className="xdj-browser-columns text-xs">
-            <th className="p-4 w-14 text-center">תצוגה</th>
-            <th className="p-4 w-32 text-center sticky right-0 z-10 bg-xdj-panel/95 backdrop-blur-sm shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">פעולות</th>
-            <th className="p-4">שם השיר / אמן</th>
-            <th className="p-4">קובץ (Filename)</th>
-            <th className="p-4 min-w-[200px]">מקור נגינה</th>
+            <th className="p-4 w-14 text-center">{t("admin.colPreview")}</th>
+            <th className="p-4 w-32 text-center sticky right-0 z-10 bg-xdj-panel/95 backdrop-blur-sm shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">{t("admin.colActions")}</th>
+            <th className="p-4">{t("admin.colTitle")}</th>
+            <th className="p-4">{t("admin.colFilename")}</th>
+            <th className="p-4 min-w-[200px]">{t("admin.colSource")}</th>
             <th className="p-4">באקט</th>
             <th className="p-4 w-24">התחלה (S)</th>
             <th className="p-4 w-24">סיום (S)</th>
@@ -88,8 +91,8 @@ export default function AdminTable({
           {tracks.length === 0 ? (
             <tr>
               <td colSpan={8} className="p-8 text-center">
-                <p className="font-lcd text-xs text-xdj-muted">אין שירים בקטלוג</p>
-                <p className="text-xs text-xdj-muted mt-2">השתמש בפאנל ההעלאה או Dropbox Import למעלה</p>
+                <p className="font-lcd text-xs text-xdj-muted">{t("admin.emptyTable")}</p>
+                <p className="text-xs text-xdj-muted mt-2">{t("admin.emptyTableHint")}</p>
               </td>
             </tr>
           ) : null}
@@ -97,7 +100,7 @@ export default function AdminTable({
             const isSelected = currentTrack?.id === track.id;
             const canPreview = !track.isMissing;
             const needsReload = track.isMissing === true;
-            const source = getTrackSourceSummary(track);
+            const source = getTrackSourceSummary(track, t);
 
             return (
               <tr
@@ -134,7 +137,7 @@ export default function AdminTable({
                         track={track}
                         onReloaded={onTrackReloaded}
                         compact
-                        label={needsReload ? "טען מחדש" : "החלף"}
+                        label={needsReload ? t("admin.reload") : t("admin.replace")}
                       />
                     ) : null}
                     <button
@@ -142,9 +145,8 @@ export default function AdminTable({
                       onClick={() => handleDelete(track.id)}
                       disabled={deletingId === track.id}
                       className="text-[10px] font-bold text-red-300 hover:text-red-100 px-2 py-1 rounded border border-red-500/50 hover:border-red-400 hover:bg-red-950/50 transition-colors disabled:opacity-40 min-h-[28px] min-w-[72px]"
-                      title="מחק שיר מהקטלוג ומהשרת"
                     >
-                      {deletingId === track.id ? "מוחק..." : "מחק"}
+                      {deletingId === track.id ? t("admin.deleting") : t("admin.delete")}
                     </button>
                   </div>
                 </td>
@@ -158,7 +160,7 @@ export default function AdminTable({
                       />
                       {track.isMissing && (
                         <span className="text-[10px] text-red-400 font-bold bg-red-950 px-1.5 py-0.5 rounded border border-red-900 shadow-sm shrink-0">
-                          קובץ חסר
+                          {t("trackSource.missing")}
                         </span>
                       )}
                     </div>

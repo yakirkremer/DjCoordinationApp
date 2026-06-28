@@ -1,9 +1,12 @@
 import React from "react";
 import { ENERGY_LEVELS } from "../lib/preferences";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function WizardStepEnergy({ energyLevel, onSelect, title, description }) {
+  const { t, dir } = useI18n();
+
   return (
-    <div className="flex flex-col gap-4" dir="rtl">
+    <div className="flex flex-col gap-4" dir={dir}>
       <div>
         <h2 className="text-xl font-bold text-xdj-text mb-2">{title ?? "מה רמת האנרגיה שאתם רוצים?"}</h2>
         <p className="text-xs text-xdj-muted">{description ?? "בחרו את האווירה הכללית של האירוע."}</p>
@@ -21,8 +24,8 @@ export default function WizardStepEnergy({ energyLevel, onSelect, title, descrip
                 : "border-xdj-border bg-[#0a0a0c] hover:border-xdj-muted"
             }`}
           >
-            <p className="text-lg font-bold text-xdj-text mb-1">{level.label}</p>
-            <p className="text-xs text-xdj-muted">{level.description}</p>
+            <p className="text-lg font-bold text-xdj-text mb-1">{t(`energy.${level.id}.label`)}</p>
+            <p className="text-xs text-xdj-muted">{t(`energy.${level.id}.description`)}</p>
           </button>
         ))}
       </div>

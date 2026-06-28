@@ -4,4 +4,5 @@ export const RUNTIME_DATA_PATHS = [
   "public/data/clients.json",
   "public/data/feedback.json",
   "public/data/form-schema.json",
+  "public/data/app-settings.json",
 ];

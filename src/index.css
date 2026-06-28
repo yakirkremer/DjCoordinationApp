@@ -2207,3 +2207,50 @@ body {
   color: var(--color-xdj-cyan);
   font-weight: 700;
 }
+
+/* ── Site themes (admin: Settings tab) — extend in src/lib/themes.js ── */
+html[data-theme="wedding-classic"] {
+  --color-xdj-black: #1a1410;
+  --color-xdj-panel: #241c16;
+  --color-xdj-screen: #2a221a;
+  --color-xdj-border: #4a3d32;
+  --color-xdj-cyan: #d4a574;
+  --color-xdj-cyan-dim: #b8895a;
+  --color-xdj-orange: #e07a4a;
+  --color-xdj-gold: #f5e6d3;
+  --color-xdj-gold-dim: #c9b89a;
+  --color-xdj-text: #f5efe8;
+  --color-xdj-muted: #a89888;
+}
+
+html[data-theme="wedding-classic"] .luxury-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 230, 211, 0.1), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(212, 165, 116, 0.06), transparent),
+    var(--color-xdj-black);
+}
+
+html[data-theme="midnight"] {
+  --color-xdj-black: #060810;
+  --color-xdj-panel: #0c1018;
+  --color-xdj-screen: #10141c;
+  --color-xdj-border: #1e2838;
+  --color-xdj-cyan: #4d9fff;
+  --color-xdj-cyan-dim: #3a7acc;
+  --color-xdj-orange: #ff7b54;
+  --color-xdj-gold: #8b9dc3;
+  --color-xdj-gold-dim: #5c6d8a;
+  --color-xdj-text: #e4eaf4;
+  --color-xdj-muted: #6b7a94;
+}
+
+html[data-theme="midnight"] .luxury-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(77, 159, 255, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 157, 195, 0.05), transparent),
+    var(--color-xdj-black);
+}
+
+.theme-card {
+  cursor: pointer;
+}

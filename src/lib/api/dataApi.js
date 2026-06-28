@@ -55,3 +55,11 @@ export function fetchCatalog() {
 export function saveCatalog(tracks) {
   return request("catalog", { method: "PUT", body: JSON.stringify(tracks) });
 }
+
+export function fetchAppSettings() {
+  return request("settings");
+}
+
+export function saveAppSettings(settings) {
+  return request("settings", { method: "PUT", body: JSON.stringify(settings) });
+}

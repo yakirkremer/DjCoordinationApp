@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DEFAULT_FORM_SCHEMA } from "../src/lib/defaultFormSchema.js";
+import { DEFAULT_APP_SETTINGS } from "../src/lib/defaultAppSettings.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dest = path.join(ROOT, "storage-bootstrap", "data");
@@ -16,6 +17,11 @@ await fs.writeFile(path.join(dest, "feedback.json"), "{}\n", "utf8");
 await fs.writeFile(
   path.join(dest, "form-schema.json"),
   `${JSON.stringify(DEFAULT_FORM_SCHEMA, null, 2)}\n`,
+  "utf8"
+);
+await fs.writeFile(
+  path.join(dest, "app-settings.json"),
+  `${JSON.stringify(DEFAULT_APP_SETTINGS, null, 2)}\n`,
   "utf8"
 );
 

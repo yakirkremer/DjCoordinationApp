@@ -10,6 +10,7 @@ export const DATA_FILES = {
   formSchema: "form-schema.json",
   feedback: "feedback.json",
   catalog: "catalog.json",
+  settings: "app-settings.json",
 };
 
 export async function ensureDataDir() {
@@ -133,6 +134,20 @@ export async function handleDataApi(req, res) {
           return true;
         }
         await writeJsonFile(DATA_FILES.catalog, body);
+        sendJson(res, 200, { ok: true });
+        return true;
+      }
+    }
+
+    if (resource === "settings") {
+      if (req.method === "GET") {
+        const settings = await readJsonFile(DATA_FILES.settings, null);
+        sendJson(res, 200, settings);
+        return true;
+      }
+      if (req.method === "PUT") {
+        const body = JSON.parse(await readBody(req));
+        await writeJsonFile(DATA_FILES.settings, body);
         sendJson(res, 200, { ok: true });
         return true;
       }

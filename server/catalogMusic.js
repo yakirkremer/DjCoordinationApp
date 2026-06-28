@@ -3,15 +3,15 @@ import path from "path";
 import { OFFICIAL_CATEGORIES } from "../src/lib/categories.js";
 import { readJsonFile, writeJsonFile, DATA_FILES } from "./dataStore.js";
 import { MUSIC_ROOT } from "./storagePaths.js";
-import { optimizeMp3Buffer } from "./transcodeAudio.js";
+import { isSupportedAudioFilename, prepareUploadAudio, toCatalogMp3Filename } from "./transcodeAudio.js";
 
 export { MUSIC_ROOT };
 export const MAX_MUSIC_BYTES = 80 * 1024 * 1024;
 
 export function sanitizeFilename(name) {
   const base = path.basename(name).replace(/[<>:"|?*\x00-\x1f]/g, "_").trim();
-  if (!base.toLowerCase().endsWith(".mp3")) {
-    throw new Error("Only .mp3 files are supported");
+  if (!isSupportedAudioFilename(base)) {
+    throw new Error("Only .mp3 and .wav files are supported");
   }
   return base;
 }
@@ -76,7 +76,9 @@ export async function saveTrackToCatalog({
     throw new Error(`File too large (max ${Math.floor(MAX_MUSIC_BYTES / 1024 / 1024)}MB)`);
   }
 
-  buffer = await optimizeMp3Buffer(buffer);
+  const prepared = await prepareUploadAudio(buffer, safeName);
+  buffer = prepared.buffer;
+  safeName = toCatalogMp3Filename(prepared.filename);
 
   const analyzedDir = path.join(MUSIC_ROOT, bucket, "analyzed");
   await fs.mkdir(analyzedDir, { recursive: true });
@@ -134,7 +136,11 @@ export async function reloadTrackFile({ trackId, bucket, filename, buffer }) {
     throw new Error(`File too large (max ${Math.floor(MAX_MUSIC_BYTES / 1024 / 1024)}MB)`);
   }
 
-  buffer = await optimizeMp3Buffer(buffer);
+  const oldFilePath = resolveTrackFilePath(track);
+
+  const prepared = await prepareUploadAudio(buffer, safeName);
+  buffer = prepared.buffer;
+  safeName = toCatalogMp3Filename(prepared.filename);
 
   const analyzedDir = path.join(MUSIC_ROOT, targetBucket, "analyzed");
   await fs.mkdir(analyzedDir, { recursive: true });
@@ -145,6 +151,12 @@ export async function reloadTrackFile({ trackId, bucket, filename, buffer }) {
   }
 
   await fs.writeFile(filePath, buffer);
+
+  if (oldFilePath && oldFilePath !== filePath) {
+    await fs.unlink(oldFilePath).catch((err) => {
+      if (err.code !== "ENOENT") throw err;
+    });
+  }
 
   const updated = {
     ...track,

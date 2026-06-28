@@ -1,0 +1,314 @@
+export const LOCALES = ["he", "en"];
+
+export const LOCALE_LABELS = {
+  he: "עברית",
+  en: "English",
+};
+
+const he = {
+  common: {
+    back: "חזרה",
+    or: "או",
+    loading: "טוען...",
+    save: "שמור",
+    saving: "שומר...",
+    logout: "יציאה",
+    continue: "המשך",
+    dashboard: "לוח בקרה",
+    language: "שפה",
+    theme: "ערכת עיצוב",
+  },
+  welcome: {
+    title: "ברוכים הבאים",
+    subtitle: "מערכת חכמה לתיאום המוזיקה לאירוע שלכם — בחירת סגנונות, העדפות אישיות ודירוג שירים",
+    clientLogin: "יש לי קוד כניסה לחתונה",
+    adminLogin: "כניסת מנהל / דיג'יי",
+  },
+  login: {
+    title: "ברוכים הבאים",
+    subtitle: "הזינו את קוד הכניסה שקיבלתם מהדיג'יי",
+    codeRequired: "יש להזין קוד כניסה",
+    codeInvalid: "קוד כניסה שגוי. בדקו עם הדיג'יי.",
+    submit: "כניסה",
+    placeholder: "ACCESS CODE",
+  },
+  header: {
+    adminSubtitle: "מערכת ניהול קטלוג ולקוחות",
+    guestSubtitle: "מערכת חכמה לתיאום המוזיקה לחתונה שלכם",
+    browse: "שלום {name} — קטלוג מוזיקה",
+    wizard: "שלום {name} — טופס העדפות",
+    home: "שלום {name}",
+    exitAdmin: "חזרה לדף הבית",
+    exportJson: "EXPORT JSON",
+  },
+  home: {
+    dashboard: "לוח בקרה",
+    hello: "שלום, {name}",
+    doneHint: "העדפותיך נשמרו — ניתן לערוך או לגלוש במוזיקה",
+    startHint: "מלאו את טופס ההעדפות כדי לפתוח את קטלוג השירים",
+    formStatus: "סטטוס טופס",
+    formDone: "הושלם",
+    formInProgress: "בתהליך",
+    energy: "אנרגיה",
+    likedTracks: "שירים שאהבתי",
+    trackComments: "הערות לשירים",
+    editPreferences: "ערוך העדפות",
+    continueForm: "המשך מילוי הטופס",
+    startForm: "התחל טופס העדפות",
+    browseMusic: "גלוש ודרג שירים",
+    emptyHint: 'עדיין לא מילאתם העדפות. לחצו על "התחל טופס העדפות" כדי להתחיל.',
+  },
+  wizard: {
+    autoSave: "התקדמותך נשמרת אוטומטית — תוכלו להמשיך מאותה נקודה בכניסה הבאה",
+    back: "→ חזרה",
+    saveExit: "שמור וצא",
+    skipAll: "דלג הכל",
+    next: "המשך ←",
+  },
+  browse: {
+    stylePrefs: "Style Preferences",
+    title: "סגנונות לאירוע — בחרו ודרגו",
+    hint: "סמנו סגנון ודרגו מ-1 עד 5 כוכבים",
+    emptyCatalog: "הקטלוג ריק — פנה למנהל המערכת",
+    noTracks: "NO TRACKS IN CATALOG",
+    stylesSelected: "{count} סגנונות נבחרו",
+    chooseStyles: "בחרו סגנונות מוזיקה",
+    avgRating: "ממוצע דירוג: {avg}",
+  },
+  admin: {
+    tabs: {
+      catalog: "CATALOG",
+      clients: "CLIENTS",
+      form: "FORM",
+      analytics: "INSIGHTS",
+      settings: "SETTINGS",
+    },
+    previewEditor: "PREVIEW EDITOR",
+    missingFile: "קובץ חסר — לא ניתן לנגן עד שתעלה MP3",
+    reload: "טען מחדש",
+    emptyCatalog: "הקטלוג ריק — העלה שיר למעלה או ייבא מ-Dropbox",
+    missingTracks: "⚠ {count} שירים ללא קובץ בשרת — ראה עמודת \"מקור נגינה\" בטבלה",
+    selectTrack: "בחר שיר מהטבלה למטה כדי לנגן ולגרור סמני A / B",
+    deleteConfirm: 'למחוק את "{label}"?\n\nיימחק מהקטלוג וגם קובץ ה-MP3 מהשרת (אם קיים).',
+    deleteFailed: "מחיקה נכשלה",
+    thisTrack: "שיר זה",
+    catalogEditor: "CATALOG EDITOR",
+    checkFiles: "בדוק קבצים",
+    checking: "בודק...",
+    rowHint: "לחץ שורה לעריכת תצוגה מקדימה · גרור A/B בנגן",
+    missingAlert: "⚠ {count} שיר{plural} ללא קובץ — לא ניתן לנגן",
+    missingHelp:
+      "הנגינה תמיד מהשרת: /music/{category}/analyzed/{file}. השתמשו בטען מחדש או ייבוא מ-Dropbox כדי לשחזר קבצים חסרים.",
+    colPreview: "תצוגה",
+    colActions: "פעולות",
+    colTitle: "שם השיר / אמן",
+    colFilename: "קובץ (Filename)",
+    colSource: "מקור נגינה",
+    colBucket: "קטגוריה",
+    colCues: "A / B",
+    delete: "מחק",
+    deleting: "מוחק...",
+    emptyTable: "אין שירים בקטלוג",
+    emptyTableHint: "השתמש בפאנל ההעלאה או Dropbox Import למעלה",
+    replace: "החלף",
+    settingsTitle: "הגדרות אתר",
+    settingsSubtitle: "שפת ברירת מחדל וערכת עיצוב לכל המשתמשים",
+    defaultLocale: "שפת ברירת מחדל",
+    siteTheme: "ערכת עיצוב",
+    themeHint: "ניתן להוסיף ערכות נוספות בקוד — ראה src/lib/themes.js ו-index.css",
+    saved: "ההגדרות נשמרו",
+  },
+  energy: {
+    chill: { label: "רגוע", description: "אווירה נעימה ושקטה" },
+    mixed: { label: "מעורב", description: "שילוב של רגוע ומסיבה" },
+    party: { label: "מסיבה", description: "אנרגיה גבוהה ורחבה" },
+  },
+  phases: {
+    reception: "קבלת פנים",
+    dancing: "ריקודים",
+    dessert: "קינוח",
+    hora: "הורה",
+  },
+  wizardPhases: {
+    noCategories: "חזרו לשלב הסגנונות ובחרו לפחות קטגוריה אחת.",
+  },
+  trackSource: {
+    missing: "קובץ חסר",
+    local: "זמין בשרת",
+    dropbox: "Dropbox (ישן)",
+    unknown: "לא ידוע",
+  },
+};
+
+const en = {
+  common: {
+    back: "Back",
+    or: "or",
+    loading: "Loading...",
+    save: "Save",
+    saving: "Saving...",
+    logout: "Log out",
+    continue: "Continue",
+    dashboard: "Dashboard",
+    language: "Language",
+    theme: "Theme",
+  },
+  welcome: {
+    title: "Welcome",
+    subtitle:
+      "Smart music coordination for your event — choose styles, set preferences, and rate tracks",
+    clientLogin: "I have an event access code",
+    adminLogin: "Admin / DJ login",
+  },
+  login: {
+    title: "Welcome",
+    subtitle: "Enter the access code you received from your DJ",
+    codeRequired: "Please enter an access code",
+    codeInvalid: "Invalid code. Check with your DJ.",
+    submit: "Sign in",
+    placeholder: "ACCESS CODE",
+  },
+  header: {
+    adminSubtitle: "Catalog & client management",
+    guestSubtitle: "Smart music coordination for your wedding",
+    browse: "Hello {name} — music catalog",
+    wizard: "Hello {name} — preferences form",
+    home: "Hello {name}",
+    exitAdmin: "Back to home",
+    exportJson: "EXPORT JSON",
+  },
+  home: {
+    dashboard: "Dashboard",
+    hello: "Hello, {name}",
+    doneHint: "Your preferences are saved — edit them or browse music",
+    startHint: "Complete the preferences form to unlock the track catalog",
+    formStatus: "Form status",
+    formDone: "Complete",
+    formInProgress: "In progress",
+    energy: "Energy",
+    likedTracks: "Liked tracks",
+    trackComments: "Track notes",
+    editPreferences: "Edit preferences",
+    continueForm: "Continue form",
+    startForm: "Start preferences form",
+    browseMusic: "Browse & rate tracks",
+    emptyHint: 'No preferences yet. Click "Start preferences form" to begin.',
+  },
+  wizard: {
+    autoSave: "Your progress is saved automatically — you can continue where you left off",
+    back: "← Back",
+    saveExit: "Save & exit",
+    skipAll: "Skip all",
+    next: "Continue →",
+  },
+  browse: {
+    stylePrefs: "Style Preferences",
+    title: "Event styles — select and rate",
+    hint: "Pick a style and rate from 1 to 5 stars",
+    emptyCatalog: "Catalog is empty — contact your administrator",
+    noTracks: "NO TRACKS IN CATALOG",
+    stylesSelected: "{count} styles selected",
+    chooseStyles: "Choose music styles",
+    avgRating: "Average rating: {avg}",
+  },
+  admin: {
+    tabs: {
+      catalog: "CATALOG",
+      clients: "CLIENTS",
+      form: "FORM",
+      analytics: "INSIGHTS",
+      settings: "SETTINGS",
+    },
+    previewEditor: "PREVIEW EDITOR",
+    missingFile: "File missing — upload an MP3 to play",
+    reload: "Reload file",
+    emptyCatalog: "Catalog is empty — upload above or import from Dropbox",
+    missingTracks: "⚠ {count} track(s) missing on server — see Playback source column",
+    selectTrack: "Select a track below to preview and drag A / B markers",
+    deleteConfirm: 'Delete "{label}"?\n\nRemoves from catalog and deletes the MP3 from the server (if present).',
+    deleteFailed: "Delete failed",
+    thisTrack: "this track",
+    catalogEditor: "CATALOG EDITOR",
+    checkFiles: "Verify files",
+    checking: "Checking...",
+    rowHint: "Click a row to edit preview · drag A/B in player",
+    missingAlert: "⚠ {count} track{plural} missing — cannot play",
+    missingHelp:
+      "Playback is always from server: /music/{category}/analyzed/{file}. Use Reload or Dropbox import to restore missing files.",
+    colPreview: "Preview",
+    colActions: "Actions",
+    colTitle: "Track / artist",
+    colFilename: "Filename",
+    colSource: "Playback source",
+    colBucket: "Category",
+    colCues: "A / B",
+    delete: "Delete",
+    deleting: "Deleting...",
+    emptyTable: "No tracks in catalog",
+    emptyTableHint: "Use the upload panel or Dropbox Import above",
+    replace: "Replace",
+    settingsTitle: "Site settings",
+    settingsSubtitle: "Default language and theme for all visitors",
+    defaultLocale: "Default language",
+    siteTheme: "Site theme",
+    themeHint: "Add more themes in code — see src/lib/themes.js and index.css",
+    saved: "Settings saved",
+  },
+  energy: {
+    chill: { label: "Chill", description: "Relaxed, easy atmosphere" },
+    mixed: { label: "Mixed", description: "Balance of chill and party" },
+    party: { label: "Party", description: "High energy dance floor" },
+  },
+  phases: {
+    reception: "Reception",
+    dancing: "Dancing",
+    dessert: "Dessert",
+    hora: "Hora",
+  },
+  wizardPhases: {
+    noCategories: "Go back to the styles step and select at least one category.",
+  },
+  trackSource: {
+    missing: "File missing",
+    local: "On server",
+    dropbox: "Dropbox (legacy)",
+    unknown: "Unknown",
+  },
+};
+
+export const translations = { he, en };
+
+export function translate(locale, key, vars = {}) {
+  const parts = key.split(".");
+  let node = translations[locale] ?? translations.he;
+  for (const part of parts) {
+    node = node?.[part];
+    if (node === undefined) break;
+  }
+  if (typeof node !== "string") return key;
+  return node.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : ""));
+}
+
+export function localeDir(locale) {
+  return locale === "he" ? "rtl" : "ltr";
+}
+
+const LOCALE_STORAGE_KEY = "kremer-locale-v1";
+
+export function readStoredLocale() {
+  try {
+    const v = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (v === "he" || v === "en") return v;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function writeStoredLocale(locale) {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    /* ignore */
+  }
+}

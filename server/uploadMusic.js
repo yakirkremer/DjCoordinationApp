@@ -93,7 +93,7 @@ export async function handleMusicReload(req, res) {
     const track = await reloadTrackFile({
       trackId: fields.trackId,
       bucket: fields.bucket,
-      filename: fields.filename,
+      filename: filePart.filename || fields.filename,
       buffer: filePart.data,
     });
     sendJson(res, 200, { track });

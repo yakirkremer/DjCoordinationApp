@@ -14,7 +14,10 @@ export function getTrackOriginPath(track) {
   return track?.dropboxSourcePath || track?.dropboxPath || null;
 }
 
-export function getTrackSourceSummary(track) {
+export function getTrackSourceSummary(track, t) {
+  const label = (key) => (t ? t(`trackSource.${key}`) : null);
+  const missingLabel = label("missing") ?? "קובץ חסר";
+  const localLabel = label("local") ?? "זמין בשרת";
   const playbackUrl = getTrackPlaybackUrl(track);
   const diskPath = getTrackDiskPath(track);
   const originPath = getTrackOriginPath(track);
@@ -22,7 +25,7 @@ export function getTrackSourceSummary(track) {
   if (track?.isMissing) {
     return {
       status: "missing",
-      statusLabel: "קובץ חסר",
+      statusLabel: missingLabel,
       playbackUrl,
       diskPath,
       originPath,
@@ -36,7 +39,7 @@ export function getTrackSourceSummary(track) {
   if (originPath) {
     return {
       status: "ok",
-      statusLabel: "זמין בשרת",
+      statusLabel: localLabel,
       playbackUrl,
       diskPath,
       originPath,
@@ -47,7 +50,7 @@ export function getTrackSourceSummary(track) {
 
   return {
     status: "ok",
-    statusLabel: "זמין בשרת",
+    statusLabel: localLabel,
     playbackUrl,
     diskPath,
     originPath: null,

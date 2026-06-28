@@ -9,6 +9,7 @@ import WizardStepTimeline from "./WizardStepTimeline";
 import WizardStepSummary from "./WizardStepSummary";
 import { validateQuestionsStep } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 function clampStep(step, totalSteps) {
   if (totalSteps <= 0) return 0;
@@ -29,6 +30,7 @@ export default function PreferencesWizard({
   onSaveProgress,
   onSaveAndExit,
 }) {
+  const { t, dir } = useI18n();
   const steps = useMemo(
     () => filterStepsForClientType(formSchema?.steps ?? [], clientType),
     [formSchema, clientType]
@@ -171,11 +173,9 @@ export default function PreferencesWizard({
   const isSummary = currentStepDef?.stepType === "summary";
 
   return (
-    <section className="panel-luxury rounded-sm p-4 sm:p-8 wizard-shell" dir="rtl">
+    <section className="panel-luxury rounded-sm p-4 sm:p-8 wizard-shell" dir={dir}>
       <WizardProgress currentStep={step} totalSteps={steps.length} stepLabels={stepLabels} />
-      <p className="text-[10px] text-xdj-muted text-center mb-4">
-        התקדמותך נשמרת אוטומטית — תוכלו להמשיך מאותה נקודה בכניסה הבאה
-      </p>
+      <p className="text-[10px] text-xdj-muted text-center mb-4">{t("wizard.autoSave")}</p>
       <div className="wizard-scroll">{renderStep()}</div>
 
       {!isSummary && (
@@ -187,7 +187,7 @@ export default function PreferencesWizard({
               disabled={step === 0}
               className="text-sm text-xdj-muted hover:text-xdj-text disabled:opacity-30 disabled:cursor-not-allowed font-bold min-h-[44px] px-4"
             >
-              → חזרה
+              {t("wizard.back")}
             </button>
             <div className="flex gap-3 wizard-footer-actions">
               <button
@@ -196,14 +196,14 @@ export default function PreferencesWizard({
                 disabled={saving}
                 className="text-sm text-xdj-gold hover:text-xdj-cyan font-bold min-h-[44px] px-4 disabled:opacity-40"
               >
-                {saving ? "שומר..." : "שמור וצא"}
+                {saving ? t("common.saving") : t("wizard.saveExit")}
               </button>
               <button
                 type="button"
                 onClick={onSkip}
                 className="text-sm text-xdj-muted hover:text-xdj-cyan font-bold min-h-[44px] px-4"
               >
-                דלג הכל
+                {t("wizard.skipAll")}
               </button>
               <button
                 type="button"
@@ -211,7 +211,7 @@ export default function PreferencesWizard({
                 disabled={!canAdvance()}
                 className="btn-luxury-primary px-6 py-2 rounded-sm text-sm disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
               >
-                המשך ←
+                {t("wizard.next")}
               </button>
             </div>
           </div>
