@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import { loadFeedback } from "../lib/trackFeedbackStorage";
-import { getCategoryBreakdown, getLikedTracks } from "../lib/feedbackAnalytics";
+import { getCategoryBreakdown, getLikedTracks, getTracksByCategoryRating } from "../lib/feedbackAnalytics";
 import { getClientTypeLabel } from "../lib/clientTypes";
 import CategoryBreakdown from "./CategoryBreakdown";
+import CategoryTrackChoices from "./CategoryTrackChoices";
 import FiveStarList from "./FiveStarList";
 import ClientPreferencesSummary from "./ClientPreferencesSummary";
+import ClientReportExport from "./ClientReportExport";
 
 export default function AdminDashboard({ clients, tracks, formSchema }) {
   const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id ?? "");
@@ -51,6 +53,12 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
     feedback?.ratings ?? {},
     feedback?.comments ?? {}
   );
+  const categoryTrackGroups = getTracksByCategoryRating(
+    tracks,
+    feedback?.ratings ?? {},
+    feedback?.comments ?? {},
+    feedback?.selectedCategories ?? []
+  );
 
   if (clients.length === 0) {
     return (
@@ -62,7 +70,7 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <label className="text-sm text-gray-400 shrink-0">בחר לקוח:</label>
         <select
           value={selectedClientId}
@@ -83,6 +91,14 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
         </p>
       )}
 
+      <ClientReportExport
+        client={client}
+        feedback={feedback}
+        tracks={tracks}
+        formSchema={formSchema}
+        disabled={loadingFeedback || !feedback}
+      />
+
       {loadingFeedback ? (
         <p className="text-sm text-gray-500">טוען נתוני לקוח...</p>
       ) : (
@@ -93,6 +109,10 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
             clientType={client?.clientType}
           />
           <CategoryBreakdown breakdown={breakdown} />
+          <CategoryTrackChoices
+            groups={categoryTrackGroups}
+            categoryRatings={feedback?.categoryRatings ?? {}}
+          />
           <FiveStarList tracks={likedTracks} />
         </>
       )}

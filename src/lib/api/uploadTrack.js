@@ -52,3 +52,18 @@ export async function deleteTrack(trackId) {
 
   return data;
 }
+
+export async function updateTrack(trackId, updates) {
+  const res = await fetch("/api/music/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trackId, updates }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Update failed (${res.status})`);
+  }
+
+  return data.track;
+}

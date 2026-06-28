@@ -21,7 +21,7 @@ import useClients from "./hooks/useClients";
 import useDropboxImport from "./hooks/useDropboxImport";
 import { OFFICIAL_CATEGORIES } from "./lib/categories";
 import { normalizePreviewCue } from "./lib/previewCue";
-import { resolveTrackAudioUrl, verifyLocalTrack, verifyTracks } from "./lib/trackAudioUrl";
+import { resolveTrackAudioUrl, verifyTracks } from "./lib/trackAudioUrl";
 import { deleteTrack } from "./lib/api/uploadTrack";
 import { countMissingTracks } from "./lib/trackSource";
 import useAudioPreload from "./hooks/useAudioPreload";
@@ -63,7 +63,6 @@ export default function DJPoolDemo() {
   const { schema: formSchema, ready: formReady } = formSchemaApi;
   const dropboxImport = useDropboxImport();
   const catalogSaveTimer = useRef(null);
-  const verifyTrackTimer = useRef({});
 
   const appReady = clientsReady && formReady && catalogStatus === "ready";
   const coupleReady = !activeClient || feedbackReady;
@@ -147,27 +146,6 @@ export default function DJPoolDemo() {
         if (prev?.id !== id) return prev;
         return normalizePreviewCue({ ...prev, [field]: val });
       });
-
-      if (field === "filename" || field === "bucket") {
-        clearTimeout(verifyTrackTimer.current[id]);
-        verifyTrackTimer.current[id] = setTimeout(() => {
-          setTracks((prev) => {
-            const track = prev.find((t) => t.id === id);
-            if (track) {
-              verifyLocalTrack(track).then((exists) => {
-                const isMissing = !exists;
-                setTracks((current) =>
-                  current.map((t) => (t.id === id ? { ...t, isMissing } : t))
-                );
-                setCurrentTrack((current) =>
-                  current?.id === id ? { ...current, isMissing } : current
-                );
-              });
-            }
-            return prev;
-          });
-        }, 500);
-      }
     },
     [persistCatalog]
   );
@@ -289,6 +267,24 @@ export default function DJPoolDemo() {
       }
     },
     [tracks, currentTrack?.id, persistCatalog]
+  );
+
+  const handleTrackSaved = useCallback(
+    (savedTrack) => {
+      const normalized = normalizePreviewCue({
+        ...savedTrack,
+        audioVersion: Date.now(),
+      });
+      setTracks((prev) => {
+        const updated = prev.map((t) => (t.id === normalized.id ? normalized : t));
+        persistCatalog(updated);
+        return updated;
+      });
+      if (currentTrack?.id === normalized.id) {
+        setCurrentTrack(normalized);
+      }
+    },
+    [currentTrack?.id, persistCatalog]
   );
 
   const handleRefreshTrackFiles = useCallback(async () => {
@@ -446,7 +442,7 @@ export default function DJPoolDemo() {
             <AdminTable
               tracks={tracks}
               currentTrack={currentTrack}
-              onUpdateTrack={handleUpdateTrack}
+              onTrackSaved={handleTrackSaved}
               onDeleteTrack={handleDeleteTrack}
               onPreviewTrack={handleAdminPreviewTrack}
               onTrackReloaded={handleTrackReloaded}

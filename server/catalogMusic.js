@@ -180,6 +180,99 @@ function resolveTrackFilePath(track) {
   return filePath;
 }
 
+function sanitizeCatalogFilename(name) {
+  const base = path.basename(name).replace(/[<>:"|?*\x00-\x1f]/g, "_").trim();
+  if (!base.toLowerCase().endsWith(".mp3")) {
+    throw new Error("Catalog filename must end with .mp3");
+  }
+  return base;
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function moveTrackAudioFile(oldTrack, nextTrack) {
+  const oldPath = resolveTrackFilePath(oldTrack);
+  assertValidBucket(nextTrack.bucket);
+
+  const newDir = path.join(MUSIC_ROOT, nextTrack.bucket, "analyzed");
+  await fs.mkdir(newDir, { recursive: true });
+
+  let targetName = path.basename(nextTrack.filename);
+  let newPath = path.join(newDir, targetName);
+
+  if (oldPath && oldPath === newPath) {
+    return targetName;
+  }
+
+  if (!oldPath || !(await fileExists(oldPath))) {
+    return targetName;
+  }
+
+  if (await fileExists(newPath) && oldPath !== newPath) {
+    targetName = await uniqueFilename(newDir, targetName);
+    newPath = path.join(newDir, targetName);
+  }
+
+  try {
+    await fs.rename(oldPath, newPath);
+  } catch (err) {
+    if (err.code === "EXDEV") {
+      await fs.copyFile(oldPath, newPath);
+      await fs.unlink(oldPath);
+    } else {
+      throw err;
+    }
+  }
+
+  return targetName;
+}
+
+export async function updateTrackInCatalog(trackId, updates) {
+  const catalog = await readJsonFile(DATA_FILES.catalog, []);
+  const idx = catalog.findIndex((t) => t.id === trackId);
+  if (idx === -1) {
+    throw new Error("Track not found");
+  }
+
+  const track = catalog[idx];
+  const patch = {};
+
+  if (updates.title !== undefined) patch.title = String(updates.title).trim() || track.title;
+  if (updates.artist !== undefined) patch.artist = String(updates.artist).trim() || track.artist;
+  if (updates.bucket !== undefined) {
+    assertValidBucket(updates.bucket);
+    patch.bucket = updates.bucket;
+  }
+  if (updates.filename !== undefined) {
+    patch.filename = sanitizeCatalogFilename(updates.filename);
+  }
+  if (updates.startTime !== undefined) {
+    patch.startTime = parseInt(updates.startTime, 10) || 0;
+  }
+  if (updates.endTime !== undefined) {
+    patch.endTime = parseInt(updates.endTime, 10) || 0;
+  }
+
+  const next = { ...track, ...patch };
+  const finalFilename = await moveTrackAudioFile(track, next);
+  next.filename = finalFilename;
+
+  const onDisk = await fileExists(resolveTrackFilePath(next));
+  next.isMissing = !onDisk;
+
+  catalog[idx] = next;
+  await writeJsonFile(DATA_FILES.catalog, catalog);
+
+  return next;
+}
+
 export async function deleteTrackFromCatalog(trackId) {
   const catalog = await readJsonFile(DATA_FILES.catalog, []);
   const idx = catalog.findIndex((t) => t.id === trackId);

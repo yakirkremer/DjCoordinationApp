@@ -1,7 +1,8 @@
 import React from "react";
 import ClientPreferencesSummary from "./ClientPreferencesSummary";
 import CategoryBreakdown from "./CategoryBreakdown";
-import { getCategoryBreakdown, getLikedTracks } from "../lib/feedbackAnalytics";
+import CategoryTrackChoices from "./CategoryTrackChoices";
+import { getCategoryBreakdown, getLikedTracks, getTracksByCategoryRating } from "../lib/feedbackAnalytics";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
@@ -25,6 +26,12 @@ export default function ClientHome({
     categoryRatings
   );
   const likedTracks = getLikedTracks(tracks, ratings, comments);
+  const categoryTrackGroups = getTracksByCategoryRating(
+    tracks,
+    ratings,
+    comments,
+    selectedCategories
+  );
   const commentCount = Object.keys(comments).filter((k) => comments[k]?.trim()).length;
   const energyId = preferences.energyLevel;
   const energyLabel = energyId ? t(`energy.${energyId}.label`) : "—";
@@ -105,6 +112,7 @@ export default function ClientHome({
             clientType={client.clientType}
           />
           <CategoryBreakdown breakdown={breakdown} />
+          <CategoryTrackChoices groups={categoryTrackGroups} categoryRatings={categoryRatings} />
         </>
       ) : (
         <section className="panel-luxury rounded-sm p-6 text-center">

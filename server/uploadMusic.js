@@ -1,6 +1,6 @@
 import { parseMultipart, readRequestBody } from "./parseMultipart.js";
 import { sendJson } from "./dataStore.js";
-import { saveTrackToCatalog, reloadTrackFile, deleteTrackFromCatalog } from "./catalogMusic.js";
+import { saveTrackToCatalog, reloadTrackFile, deleteTrackFromCatalog, updateTrackInCatalog } from "./catalogMusic.js";
 
 export async function handleMusicUpload(req, res) {
   const contentType = req.headers["content-type"] || "";
@@ -102,6 +102,29 @@ export async function handleMusicReload(req, res) {
   }
 }
 
+export async function handleMusicUpdate(req, res) {
+  let body;
+  try {
+    const raw = await readRequestBody(req, 65536);
+    body = JSON.parse(raw.toString("utf8"));
+  } catch {
+    sendJson(res, 400, { error: "Invalid request body" });
+    return;
+  }
+
+  if (!body.trackId) {
+    sendJson(res, 400, { error: "Missing track id" });
+    return;
+  }
+
+  try {
+    const track = await updateTrackInCatalog(body.trackId, body.updates ?? body);
+    sendJson(res, 200, { track });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Update failed" });
+  }
+}
+
 export async function handleMusicDelete(req, res) {
   let body;
   try {
@@ -146,6 +169,13 @@ export function createUploadMusicMiddleware() {
       handleMusicDelete(req, res).catch((err) => {
         console.error("Delete failed:", err);
         sendJson(res, 500, { error: err.message || "Delete failed" });
+      });
+      return;
+    }
+    if (req.method === "POST" && url.pathname === "/api/music/update") {
+      handleMusicUpdate(req, res).catch((err) => {
+        console.error("Update failed:", err);
+        sendJson(res, 500, { error: err.message || "Update failed" });
       });
       return;
     }
