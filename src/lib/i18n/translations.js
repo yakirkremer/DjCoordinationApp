@@ -24,6 +24,7 @@ const he = {
     subtitle: "מערכת חכמה לתיאום המוזיקה לאירוע שלכם — בחירת סגנונות, העדפות אישיות ודירוג שירים",
     clientLogin: "יש לי קוד כניסה לחתונה",
     adminLogin: "כניסת מנהל / דיג'יי",
+    openGuide: "מה ההבדל בין סגנונות ודרופים?",
   },
   login: {
     title: "ברוכים הבאים",
@@ -39,6 +40,7 @@ const he = {
     browse: "שלום {name} — קטלוג מוזיקה",
     wizard: "שלום {name} — טופס העדפות",
     home: "שלום {name}",
+    guide: "מדריך סגנונות ודרופים",
     exitAdmin: "חזרה לדף הבית",
     exportJson: "EXPORT JSON",
   },
@@ -57,6 +59,7 @@ const he = {
     continueForm: "המשך מילוי הטופס",
     startForm: "התחל טופס העדפות",
     browseMusic: "גלוש ודרג שירים",
+    openGuide: "מדריך סגנונות ודרופים",
     emptyHint: 'עדיין לא מילאתם העדפות. לחצו על "התחל טופס העדפות" כדי להתחיל.',
     categoryTracksTitle: "שירים לפי סגנון",
     categoryTracksHint: "שירים שסימנתם בירוק (אהבתי) או בכתום (לא אהבתי) בזמן הדירוג",
@@ -192,6 +195,18 @@ const he = {
     dropbox: "Dropbox (ישן)",
     unknown: "לא ידוע",
   },
+  guide: {
+    kicker: "מדריך",
+    title: "סגנונות מוזיקה וסוגי דרופ",
+    intro:
+      "בקטלוג יש שני מושגים חשובים: סגנון (תיקייה / ז'אנר) — איזה סוג מוזיקה; ודרופ — איזו גרסת עריכה של אותו שיר תישמע ברחבה. כך תוכלו לבחור בצורה מושכלת בטופס ובזמן הדירוג.",
+    genresTitle: "סגנונות (ז'אנרים)",
+    genresIntro: "אלה הקטגוריות שתבחרו בטופס ההעדפות — כל שיר בקטלוג שייך לאחת מהן.",
+    dropsTitle: "סוגי דרופ (גרסאות)",
+    dropsIntro:
+      "לאותו שיר יכולות להיות כמה גרסאות עם דרופ שונה. בזמן ההאזנה בחרו את הדרופ שמתאים לכם — הדירוג נשמר לשיר, לא לגרסה.",
+    dropFallback: "גרסת {drop} — עריכה ייעודית של השיר בסגנון זה.",
+  },
 };
 
 const en = {
@@ -214,6 +229,7 @@ const en = {
       "Smart music coordination for your event — choose styles, set preferences, and rate tracks",
     clientLogin: "I have an event access code",
     adminLogin: "Admin / DJ login",
+    openGuide: "What are styles and drops?",
   },
   login: {
     title: "Welcome",
@@ -229,6 +245,7 @@ const en = {
     browse: "Hello {name} — music catalog",
     wizard: "Hello {name} — preferences form",
     home: "Hello {name}",
+    guide: "Styles & drops guide",
     exitAdmin: "Back to home",
     exportJson: "EXPORT JSON",
   },
@@ -247,6 +264,7 @@ const en = {
     continueForm: "Continue form",
     startForm: "Start preferences form",
     browseMusic: "Browse & rate tracks",
+    openGuide: "Styles & drops guide",
     emptyHint: 'No preferences yet. Click "Start preferences form" to begin.',
     categoryTracksTitle: "Tracks by style",
     categoryTracksHint: "Songs you marked green (like) or orange (dislike) while rating",
@@ -381,6 +399,18 @@ const en = {
     local: "On server",
     dropbox: "Dropbox (legacy)",
     unknown: "Unknown",
+  },
+  guide: {
+    kicker: "Guide",
+    title: "Music styles & drop types",
+    intro:
+      "The catalog uses two ideas: style (folder / genre) — what kind of music; and drop — which edit of the same song plays on the floor. Use this guide when filling the form and rating tracks.",
+    genresTitle: "Styles (genres)",
+    genresIntro: "These are the categories you pick in the preferences form — every track belongs to one.",
+    dropsTitle: "Drop types (versions)",
+    dropsIntro:
+      "One song can have several versions with different drops. Pick the drop you prefer when listening — your rating applies to the song, not the version.",
+    dropFallback: "{drop} version — a dedicated edit of the track in this style.",
   },
 };
 

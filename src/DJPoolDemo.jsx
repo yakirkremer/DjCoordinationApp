@@ -15,7 +15,7 @@ import DropboxImportPanel from "./components/DropboxImportPanel";
 import TrackReloadButton from "./components/TrackReloadButton";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import ThemeSwitcher from "./components/ThemeSwitcher";
-import AdminFetchArtwork from "./components/AdminFetchArtwork";
+import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
@@ -45,6 +45,7 @@ export default function DJPoolDemo() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTab, setAdminTab] = useState("catalog");
   const [clientScreen, setClientScreen] = useState("home");
+  const [guestView, setGuestView] = useState("welcome");
 
   const { clients, activeClient, createClient, deleteClient, login, logout, ready: clientsReady } = useClients();
   const {
@@ -568,7 +569,7 @@ export default function DJPoolDemo() {
 
   return (
     <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir={dir}>
-      {(isAdmin || activeClient) && (
+      {(isAdmin || activeClient || guestView === "guide") && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
         <div className="flex flex-col items-center sm:items-start gap-2 w-full sm:w-auto">
@@ -585,8 +586,12 @@ export default function DJPoolDemo() {
                   ? t("header.browse", { name: activeClient.name })
                   : clientScreen === "wizard"
                     ? t("header.wizard", { name: activeClient.name })
-                    : t("header.home", { name: activeClient.name })
-                : t("header.guestSubtitle")}
+                    : clientScreen === "guide"
+                      ? t("header.guide")
+                      : t("header.home", { name: activeClient.name })
+                : guestView === "guide"
+                  ? t("header.guide")
+                  : t("header.guestSubtitle")}
           </p>
         </div>
 
@@ -618,7 +623,7 @@ export default function DJPoolDemo() {
 
       <main
         className={`app-main-safe flex-1 min-h-0 max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2 sm:pb-4 flex flex-col ${
-          isCoupleBrowse || isAdmin || (activeClient && clientScreen === "home")
+          isCoupleBrowse || isAdmin || (activeClient && (clientScreen === "home" || clientScreen === "guide")) || guestView === "guide"
             ? "overflow-hidden"
             : "overflow-y-auto"
         }`}
@@ -633,7 +638,17 @@ export default function DJPoolDemo() {
             <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
           </div>
         ) : !activeClient ? (
-          <WelcomePage onLogin={handleClientLogin} onEnterAdmin={handleEnterAdmin} />
+          guestView === "guide" ? (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <DropsAndGenresGuide onBack={() => setGuestView("welcome")} />
+            </div>
+          ) : (
+            <WelcomePage
+              onLogin={handleClientLogin}
+              onEnterAdmin={handleEnterAdmin}
+              onOpenGuide={() => setGuestView("guide")}
+            />
+          )
         ) : !coupleReady ? (
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING SESSION...</p>
         ) : clientScreen === "home" ? (
@@ -649,8 +664,13 @@ export default function DJPoolDemo() {
               tracks={tracks}
               onStartWizard={handleStartWizard}
               onBrowseMusic={() => setClientScreen("browse")}
+              onOpenGuide={() => setClientScreen("guide")}
               onLogout={handleClientLogout}
             />
+          </div>
+        ) : clientScreen === "guide" ? (
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <DropsAndGenresGuide onBack={() => setClientScreen("home")} />
           </div>
         ) : clientScreen === "wizard" ? (
           <PreferencesWizard
