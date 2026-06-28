@@ -81,6 +81,7 @@ export default function TrackList({
   comments,
   onRateTrack,
   onCommentChange,
+  inlinePlayer = null,
 }) {
   const { settings } = useAppSettingsContext();
   const genreTrackOrders = genreTrackOrdersProp ?? settings.genreTrackOrders ?? {};
@@ -91,6 +92,9 @@ export default function TrackList({
   const [activeTab, setActiveTab] = useState(categoriesInTracks[0] || "");
   const [showPreview, setShowPreview] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : true
+  );
+  const [useCardLayout, setUseCardLayout] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
   );
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +107,13 @@ export default function TrackList({
       setActiveTab(categoriesInTracks[0]);
     }
   }, [categoriesKey, activeTab, categoriesInTracks]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = (event) => setUseCardLayout(event.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const genreEntries = useMemo(() => {
     if (!catalogMode || !activeTab) return [];
@@ -244,6 +255,15 @@ export default function TrackList({
     onReorderTracks?.(activeTab, draggedId, targetTrackId);
   };
 
+  const hasSelectedInList = filteredTracks.some((item, index) => resolveRow(item, index).isSelected);
+
+  const renderInlinePlayer = (visible) =>
+    visible && inlinePlayer ? (
+      <div className="xdj-az-inline-player" onClick={(e) => e.stopPropagation()}>
+        {inlinePlayer}
+      </div>
+    ) : null;
+
   const screenContent = (
     <div className={`xdj-az-browser xdj-az-browser-screen ${reorderMode ? "is-reorder-mode" : ""}`} dir="ltr">
       <div className="xdj-az-toolbar">
@@ -325,6 +345,7 @@ export default function TrackList({
               <p className="xdj-az-empty">NO TRACKS IN FOLDER</p>
             ) : (
               <>
+                {renderInlinePlayer(inlinePlayer && currentTrack && !hasSelectedInList)}
                 <div className="xdj-az-mobile-cards">
                   {filteredTracks.map((item, index) => {
                     const row = resolveRow(item, index);
@@ -333,8 +354,8 @@ export default function TrackList({
                       isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
 
                     return (
+                      <React.Fragment key={rowKey}>
                       <div
-                        key={rowKey}
                         className={`xdj-az-track-card ${
                           isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""
                         }`}
@@ -392,6 +413,8 @@ export default function TrackList({
                           hideRating
                         />
                       </div>
+                      {renderInlinePlayer(isSelected && useCardLayout)}
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -403,8 +426,8 @@ export default function TrackList({
                   isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
 
                 return (
+                  <React.Fragment key={rowKey}>
                   <div
-                    key={rowKey}
                     className={`xdj-az-row ${isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""} ${
                       dragOverTrackId === track.id ? "is-drag-over" : ""
                     } ${dragTrackId === track.id ? "is-dragging" : ""} ${
@@ -505,6 +528,8 @@ export default function TrackList({
                       </div>
                     )}
                   </div>
+                  {renderInlinePlayer(isSelected && !useCardLayout)}
+                  </React.Fragment>
                 );
               })}
               </>

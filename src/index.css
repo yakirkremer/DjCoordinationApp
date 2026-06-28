@@ -758,6 +758,22 @@ body {
   flex: 1;
 }
 
+.xdj-az-inline-player {
+  padding: 0.5rem 0.65rem 0.75rem;
+  background: linear-gradient(180deg, rgba(255, 85, 0, 0.08) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.xdj-az-inline-player .xdj-az-player.is-embedded {
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 35%, var(--color-xdj-border));
+}
+
+@media (max-width: 767px) {
+  .xdj-az-inline-player {
+    padding: 0.5rem;
+  }
+}
+
 .xdj-az-row {
   display: flex;
   align-items: center;

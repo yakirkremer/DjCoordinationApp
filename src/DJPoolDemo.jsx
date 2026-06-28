@@ -460,7 +460,8 @@ export default function DJPoolDemo() {
 
   const isAdminCatalog = isAdmin && adminTab === "catalog";
   const isAdminEmbeddedPlayer = isAdmin && (adminTab === "catalog" || adminTab === "order");
-  const showFooterPlayer = showPlayer && !isAdminEmbeddedPlayer;
+  const isBrowseInlinePlayer = isCoupleBrowse && showPlayer;
+  const showFooterPlayer = showPlayer && !isAdminEmbeddedPlayer && !isBrowseInlinePlayer;
 
   const catalogTrackForPlayer = currentTrack
     ? tracks.find((t) => t.id === currentTrack.id) ?? null
@@ -850,6 +851,11 @@ export default function DJPoolDemo() {
                 comments={comments}
                 onRateTrack={rateTrack}
                 onCommentChange={setComment}
+                inlinePlayer={
+                  isBrowseInlinePlayer && currentTrack && !currentTrack.isMissing ? (
+                    <GlobalPlayer {...playerProps} embedded />
+                  ) : null
+                }
               />
             </div>
           </div>
