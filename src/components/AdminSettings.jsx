@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { THEMES, getThemeLabel } from "../lib/themes";
 import { LOCALE_LABELS, LOCALES } from "../lib/i18n/translations";
 import { normalizeDropTypes } from "../lib/dropTypes";
+import { getDropTypeStyle } from "../lib/dropTypeColors";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function AdminSettings() {
@@ -112,7 +113,8 @@ export default function AdminSettings() {
             {draft.dropTypes.map((drop) => (
               <span
                 key={drop}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-xdj-border bg-black/20 text-xs text-xdj-text"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border text-xs font-semibold uppercase tracking-wide"
+                style={getDropTypeStyle(drop)}
               >
                 {drop}
                 <button

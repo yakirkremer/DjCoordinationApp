@@ -4,6 +4,8 @@ import {
   ensureTrackVersions,
   getVersionLabel,
 } from "../lib/trackVersions";
+import { getDropTypeCssVars } from "../lib/dropTypeColors";
+import DropTypeBadge from "./DropTypeBadge";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function TrackVersionPicker({
@@ -21,28 +23,25 @@ export default function TrackVersionPicker({
   if (versions.length <= 1) {
     const only = versions[0];
     if (!only) return null;
-    const label = getVersionLabel(only, 0, locale);
-    return (
-      <span className={`text-[10px] text-xdj-muted ${className}`}>
-        {label}
-      </span>
-    );
+    const drop = only.drop?.trim() || getVersionLabel(only, 0, locale);
+    return <DropTypeBadge drop={drop} compact={compact} className={className} />;
   }
 
   const currentId = activeVersionId || normalized.activeVersionId || normalized.defaultVersionId;
   const currentIndex = versions.findIndex((v) => v.id === currentId);
   const current = versions[currentIndex] || versions[0];
-  const currentLabel = getVersionLabel(current, Math.max(0, currentIndex), locale);
+  const currentDrop = current.drop?.trim() || getVersionLabel(current, Math.max(0, currentIndex), locale);
 
   return (
     <div className={`track-version-picker ${compact ? "is-compact" : ""} ${className}`} onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
         className="track-version-picker-toggle"
+        style={getDropTypeCssVars(currentDrop)}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span className="track-version-picker-label">{currentLabel}</span>
+        <DropTypeBadge drop={currentDrop} compact className="track-version-picker-badge" />
         <span className={`track-version-picker-chevron ${open ? "is-open" : ""}`}>▼</span>
         {current.isMissing ? (
           <span className="track-version-picker-missing">!</span>
@@ -52,6 +51,7 @@ export default function TrackVersionPicker({
         <ul className="track-version-picker-menu" role="listbox">
           {versions.map((version, index) => {
             const isActive = version.id === currentId;
+            const drop = version.drop?.trim() || getVersionLabel(version, index, locale);
             return (
               <li key={version.id}>
                 <button
@@ -61,12 +61,13 @@ export default function TrackVersionPicker({
                   className={`track-version-picker-item ${isActive ? "is-active" : ""} ${
                     version.isMissing ? "is-missing" : ""
                   }`}
+                  style={getDropTypeCssVars(drop)}
                   onClick={() => {
                     onSelectVersion?.(track.id, version.id);
                     setOpen(false);
                   }}
                 >
-                  <span>{getVersionLabel(version, index, locale)}</span>
+                  <DropTypeBadge drop={drop} compact className="track-version-picker-item-badge" />
                   {version.isMissing ? (
                     <span className="text-[10px] text-red-400">{t("trackSource.missing")}</span>
                   ) : null}

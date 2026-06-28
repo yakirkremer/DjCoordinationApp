@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import TrackReloadButton from "./TrackReloadButton";
 import TrackAddVersionForm from "./TrackAddVersionForm";
 import DropTypeSelect from "./DropTypeSelect";
+import DropTypeBadge from "./DropTypeBadge";
+import { getDropTypeCssVars } from "../lib/dropTypeColors";
 import TrackVersionPicker, { getTrackWithVersion } from "./TrackVersionPicker";
 import { ensureTrackVersions, getVersionLabel } from "../lib/trackVersions";
 import { getTrackSourceSummary } from "../lib/trackSource";
@@ -112,12 +114,11 @@ export default function AdminTrackVersions({
                   className={`admin-version-card rounded-sm border p-3 ${
                     isSelected ? "border-xdj-cyan/60 bg-xdj-cyan/5" : "border-xdj-border"
                   }`}
+                  style={getDropTypeCssVars(version.drop)}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                     <div>
-                      <p className="text-sm font-semibold text-xdj-text">
-                        {getVersionLabel(version, index, locale)}
-                      </p>
+                      <DropTypeBadge drop={version.drop || getVersionLabel(version, index, locale)} className="mb-1" />
                       <p className="text-[10px] text-xdj-muted font-mono">{version.filename}</p>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -176,9 +177,12 @@ export default function AdminTrackVersions({
                       />
                     </div>
                   ) : (
-                    <p className="text-[10px] text-xdj-muted mb-2">
-                      {draft.drop || "—"} · {draft.startTime}s–{draft.endTime}s
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <DropTypeBadge drop={draft.drop} compact />
+                      <span className="text-[10px] text-xdj-muted">
+                        {draft.startTime}s–{draft.endTime}s
+                      </span>
+                    </div>
                   )}
 
                   <div className="flex flex-wrap items-center gap-2 justify-between">
