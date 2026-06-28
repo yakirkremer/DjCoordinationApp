@@ -3,7 +3,6 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createDataApiMiddleware } from "./server/dataStore.js";
-import { createDropboxApiMiddleware } from "./server/dropboxApi.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -70,7 +69,6 @@ async function serveStatic(req, res) {
 }
 
 const dataApi = createDataApiMiddleware();
-const dropboxApi = createDropboxApiMiddleware();
 const uploadMusic = createUploadMusicMiddleware();
 
 const server = createServer((req, res) => {
@@ -85,9 +83,7 @@ const server = createServer((req, res) => {
 
   dataApi(req, res, () => {
     uploadMusic(req, res, () => {
-      dropboxApi(req, res, () => {
-        serveStatic(req, res);
-      });
+      serveStatic(req, res);
     });
   });
 });

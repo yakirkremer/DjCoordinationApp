@@ -9,17 +9,14 @@ import AdminTabNav from "./components/AdminTabNav";
 import AdminDashboard from "./components/AdminDashboard";
 import FormBuilder from "./components/FormBuilder";
 import PreferencesWizard from "./components/PreferencesWizard";
-import DropboxPanel from "./components/DropboxPanel";
 import TrackUploadPanel from "./components/TrackUploadPanel";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
-import useDropbox from "./hooks/useDropbox";
 import { OFFICIAL_CATEGORIES } from "./lib/categories";
 import { normalizePreviewCue } from "./lib/previewCue";
 import { resolveTrackAudioUrl, verifyLocalTrack } from "./lib/trackAudioUrl";
 import useAudioPreload from "./hooks/useAudioPreload";
-import { loadDropboxState, loadDropboxCatalog, saveDropboxCatalog } from "./lib/dropbox/storage";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
 
 export default function DJPoolDemo() {
@@ -53,27 +50,17 @@ export default function DJPoolDemo() {
 
   const formSchemaApi = useFormSchema();
   const { schema: formSchema, ready: formReady } = formSchemaApi;
-  const dropbox = useDropbox();
-  const { musicSource, client: dropboxClient } = dropbox;
   const catalogSaveTimer = useRef(null);
 
   const appReady = clientsReady && formReady && catalogStatus === "ready";
   const coupleReady = !activeClient || feedbackReady;
 
-  const resolveTrackUrl = useCallback(
-    (track) =>
-      resolveTrackAudioUrl(track, {
-        musicSource,
-        dropboxClient,
-      }),
-    [musicSource, dropboxClient]
-  );
+  const resolveTrackUrl = useCallback((track) => resolveTrackAudioUrl(track), []);
 
-  const preloadContext = { musicSource, dropboxClient };
   const canPreload =
     catalogStatus === "ready" && tracks.some((t) => t.isMissing !== true);
 
-  useAudioPreload(tracks, preloadContext, currentTrack?.id ?? null, canPreload);
+  useAudioPreload(tracks, currentTrack?.id ?? null, canPreload);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,22 +68,6 @@ export default function DJPoolDemo() {
     async function loadCatalog() {
       setCatalogStatus("loading");
       setCatalogError(null);
-
-      const dropboxState = loadDropboxState();
-      const useDropboxSource = dropboxState.musicSource === "dropbox";
-      const cachedCatalog = useDropboxSource ? loadDropboxCatalog() : null;
-
-      if (cachedCatalog?.length) {
-        if (cancelled) return;
-        const verifiedTracks = cachedCatalog.map((track) =>
-          normalizePreviewCue({ ...track, isMissing: !track.dropboxPath })
-        );
-        setTracks(verifiedTracks);
-        setCatalogStatus("ready");
-        const firstValid = verifiedTracks.find((t) => !t.isMissing);
-        if (firstValid) setCurrentTrack(firstValid);
-        return;
-      }
 
       try {
         let data;
@@ -108,28 +79,15 @@ export default function DJPoolDemo() {
           data = await res.json();
         }
 
-        const verifiedTracks = useDropboxSource
-          ? data.map((track) =>
-              track.dropboxPath
-                ? normalizePreviewCue({ ...track, isMissing: false, source: "dropbox" })
-                : normalizePreviewCue({ ...track, isMissing: true })
-            )
-          : await Promise.all(
-              data.map(async (track) => {
-                if (track.dropboxPath) {
-                  return normalizePreviewCue({
-                    ...track,
-                    isMissing: false,
-                    source: track.source || "dropbox",
-                  });
-                }
-                const exists = await verifyLocalTrack(track);
-                return normalizePreviewCue({
-                  ...track,
-                  isMissing: !exists,
-                });
-              })
-            );
+        const verifiedTracks = await Promise.all(
+          data.map(async (track) => {
+            const exists = await verifyLocalTrack(track);
+            return normalizePreviewCue({
+              ...track,
+              isMissing: !exists,
+            });
+          })
+        );
 
         if (cancelled) return;
         setTracks(verifiedTracks);
@@ -152,9 +110,6 @@ export default function DJPoolDemo() {
   }, []);
 
   const persistCatalog = useCallback((nextTracks) => {
-    if (loadDropboxState().musicSource === "dropbox") {
-      saveDropboxCatalog(nextTracks);
-    }
     clearTimeout(catalogSaveTimer.current);
     catalogSaveTimer.current = setTimeout(() => {
       saveCatalog(nextTracks).catch((err) => console.error("Catalog save failed:", err));
@@ -253,15 +208,6 @@ export default function DJPoolDemo() {
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const handleDropboxSync = (syncedTracks) => {
-    if (syncedTracks.length === 0) return;
-    setTracks(syncedTracks);
-    setCatalogStatus("ready");
-    persistCatalog(syncedTracks);
-    const firstValid = syncedTracks.find((t) => !t.isMissing);
-    if (firstValid) setCurrentTrack(firstValid);
-  };
-
   const handleTrackUploaded = (newTrack) => {
     const normalized = normalizePreviewCue({ ...newTrack, isMissing: false });
     const updated = [...tracks, normalized];
@@ -310,14 +256,8 @@ export default function DJPoolDemo() {
     if (adminTab === "catalog") {
       return (
         <div className="admin-catalog-layout flex flex-col flex-1 min-h-0 gap-3">
-          <div className="shrink-0 flex flex-col gap-3">
+          <div className="shrink-0">
             <TrackUploadPanel onUploaded={handleTrackUploaded} />
-            <DropboxPanel
-              dropbox={dropbox}
-              existingTracks={tracks}
-              trackCount={tracks.length}
-              onSync={handleDropboxSync}
-            />
           </div>
 
           <div className="admin-catalog-player shrink-0">
@@ -412,9 +352,7 @@ export default function DJPoolDemo() {
           <div className="text-center py-8 space-y-2">
             <p className="font-lcd text-xs text-xdj-muted">NO TRACKS IN CATALOG</p>
             {isAdmin ? (
-              <p className="text-xs text-xdj-muted">
-                Sync from Dropbox or add MP3s to <code>public/music</code> and run <code>scan_music.py</code>
-              </p>
+              <p className="text-xs text-xdj-muted">העלה שירים דרך פאנל ההעלאה בלשונית CATALOG</p>
             ) : null}
           </div>
         ) : isAdmin ? (

@@ -1,4 +1,4 @@
-# Render Blueprint — kremer Music DJ Coordination App
+# Render Blueprint — Kramer Music DJ Coordination App
 # Apply via: https://dashboard.render.com/blueprint/new?repo=<YOUR_GITHUB_REPO_URL>
 
 services:
@@ -15,19 +15,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Available at build time (Vite) and runtime (Dropbox token refresh)
-      - key: VITE_DROPBOX_APP_KEY
-        sync: false
-      - key: DROPBOX_REFRESH_TOKEN
-        sync: false
 
-# Optional: upgrade to starter + persistent disk so admin JSON data survives redeploys.
-# Free-tier filesystem is ephemeral — writes to public/data are lost on each deploy.
+# Optional: upgrade to starter + persistent disk so uploads and JSON data survive redeploys.
+# Free-tier filesystem is ephemeral — writes to public/data and public/music are lost on each deploy.
 #
 #  - type: web
 #    name: kremer-music
 #    plan: starter
 #    disk:
 #      name: kremer-data
-#      mountPath: /opt/render/project/src/public/data
-#      sizeGB: 1
+#      mountPath: /opt/render/project/src/public
+#      sizeGB: 5

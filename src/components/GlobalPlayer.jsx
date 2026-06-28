@@ -234,8 +234,6 @@ export default function GlobalPlayer({
 
       if (cancelled || !waveformRef.current) return;
 
-      const isRemote = /^https?:\/\//i.test(audioUrl);
-
       wavesurferRef.current = WaveSurfer.create({
         container: waveformRef.current,
         waveColor: "#1e3a5f",
@@ -247,7 +245,7 @@ export default function GlobalPlayer({
         barRadius: 0,
         responsive: true,
         height: 88,
-        backend: isRemote ? "MediaElement" : "WebAudio",
+        backend: "MediaElement",
       });
 
       wavesurferRef.current.on("ready", () => {
@@ -266,7 +264,7 @@ export default function GlobalPlayer({
       });
 
       wavesurferRef.current.on("error", () => {
-        if (!cancelled) setLoadError("Playback error — try syncing Dropbox again.");
+        if (!cancelled) setLoadError("Playback error — file may be missing or corrupt.");
       });
 
       wavesurferRef.current.on("timeupdate", (time) => {

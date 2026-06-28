@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "start": "node server.js",
     "scan-music": "python public/scan_music.py",
-    "fetch-artwork": "python public/fetch_artwork.py"
+    "fetch-artwork": "python public/fetch_artwork.py",
+    "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

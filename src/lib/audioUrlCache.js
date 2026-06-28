@@ -2,7 +2,6 @@ const urlCache = new Map();
 const warmingUrls = new Set();
 
 export function getTrackCacheKey(track) {
-  if (track?.dropboxPath) return `db:${track.dropboxPath}`;
   if (track?.bucket && track?.filename) {
     return `local:${track.bucket}/${track.filename}`;
   }
@@ -16,18 +15,13 @@ export function getCachedAudioUrl(track) {
   const entry = urlCache.get(key);
   if (!entry) return null;
 
-  if (entry.expiresAt && Date.now() >= entry.expiresAt - 60_000) {
-    urlCache.delete(key);
-    return null;
-  }
-
   return entry.url;
 }
 
-export function setCachedAudioUrl(track, url, expiresAt = null) {
+export function setCachedAudioUrl(track, url) {
   const key = getTrackCacheKey(track);
   if (!key || !url) return;
-  urlCache.set(key, { url, expiresAt });
+  urlCache.set(key, { url });
 }
 
 export function warmAudioUrl(url) {

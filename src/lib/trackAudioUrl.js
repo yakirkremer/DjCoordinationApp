@@ -8,50 +8,13 @@ export function getLocalTrackUrl(track) {
   return `/music/${track.bucket}/analyzed/${encodeURIComponent(track.filename)}`;
 }
 
-export function usesDropboxStream(track, musicSource) {
-  if (!track.dropboxPath) return false;
-  return musicSource === "dropbox" || track.source === "dropbox";
-}
-
-async function fetchServerTemporaryLink(path) {
-  try {
-    const res = await fetch("/api/dropbox/temporary-link", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.link || null;
-  } catch {
-    return null;
-  }
-}
-
-export async function resolveTrackAudioUrl(track, { musicSource, dropboxClient }) {
+export async function resolveTrackAudioUrl(track) {
   const cached = getCachedAudioUrl(track);
   if (cached) return cached;
 
-  if (!usesDropboxStream(track, musicSource)) {
-    const url = getLocalTrackUrl(track);
-    setCachedAudioUrl(track, url);
-    return url;
-  }
-
-  const path = track.dropboxPath;
-  const serverLink = await fetchServerTemporaryLink(path);
-  if (serverLink) {
-    setCachedAudioUrl(track, serverLink, Date.now() + 3 * 60 * 60 * 1000);
-    return serverLink;
-  }
-
-  if (dropboxClient?.hasSession()) {
-    const url = await dropboxClient.getTemporaryLink(path);
-    setCachedAudioUrl(track, url, Date.now() + 3 * 60 * 60 * 1000);
-    return url;
-  }
-
-  throw new Error("Dropbox not configured for streaming");
+  const url = getLocalTrackUrl(track);
+  setCachedAudioUrl(track, url);
+  return url;
 }
 
 function pickPreloadTracks(tracks, { aroundTrackId = null, limit = 8 } = {}) {
@@ -71,7 +34,6 @@ function pickPreloadTracks(tracks, { aroundTrackId = null, limit = 8 } = {}) {
 
 export async function preloadTrackAudioUrls(
   tracks,
-  context,
   { aroundTrackId = null, limit = 8, warm = true } = {}
 ) {
   const candidates = pickPreloadTracks(tracks, { aroundTrackId, limit });
@@ -83,7 +45,7 @@ export async function preloadTrackAudioUrls(
         if (warm) warmAudioUrl(getCachedAudioUrl(track));
         return;
       }
-      const url = await resolveTrackAudioUrl(track, context);
+      const url = await resolveTrackAudioUrl(track);
       if (warm) warmAudioUrl(url);
     })
   );
