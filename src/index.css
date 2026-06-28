@@ -47,6 +47,7 @@
   --theme-wave-unplayed: #1e3a5f;
   --theme-screen-bg: #000;
   --theme-panel-elevated: #111114;
+  --color-artist-text: #6ddfff;
 }
 
 body {
@@ -889,8 +890,10 @@ body {
 
 .xdj-az-track-artist {
   display: block;
-  font-size: 0.6875rem;
-  color: #6b6b78;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-artist-text);
+  letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -898,7 +901,7 @@ body {
 
 .xdj-az-row.is-cursor .xdj-az-track-artist,
 .xdj-az-row.is-playing .xdj-az-track-artist {
-  color: #ccc;
+  color: #9ae8ff;
 }
 
 .xdj-az-track-time {
@@ -1045,8 +1048,10 @@ body {
 
 .xdj-az-player-artist {
   margin: 0;
-  font-size: 0.6875rem;
-  color: #6b6b78;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-artist-text);
+  letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1782,8 +1787,10 @@ body {
   }
 
   .xdj-az-track-card-artist {
-    font-size: 0.6875rem;
-    color: #6b6b78;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-artist-text);
+    letter-spacing: 0.02em;
     margin-top: 0.15rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1960,8 +1967,10 @@ body {
   }
 
   .xdj-az-player-mini-artist {
-    font-size: 0.625rem;
-    color: #6b6b78;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--color-artist-text);
+    letter-spacing: 0.02em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2926,8 +2935,10 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
 }
 
 .category-track-chip-artist {
-  font-size: 0.65rem;
-  color: var(--color-xdj-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-artist-text);
+  letter-spacing: 0.02em;
 }
 
 .category-track-chip-drop {
@@ -2988,115 +2999,71 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
 }
 
 .track-version-picker {
-  position: relative;
-  display: inline-block;
+  display: inline-flex;
   max-width: 100%;
 }
 
-.track-version-picker.is-compact .track-version-picker-toggle {
-  font-size: 0.625rem;
-  padding: 0.15rem 0.35rem;
+.track-version-picker-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
 }
 
-.track-version-picker-toggle {
+.track-version-picker.is-compact .track-version-picker-buttons {
+  gap: 0.2rem;
+}
+
+.track-version-picker-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  max-width: 100%;
+  gap: 0.15rem;
   padding: 0.15rem 0.35rem 0.15rem 0.2rem;
   border: 1px solid var(--drop-border, var(--color-xdj-border));
   border-radius: 0.25rem;
-  background: var(--drop-bg, rgba(0, 0, 0, 0.35));
+  background: rgba(0, 0, 0, 0.35);
   color: var(--drop-text, var(--color-xdj-cyan));
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 0 0 10px var(--drop-glow, transparent);
+  opacity: 0.72;
+  transition: opacity 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
 
-.track-version-picker-toggle:hover {
+.track-version-picker.is-compact .track-version-picker-btn {
+  padding: 0.1rem 0.28rem 0.1rem 0.15rem;
+}
+
+.track-version-picker-btn:hover {
+  opacity: 1;
   filter: brightness(1.08);
 }
 
-.track-version-picker-badge.drop-type-badge {
+.track-version-picker-btn.is-active {
+  opacity: 1;
+  background: var(--drop-bg, rgba(0, 0, 0, 0.35));
+  border-color: var(--drop-border, var(--color-xdj-cyan));
+  box-shadow: 0 0 10px var(--drop-glow, transparent);
+}
+
+.track-version-picker-btn-badge.drop-type-badge {
   border: none;
   box-shadow: none;
   background: transparent;
   padding: 0;
-}
-
-.track-version-picker-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 12rem;
-}
-
-.track-version-picker-chevron {
-  font-size: 0.5rem;
-  opacity: 0.7;
-  transition: transform 0.15s ease;
-}
-
-.track-version-picker-chevron.is-open {
-  transform: rotate(180deg);
 }
 
 .track-version-picker-missing {
   color: #f87171;
   font-weight: 700;
+  font-size: 0.6rem;
+  line-height: 1;
 }
 
-.track-version-picker-menu {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 0.2rem);
-  inset-inline-start: 0;
-  min-width: 10rem;
-  max-width: min(18rem, 90vw);
-  margin: 0;
-  padding: 0.25rem;
-  list-style: none;
-  border: 1px solid var(--color-xdj-border);
-  border-radius: 0.35rem;
-  background: var(--color-xdj-panel, #0d1117);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+.track-version-picker-btn.is-missing {
+  opacity: 0.55;
 }
 
-.track-version-picker-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.35rem 0.45rem;
-  border: 1px solid transparent;
-  border-radius: 0.2rem;
-  background: transparent;
-  color: var(--drop-text, var(--color-xdj-text));
-  font-size: 0.7rem;
-  text-align: start;
-  cursor: pointer;
-}
-
-.track-version-picker-item:hover {
-  background: var(--drop-bg, rgba(255, 255, 255, 0.06));
-  border-color: var(--drop-border, transparent);
-}
-
-.track-version-picker-item.is-active {
-  background: var(--drop-bg, rgba(0, 212, 255, 0.12));
-  border-color: var(--drop-border, var(--color-xdj-cyan));
-  box-shadow: inset 0 0 0 1px var(--drop-glow, transparent);
-}
-
-.track-version-picker-item-badge.drop-type-badge {
-  border: none;
-  box-shadow: none;
-  background: transparent;
-  padding: 0;
+.track-version-picker-btn.is-missing.is-active {
+  opacity: 0.85;
 }
 
 .drop-type-badge {
@@ -3319,8 +3286,10 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
 }
 
 .admin-genre-track-artist {
-  font-size: 0.65rem;
-  color: var(--color-xdj-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-artist-text);
+  letter-spacing: 0.02em;
 }
 
 .admin-genre-track-meta-extra {
@@ -3385,10 +3354,6 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
   font-size: 1.1rem;
   line-height: 1;
   padding: 0.15rem 0.35rem;
-}
-
-.track-version-picker-item.is-missing {
-  opacity: 0.65;
 }
 
 .admin-track-versions-panel {
@@ -3814,8 +3779,10 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
 }
 
 .genre-explore-row-artist {
-  font-size: 0.65rem;
-  color: var(--color-xdj-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-artist-text);
+  letter-spacing: 0.02em;
 }
 
 .genre-explore-row-badges {

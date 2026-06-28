@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   applyActiveVersion,
   ensureTrackVersions,
@@ -19,7 +19,6 @@ export default function TrackVersionPicker({
   const { getCssVars } = useDropColors();
   const normalized = ensureTrackVersions(track);
   const versions = normalized.versions || [];
-  const [open, setOpen] = useState(false);
 
   if (versions.length <= 1) {
     const only = versions[0];
@@ -29,55 +28,40 @@ export default function TrackVersionPicker({
   }
 
   const currentId = activeVersionId || normalized.activeVersionId || normalized.defaultVersionId;
-  const currentIndex = versions.findIndex((v) => v.id === currentId);
-  const current = versions[currentIndex] || versions[0];
-  const currentDrop = current.drop?.trim() || getVersionLabel(current, Math.max(0, currentIndex), locale);
 
   return (
-    <div className={`track-version-picker ${compact ? "is-compact" : ""} ${className}`} onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className="track-version-picker-toggle"
-        style={getCssVars(currentDrop)}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <DropTypeBadge drop={currentDrop} compact className="track-version-picker-badge" />
-        <span className={`track-version-picker-chevron ${open ? "is-open" : ""}`}>▼</span>
-        {current.isMissing ? (
-          <span className="track-version-picker-missing">!</span>
-        ) : null}
-      </button>
-      {open ? (
-        <ul className="track-version-picker-menu" role="listbox">
-          {versions.map((version, index) => {
-            const isActive = version.id === currentId;
-            const drop = version.drop?.trim() || getVersionLabel(version, index, locale);
-            return (
-              <li key={version.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isActive}
-                  className={`track-version-picker-item ${isActive ? "is-active" : ""} ${
-                    version.isMissing ? "is-missing" : ""
-                  }`}
-                  style={getCssVars(drop)}
-                  onClick={() => {
-                    onSelectVersion?.(track.id, version.id);
-                    setOpen(false);
-                  }}
-                >
-                  <DropTypeBadge drop={drop} compact className="track-version-picker-item-badge" />
-                  {version.isMissing ? (
-                    <span className="text-[10px] text-red-400">{t("trackSource.missing")}</span>
-                  ) : null}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+    <div
+      className={`track-version-picker ${compact ? "is-compact" : ""} ${className}`}
+      role="group"
+      aria-label={t("trackVersion.chooseDrop")}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="track-version-picker-buttons">
+        {versions.map((version, index) => {
+          const isActive = version.id === currentId;
+          const drop = version.drop?.trim() || getVersionLabel(version, index, locale);
+          return (
+            <button
+              key={version.id}
+              type="button"
+              aria-pressed={isActive}
+              title={version.isMissing ? t("trackSource.missing") : drop}
+              className={`track-version-picker-btn ${isActive ? "is-active" : ""} ${
+                version.isMissing ? "is-missing" : ""
+              }`}
+              style={getCssVars(drop)}
+              onClick={() => onSelectVersion?.(track.id, version.id)}
+            >
+              <DropTypeBadge drop={drop} compact className="track-version-picker-btn-badge" />
+              {version.isMissing ? (
+                <span className="track-version-picker-missing" aria-hidden>
+                  !
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

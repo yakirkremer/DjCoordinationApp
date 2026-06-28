@@ -566,7 +566,7 @@ export default function DJPoolDemo() {
               <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir={dir}>
                 <p className="font-lcd text-xs text-xdj-muted">{t("admin.previewEditor")}</p>
                 <p className="text-sm font-semibold text-xdj-text mt-2">{currentTrack.title}</p>
-                <p className="text-xs text-xdj-muted">{currentTrack.artist}</p>
+                <p className="text-sm font-bold text-xdj-cyan mt-1">{currentTrack.artist}</p>
                 <p className="text-xs text-red-400 mt-2 font-medium">{t("admin.missingFile")}</p>
                 <div className="mt-4 flex justify-center">
                   <TrackReloadButton

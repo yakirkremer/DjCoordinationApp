@@ -283,6 +283,9 @@ const he = {
     dropbox: "Dropbox (ישן)",
     unknown: "לא ידוע",
   },
+  trackVersion: {
+    chooseDrop: "בחר דרופ",
+  },
   guide: {
     kicker: "מדריך",
     title: "סגנונות מוזיקה וסוגי דרופ",
@@ -575,6 +578,9 @@ const en = {
     local: "On server",
     dropbox: "Dropbox (legacy)",
     unknown: "Unknown",
+  },
+  trackVersion: {
+    chooseDrop: "Choose drop",
   },
   guide: {
     kicker: "Guide",
