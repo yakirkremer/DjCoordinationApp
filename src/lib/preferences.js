@@ -13,6 +13,7 @@ export const EVENT_PHASES = [
 
 export const DEFAULT_PREFERENCES = {
   wizardCompleted: false,
+  wizardStep: 0,
   eventDate: "",
   eventLocation: "",
   energyLevel: "mixed",

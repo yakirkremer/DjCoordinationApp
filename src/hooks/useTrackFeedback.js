@@ -185,6 +185,20 @@ export default function useTrackFeedback(clientId = null) {
     });
   }, [persist]);
 
+  const saveWizardProgress = useCallback(
+    async (wizardStep) => {
+      if (!clientId) return;
+      const nextPreferences = { ...stateRef.current.preferences, wizardStep };
+      setPreferences(nextPreferences);
+      clearTimeout(saveTimer.current);
+      await saveFeedback(
+        { ...stateRef.current, preferences: nextPreferences },
+        clientId
+      );
+    },
+    [clientId]
+  );
+
   return {
     ratings,
     comments,
@@ -200,5 +214,6 @@ export default function useTrackFeedback(clientId = null) {
     completeWizard,
     skipWizard,
     reopenWizard,
+    saveWizardProgress,
   };
 }

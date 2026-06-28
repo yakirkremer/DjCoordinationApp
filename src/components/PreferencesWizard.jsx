@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import WizardProgress from "./WizardProgress";
 import DynamicWizardStep from "./DynamicWizardStep";
 import WizardStepGenres from "./WizardStepGenres";
@@ -8,6 +8,11 @@ import WizardStepPlaylists from "./WizardStepPlaylists";
 import WizardStepSummary from "./WizardStepSummary";
 import { validateQuestionsStep } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
+
+function clampStep(step, totalSteps) {
+  if (totalSteps <= 0) return 0;
+  return Math.min(Math.max(0, step), totalSteps - 1);
+}
 
 export default function PreferencesWizard({
   formSchema,
@@ -20,13 +25,26 @@ export default function PreferencesWizard({
   onRateCategory,
   onComplete,
   onSkip,
+  onSaveProgress,
+  onSaveAndExit,
 }) {
   const steps = useMemo(
     () => filterStepsForClientType(formSchema?.steps ?? [], clientType),
     [formSchema, clientType]
   );
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => clampStep(preferences.wizardStep ?? 0, steps.length));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setStep(clampStep(preferences.wizardStep ?? 0, steps.length));
+  }, [clientType, steps.length]);
+
   const currentStepDef = steps[step];
+
+  const persistStep = (nextStep) => {
+    setStep(nextStep);
+    onUpdatePreferences({ wizardStep: nextStep });
+  };
 
   const handleTogglePhaseGenre = (phaseId, category) => {
     const current = preferences.phases[phaseId] ?? [];
@@ -47,12 +65,22 @@ export default function PreferencesWizard({
 
   const handleNext = () => {
     if (step < steps.length - 1 && canAdvance()) {
-      setStep(step + 1);
+      persistStep(step + 1);
     }
   };
 
   const handleBack = () => {
-    if (step > 0) setStep(step - 1);
+    if (step > 0) persistStep(step - 1);
+  };
+
+  const handleSaveAndExit = async () => {
+    setSaving(true);
+    try {
+      await onSaveProgress(step);
+      onSaveAndExit();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const stepLabels = steps.map((s) => s.title);
@@ -134,6 +162,9 @@ export default function PreferencesWizard({
   return (
     <section className="panel-luxury rounded-sm p-4 sm:p-8 wizard-shell" dir="rtl">
       <WizardProgress currentStep={step} totalSteps={steps.length} stepLabels={stepLabels} />
+      <p className="text-[10px] text-xdj-muted text-center mb-4">
+        התקדמותך נשמרת אוטומטית — תוכלו להמשיך מאותה נקודה בכניסה הבאה
+      </p>
       <div className="wizard-scroll">{renderStep()}</div>
 
       {!isSummary && (
@@ -148,6 +179,14 @@ export default function PreferencesWizard({
               → חזרה
             </button>
             <div className="flex gap-3 wizard-footer-actions">
+              <button
+                type="button"
+                onClick={handleSaveAndExit}
+                disabled={saving}
+                className="text-sm text-xdj-gold hover:text-xdj-cyan font-bold min-h-[44px] px-4 disabled:opacity-40"
+              >
+                {saving ? "שומר..." : "שמור וצא"}
+              </button>
               <button
                 type="button"
                 onClick={onSkip}

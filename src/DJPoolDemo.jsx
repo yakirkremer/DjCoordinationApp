@@ -10,6 +10,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import FormBuilder from "./components/FormBuilder";
 import PreferencesWizard from "./components/PreferencesWizard";
 import DropboxPanel from "./components/DropboxPanel";
+import TrackUploadPanel from "./components/TrackUploadPanel";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
@@ -47,6 +48,7 @@ export default function DJPoolDemo() {
     completeWizard,
     skipWizard,
     reopenWizard,
+    saveWizardProgress,
   } = useTrackFeedback(activeClient?.id ?? null);
 
   const formSchemaApi = useFormSchema();
@@ -260,6 +262,17 @@ export default function DJPoolDemo() {
     if (firstValid) setCurrentTrack(firstValid);
   };
 
+  const handleTrackUploaded = (newTrack) => {
+    const normalized = normalizePreviewCue({ ...newTrack, isMissing: false });
+    const updated = [...tracks, normalized];
+    setTracks(updated);
+    setCatalogStatus("ready");
+    persistCatalog(updated);
+    setCurrentTrack(normalized);
+    setCurrentTime(normalized.startTime ?? 0);
+    setIsPlaying(false);
+  };
+
   const isCoupleBrowse =
     !isAdmin && activeClient && coupleReady && preferences.wizardCompleted;
 
@@ -297,7 +310,8 @@ export default function DJPoolDemo() {
     if (adminTab === "catalog") {
       return (
         <div className="admin-catalog-layout flex flex-col flex-1 min-h-0 gap-3">
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col gap-3">
+            <TrackUploadPanel onUploaded={handleTrackUploaded} />
             <DropboxPanel
               dropbox={dropbox}
               existingTracks={tracks}
@@ -414,6 +428,7 @@ export default function DJPoolDemo() {
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING SESSION...</p>
         ) : !preferences.wizardCompleted ? (
           <PreferencesWizard
+            key={activeClient.id}
             formSchema={formSchema}
             clientType={activeClient.clientType}
             preferences={preferences}
@@ -424,6 +439,8 @@ export default function DJPoolDemo() {
             onRateCategory={rateCategory}
             onComplete={completeWizard}
             onSkip={skipWizard}
+            onSaveProgress={saveWizardProgress}
+            onSaveAndExit={logout}
           />
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
