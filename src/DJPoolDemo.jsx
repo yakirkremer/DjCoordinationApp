@@ -15,6 +15,8 @@ import DropboxImportPanel from "./components/DropboxImportPanel";
 import TrackReloadButton from "./components/TrackReloadButton";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import ThemeSwitcher from "./components/ThemeSwitcher";
+import AdminSettings from "./components/AdminSettings";
+import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
