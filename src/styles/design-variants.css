@@ -1,0 +1,1279 @@
+/* Design layout variants — player + browser (data-player-style / data-browser-style) */
+
+/* ── Appearance panel ─────────────────────────────────────── */
+
+.appearance-switcher-toggle {
+  min-height: 36px;
+}
+
+.appearance-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  inset-inline-end: 0;
+  z-index: 80;
+  width: min(92vw, 420px);
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-xdj-border);
+  background: color-mix(in srgb, var(--color-xdj-panel) 96%, #000);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+.appearance-section + .appearance-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-xdj-border);
+}
+
+.appearance-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-xdj-muted);
+  margin-bottom: 0.65rem;
+}
+
+.appearance-theme-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.appearance-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.design-style-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--color-xdj-border);
+  background: rgba(0, 0, 0, 0.25);
+  text-align: start;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.design-style-card:hover {
+  border-color: var(--color-xdj-muted);
+}
+
+.design-style-card.is-active {
+  border-color: var(--color-xdj-cyan);
+  background: color-mix(in srgb, var(--color-xdj-cyan) 8%, transparent);
+}
+
+.design-style-card-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-xdj-text);
+  line-height: 1.2;
+}
+
+.design-style-card-desc {
+  font-size: 0.6rem;
+  color: var(--color-xdj-muted);
+  line-height: 1.35;
+}
+
+/* Mini layout previews in picker */
+.design-style-preview {
+  display: block;
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-xdj-border);
+  background: #0a0a0e;
+  position: relative;
+  overflow: hidden;
+}
+
+.design-style-preview.is-active {
+  box-shadow: inset 0 0 0 1px var(--color-xdj-cyan);
+}
+
+.design-style-preview--deck::before {
+  content: "";
+  position: absolute;
+  left: 6%;
+  top: 18%;
+  width: 28%;
+  height: 64%;
+  border-radius: 50%;
+  border: 2px solid #555;
+  background: radial-gradient(circle, #222 30%, #111 100%);
+}
+
+.design-style-preview--deck::after {
+  content: "";
+  position: absolute;
+  right: 8%;
+  top: 22%;
+  width: 52%;
+  height: 12%;
+  background: linear-gradient(90deg, var(--theme-accent), var(--theme-wave-played));
+  border-radius: 2px;
+  box-shadow: 0 6px 0 var(--theme-wave-unplayed), 0 14px 0 #333;
+}
+
+.design-style-preview--bar::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 22%;
+  top: 38%;
+  height: 24%;
+  background: linear-gradient(90deg, var(--theme-wave-played) 40%, var(--theme-wave-unplayed) 40%);
+  border-radius: 2px;
+}
+
+.design-style-preview--bar::before {
+  content: "";
+  position: absolute;
+  right: 8%;
+  top: 32%;
+  width: 10%;
+  height: 36%;
+  border-radius: 50%;
+  background: var(--theme-accent);
+}
+
+.design-style-preview--vinyl::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46%;
+  height: 80%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 3px solid #444;
+  background: radial-gradient(circle, #1a1a1a 25%, #0d0d0d 100%);
+}
+
+.design-style-preview--broadcast::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 30%;
+  height: 40%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--theme-wave-played) 0 3px,
+    var(--theme-wave-unplayed) 3px 6px
+  );
+  opacity: 0.85;
+}
+
+.design-style-preview--hardware {
+  background: linear-gradient(180deg, #333 0 18%, #111 18% 100%);
+}
+
+.design-style-preview--hardware::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  top: 28%;
+  width: 14%;
+  height: 56%;
+  background: #2a2a32;
+  border-radius: 2px;
+}
+
+.design-style-preview--hardware::after {
+  content: "";
+  position: absolute;
+  left: 26%;
+  right: 8%;
+  top: 28%;
+  height: 56%;
+  background: #000;
+  border: 1px solid #333;
+  border-radius: 2px;
+}
+
+.design-style-preview--flat {
+  background: var(--color-xdj-panel);
+}
+
+.design-style-preview--flat::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 35%;
+  height: 8%;
+  background: #2a2a32;
+  box-shadow: 0 10px 0 #1a1a20, 0 20px 0 #222;
+}
+
+.design-style-preview--cards {
+  background: var(--color-xdj-panel);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 4px;
+}
+
+.design-style-preview--cards::before,
+.design-style-preview--cards::after {
+  content: "";
+  border-radius: 2px;
+  border: 1px solid #333;
+  background: #151518;
+}
+
+.design-style-preview--dense::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 4%;
+  top: 20%;
+  bottom: 20%;
+  background: repeating-linear-gradient(
+    180deg,
+    #1e1e24 0 4px,
+    #141418 4px 8px
+  );
+}
+
+.design-style-preview--dense::before {
+  content: "";
+  position: absolute;
+  left: 4%;
+  top: 20%;
+  bottom: 20%;
+  width: 14%;
+  background: #252530;
+  border-radius: 2px;
+}
+
+.design-style-preview--classic::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 35%;
+  height: 30%;
+  background: linear-gradient(90deg, var(--theme-wave-unplayed) 45%, var(--theme-wave-played) 45%);
+  border-radius: 2px;
+}
+
+.design-style-preview--neon::after {
+  content: "";
+  position: absolute;
+  inset: 20% 6%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--theme-accent) 0 2px,
+    #2a3050 2px 4px
+  );
+  opacity: 0.9;
+}
+
+.design-style-preview--line::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 50%;
+  height: 0;
+  border-top: 2px solid var(--theme-wave-played);
+  box-shadow: 0 -8px 0 -3px var(--theme-wave-played), 0 8px 0 -3px var(--theme-wave-played);
+}
+
+.design-style-preview--rgb::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 22%;
+  height: 56%;
+  background: linear-gradient(
+    180deg,
+    #4d9fff 0%,
+    #4d9fff 33%,
+    #3dd68c 33%,
+    #3dd68c 66%,
+    #e85d3b 66%,
+    #e85d3b 100%
+  );
+  opacity: 0.85;
+  mask-image: repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 5px);
+}
+
+.design-style-preview--rekordbox {
+  background: #000;
+}
+
+.design-style-preview--rekordbox::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 50%;
+  height: 70%;
+  transform: translateY(-50%);
+  background:
+    repeating-linear-gradient(90deg, #2f6fd4 0 2px, transparent 2px 3px),
+    repeating-linear-gradient(90deg, #c47942 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(90deg, #ebe3d0 0 1px, transparent 1px 5px);
+  background-size: 100% 100%, 85% 72%, 55% 48%;
+  background-position: center, center, center;
+  background-repeat: no-repeat;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 82%, transparent 100%);
+}
+
+html[data-waveform-style="rekordbox"] .xdj-az-wave-enlarged,
+.xdj-az-preview-wave--rekordbox {
+  background: #000;
+  border-color: #1a1a22;
+}
+
+html[data-waveform-style="rekordbox"] .xdj-az-waveform-host {
+  background: #000;
+}
+
+html[data-waveform-style="mirror"] .xdj-az-waveform-host {
+  filter: contrast(1.05);
+}
+
+html[data-waveform-style="frequency-rgb"] .xdj-az-waveform-host {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* ── Player: minimal bar ──────────────────────────────────── */
+
+html[data-player-style="minimal-bar"] .xdj-az-jog-wrap {
+  display: none;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-wave-overview {
+  display: none;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player-body {
+  grid-template-columns: 1fr auto;
+  padding: 0.5rem 0.85rem;
+  gap: 0.65rem;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-transport-panel {
+  flex-direction: column;
+  justify-content: center;
+  min-width: 5.5rem;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-bpm-block {
+  display: none;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player-deck-center {
+  display: none;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player {
+  border-radius: 12px;
+  border: 1px solid var(--color-xdj-border);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player-deck-bar {
+  padding: 0.35rem 0.85rem;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-wave-enlarged {
+  min-height: 72px;
+}
+
+/* ── Player: vinyl focus ────────────────────────────────── */
+
+html[data-player-style="vinyl-focus"] .xdj-az-player-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog {
+  width: clamp(120px, 28vw, 180px);
+  height: clamp(120px, 28vw, 180px);
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog-inner .xdj-az-art {
+  width: 100%;
+  height: 100%;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-wave-panel {
+  width: 100%;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-wave-overview {
+  display: none;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-transport-panel {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-bpm-block {
+  display: none;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-player-deck-center {
+  display: none;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-player {
+  border-top-width: 3px;
+  border-top-color: var(--theme-accent);
+}
+
+/* ── Player: broadcast ──────────────────────────────────── */
+
+html[data-player-style="broadcast"] .xdj-az-jog-wrap {
+  display: none;
+}
+
+html[data-player-style="broadcast"] .xdj-az-player-body {
+  grid-template-columns: 1fr;
+  position: relative;
+  padding: 0.5rem 1rem 3.25rem;
+}
+
+html[data-player-style="broadcast"] .xdj-az-transport-panel {
+  position: absolute;
+  inset-inline-start: 1rem;
+  bottom: 0.65rem;
+  z-index: 3;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid #333;
+}
+
+html[data-player-style="broadcast"] .xdj-az-bpm-block {
+  display: none;
+}
+
+html[data-player-style="broadcast"] .xdj-az-deck-badge {
+  display: none;
+}
+
+html[data-player-style="broadcast"] .xdj-az-player-deck-bar {
+  background: linear-gradient(90deg, #141018 0%, #101014 50%, #0a1018 100%);
+}
+
+html[data-player-style="broadcast"] .xdj-az-wave-enlarged {
+  min-height: 100px;
+}
+
+html[data-player-style="broadcast"] .xdj-az-time-display {
+  min-width: 7rem;
+}
+
+html[data-player-style="broadcast"] .xdj-az-player-tag-dim {
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.15em;
+}
+
+/* ── Browser: flat list ─────────────────────────────────── */
+
+html[data-browser-style="flat-list"] .xdj-hw-faceplate {
+  background: var(--color-xdj-panel);
+  border-radius: 10px;
+  box-shadow: none;
+  border: 1px solid var(--color-xdj-border);
+  padding: 0;
+}
+
+html[data-browser-style="flat-list"] .xdj-hw-screen-glass {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+html[data-browser-style="flat-list"] .xdj-hw-screen {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+html[data-browser-style="flat-list"] .xdj-hw-side {
+  display: none !important;
+}
+
+html[data-browser-style="flat-list"] .xdj-hw-bottom-row {
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--color-xdj-border);
+  background: color-mix(in srgb, var(--color-xdj-panel) 90%, #000);
+}
+
+html[data-browser-style="flat-list"] .xdj-az-browser {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html[data-browser-style="flat-list"] .xdj-az-toolbar {
+  background: transparent;
+  border-bottom-color: var(--color-xdj-border);
+}
+
+/* ── Browser: card mosaic ─────────────────────────────────── */
+
+html[data-browser-style="card-mosaic"] .xdj-hw-faceplate {
+  background: var(--color-xdj-panel);
+  border-radius: 12px;
+  border: 1px solid var(--color-xdj-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  padding: 0.5rem;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-hw-screen-glass {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-hw-side {
+  display: none !important;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-col-header,
+html[data-browser-style="card-mosaic"] .xdj-az-row {
+  display: none !important;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-mobile-cards {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.65rem;
+  padding: 0.65rem;
+  align-content: start;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card {
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-xdj-border);
+  background: color-mix(in srgb, var(--color-xdj-panel) 80%, #000);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card.is-playing,
+html[data-browser-style="card-mosaic"] .xdj-az-track-card.is-cursor {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent) 50%, transparent);
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-folders {
+  display: none;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-body {
+  grid-template-columns: 1fr;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-mobile-folders {
+  display: flex;
+}
+
+/* ── Browser: studio dense ────────────────────────────────── */
+
+html[data-browser-style="studio-dense"] .xdj-hw-faceplate {
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-browser {
+  --az-row-h: 30px;
+  font-size: 0.72rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-folders {
+  min-width: 11rem;
+  max-width: 13rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-folder-item {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.68rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-row {
+  min-height: var(--az-row-h);
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-col-header {
+  font-size: 0.58rem;
+  padding: 0.35rem 0.5rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-col {
+  padding: 0.25rem 0.45rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-track-title {
+  font-size: 0.72rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-track-artist {
+  font-size: 0.62rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-col-preview {
+  max-width: 5.5rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-toolbar {
+  min-height: 30px;
+  padding: 0.25rem 0.5rem;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-row-no {
+  font-size: 0.62rem;
+  font-family: "JetBrains Mono", monospace;
+}
+
+html[data-browser-style="studio-dense"] .xdj-hw-btn {
+  min-height: 44px;
+  font-size: 0.5rem;
+}
+
+/* ── Shared keyframes ─────────────────────────────────────── */
+
+@keyframes design-vu-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes design-tally-blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px #ff3333; }
+  50% { opacity: 0.55; box-shadow: 0 0 2px #ff3333; }
+}
+
+@keyframes design-neon-flicker {
+  0%, 100% { filter: brightness(1); }
+  92% { filter: brightness(1.08); }
+  94% { filter: brightness(0.92); }
+}
+
+@keyframes design-led-chase {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ── Picker preview graphics (richer mini mockups) ────────── */
+
+.design-style-preview--deck {
+  background: linear-gradient(180deg, #1a1a22 0%, #0a0a0e 100%);
+}
+
+.design-style-preview--deck::before {
+  box-shadow:
+    inset 0 0 0 1px #444,
+    inset 0 0 0 4px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 6px rgba(255, 255, 255, 0.04);
+}
+
+.design-style-preview--bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 30%), #121218;
+  border-radius: 999px 999px 4px 4px;
+}
+
+.design-style-preview--vinyl::before {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.05),
+    inset 0 0 0 6px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 8px rgba(255, 255, 255, 0.03),
+    inset 0 0 0 12px rgba(0, 0, 0, 0.35);
+}
+
+.design-style-preview--vinyl::after {
+  content: "";
+  position: absolute;
+  top: 18%;
+  right: 12%;
+  width: 28%;
+  height: 3px;
+  background: linear-gradient(90deg, #666, #ccc);
+  transform: rotate(-22deg);
+  transform-origin: right center;
+  border-radius: 1px;
+}
+
+.design-style-preview--broadcast {
+  background: #0c0c12;
+}
+
+.design-style-preview--broadcast::before {
+  content: "ON AIR";
+  position: absolute;
+  top: 8%;
+  right: 6%;
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ff4444;
+  padding: 1px 3px;
+  border: 1px solid rgba(255, 68, 68, 0.5);
+  border-radius: 1px;
+}
+
+.design-style-preview--hardware::before {
+  box-shadow: inset 0 0 6px rgba(0, 200, 255, 0.15);
+}
+
+.design-style-preview--hardware::after {
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9);
+}
+
+.design-style-preview--flat::after {
+  border-inline-start: 2px solid var(--theme-accent);
+  padding-inline-start: 2px;
+}
+
+.design-style-preview--cards::before,
+.design-style-preview--cards::after {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.design-style-preview--cards::before {
+  border-top: 2px solid var(--theme-accent);
+}
+
+.design-style-preview--dense::before {
+  border-inline-start: 2px solid var(--theme-accent);
+}
+
+.design-style-preview--neon::after {
+  box-shadow: 0 0 6px color-mix(in srgb, var(--theme-accent) 60%, transparent);
+}
+
+.design-style-preview--mirror::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 52%;
+  height: 28%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--theme-wave-played) 0 2px,
+    var(--theme-wave-unplayed) 2px 4px
+  );
+  opacity: 0.35;
+  transform: scaleY(-1);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent);
+}
+
+/* ── Waveform host + preview graphics ─────────────────────── */
+
+html[data-waveform-style="neon-bars"] .xdj-az-wave-enlarged,
+.xdj-az-preview-wave--neon-bars {
+  background: #08081a;
+  border-color: color-mix(in srgb, var(--theme-accent) 35%, #1a1a22);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--theme-accent) 25%, transparent),
+    inset 0 0 24px rgba(80, 60, 255, 0.08);
+}
+
+html[data-waveform-style="neon-bars"] .xdj-az-waveform-host,
+.xdj-az-preview-wave--neon-bars svg {
+  animation: design-neon-flicker 4s ease-in-out infinite;
+}
+
+html[data-waveform-style="line"] .xdj-az-wave-enlarged,
+.xdj-az-preview-wave--line {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--theme-wave-played) 12%, #060608) 0%,
+    #060608 55%
+  );
+}
+
+html[data-waveform-style="mirror"] .xdj-az-wave-enlarged {
+  padding-bottom: 0.15rem;
+}
+
+html[data-waveform-style="mirror"] .xdj-az-wave-canvas {
+  position: relative;
+}
+
+html[data-waveform-style="mirror"] .xdj-az-waveform-host::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 40%;
+  background: inherit;
+  transform: scaleY(-1);
+  opacity: 0.22;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent);
+  pointer-events: none;
+}
+
+.xdj-az-preview-wave--mirror {
+  padding-bottom: 6px;
+}
+
+.xdj-az-preview-wave--mirror svg {
+  mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+}
+
+.xdj-az-preview-wave--mirror::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+  mask-image: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+html[data-waveform-style="frequency-rgb"] .xdj-az-wave-enlarged {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#060608, #060608) padding-box,
+    linear-gradient(90deg, #4d9fff, #3dd68c, #e85d3b, #4d9fff) border-box;
+  background-size: 100% 100%, 200% 100%;
+  animation: design-led-chase 6s linear infinite;
+}
+
+.xdj-az-preview-wave--frequency-rgb {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#060608, #060608) padding-box,
+    linear-gradient(90deg, #4d9fff, #3dd68c, #e85d3b) border-box;
+}
+
+/* ── Player: XDJ deck (default chrome) ────────────────────── */
+
+html[data-player-style="xdj-deck"] .xdj-az-player {
+  position: relative;
+  border-top-color: #3a3a48;
+}
+
+html[data-player-style="xdj-deck"] .xdj-az-player::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle 4px at 10px 10px, #4a4a55 0%, #222228 45%, transparent 50%),
+    radial-gradient(circle 4px at calc(100% - 10px) 10px, #4a4a55 0%, #222228 45%, transparent 50%),
+    radial-gradient(circle 4px at 10px calc(100% - 10px), #4a4a55 0%, #222228 45%, transparent 50%),
+    radial-gradient(circle 4px at calc(100% - 10px) calc(100% - 10px), #4a4a55 0%, #222228 45%, transparent 50%);
+}
+
+html[data-player-style="xdj-deck"] .xdj-az-player-deck-bar {
+  position: relative;
+}
+
+html[data-player-style="xdj-deck"] .xdj-az-player-deck-bar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--theme-accent) 20%,
+    var(--theme-accent-secondary) 50%,
+    var(--theme-accent) 80%,
+    transparent
+  );
+  opacity: 0.65;
+}
+
+html[data-player-style="xdj-deck"] .xdj-az-jog {
+  position: relative;
+}
+
+html[data-player-style="xdj-deck"] .xdj-az-jog::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+html[data-player-style="xdj-deck"] .xdj-az-player.is-playing .xdj-az-deck-badge {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--theme-accent) 70%, transparent);
+}
+
+/* ── Player: minimal bar (glass dock) ─────────────────────── */
+
+html[data-player-style="minimal-bar"] .xdj-az-player {
+  position: relative;
+  margin: 0.35rem 0.5rem 0;
+  background: color-mix(in srgb, var(--color-xdj-panel) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 18%, var(--color-xdj-border));
+  overflow: hidden;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player-deck-bar {
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-xdj-border) 60%, transparent);
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-transport-btn {
+  border-radius: 999px;
+  min-width: 2.75rem;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--theme-accent) 30%, transparent);
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-wave-enlarged {
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--theme-accent) 15%, #1a1a22);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+html[data-player-style="minimal-bar"] .xdj-az-player-cue-bar {
+  font-size: 0.62rem;
+  padding: 0.3rem 0.85rem;
+  opacity: 0.88;
+  background: color-mix(in srgb, var(--color-xdj-panel) 50%, transparent);
+}
+
+/* ── Player: vinyl focus (grooves + tonearm) ──────────────── */
+
+html[data-player-style="vinyl-focus"] .xdj-az-player {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in srgb, var(--theme-accent) 8%, transparent), transparent 70%),
+    #0a0a0e;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog-wrap {
+  position: relative;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog {
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 50%, #1a1a1a 0%, #0d0d0d 38%, #141418 100%);
+  border-color: #2a2a32;
+  box-shadow:
+    inset 0 0 0 3px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 8px rgba(255, 255, 255, 0.03),
+    inset 0 0 0 14px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 18px rgba(255, 255, 255, 0.025),
+    inset 0 0 0 24px rgba(0, 0, 0, 0.35),
+    0 8px 28px rgba(0, 0, 0, 0.55);
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 6px rgba(255, 255, 255, 0.02);
+  pointer-events: none;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog-wrap::after {
+  content: "";
+  position: absolute;
+  top: 4%;
+  inset-inline-end: -6%;
+  width: 42%;
+  height: 5px;
+  background: linear-gradient(90deg, #555, #ddd 70%, #888);
+  transform-origin: 100% 50%;
+  transform: rotate(-28deg);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 2;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-jog-label {
+  color: color-mix(in srgb, var(--theme-accent) 55%, #888);
+  letter-spacing: 0.2em;
+}
+
+html[data-player-style="vinyl-focus"] .xdj-az-wave-enlarged {
+  border-radius: 6px;
+  border-color: #2a2420;
+  background: linear-gradient(180deg, #0e0c0a, #060608);
+}
+
+/* ── Player: broadcast (radio desk) ───────────────────────── */
+
+html[data-player-style="broadcast"] .xdj-az-player {
+  background: linear-gradient(180deg, #12101a 0%, #0a0a0e 100%);
+}
+
+html[data-player-style="broadcast"] .xdj-az-player-deck-bar {
+  position: relative;
+  border-bottom: 2px solid #2a2030;
+}
+
+html[data-player-style="broadcast"] .xdj-az-player-deck-right:has(.is-live)::before {
+  content: "ON AIR";
+  display: inline-block;
+  margin-inline-end: 0.5rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ff4444;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid rgba(255, 68, 68, 0.55);
+  border-radius: 2px;
+  background: rgba(255, 40, 40, 0.12);
+  animation: design-tally-blink 1.4s ease-in-out infinite;
+}
+
+html[data-player-style="broadcast"] .xdj-az-wave-enlarged {
+  position: relative;
+  border-color: #2a2838;
+  background: #050508;
+  overflow: hidden;
+}
+
+html[data-player-style="broadcast"] .xdj-az-wave-enlarged::before {
+  content: "";
+  position: absolute;
+  inset-inline-end: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 8px;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    #1e1e28 0 4px,
+    color-mix(in srgb, var(--theme-accent) 80%, #ff8800) 4px 6px
+  );
+  opacity: 0.55;
+  animation: design-vu-pulse 0.8s ease-in-out infinite;
+}
+
+html[data-player-style="broadcast"] .xdj-az-wave-enlarged::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 3px,
+    rgba(0, 0, 0, 0.1) 3px 6px
+  );
+}
+
+html[data-player-style="broadcast"] .xdj-az-player.is-playing .xdj-az-time-display {
+  color: var(--theme-accent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--theme-accent) 50%, transparent);
+}
+
+html[data-player-style="broadcast"] .xdj-az-transport-panel {
+  border-color: #3a3048;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Browser: XDJ hardware (faceplate chrome) ───────────────── */
+
+html[data-browser-style="xdj-hardware"] .xdj-hw-faceplate {
+  position: relative;
+}
+
+html[data-browser-style="xdj-hardware"] .xdj-hw-faceplate::before {
+  content: "●  ●  ●  ●";
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 5px;
+  letter-spacing: 6px;
+  color: #3a3a44;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+html[data-browser-style="xdj-hardware"] .xdj-hw-faceplate::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  inset-inline-end: 18px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2a8830;
+  box-shadow: 0 0 6px rgba(60, 200, 80, 0.5);
+  pointer-events: none;
+}
+
+html[data-browser-style="xdj-hardware"] .xdj-hw-screen-glass {
+  box-shadow:
+    inset 0 0 48px rgba(0, 0, 0, 0.92),
+    inset 0 0 0 1px rgba(0, 200, 255, 0.06),
+    0 0 20px rgba(0, 160, 220, 0.04);
+}
+
+html[data-browser-style="xdj-hardware"] .xdj-az-toolbar {
+  background: linear-gradient(180deg, #1a1a22, #121218);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* ── Browser: flat list (zebra + accent) ──────────────────── */
+
+html[data-browser-style="flat-list"] .xdj-az-row:nth-child(even) {
+  background: color-mix(in srgb, var(--theme-accent) 3%, transparent);
+}
+
+html[data-browser-style="flat-list"] .xdj-az-row.is-playing {
+  border-inline-start: 3px solid var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+html[data-browser-style="flat-list"] .xdj-az-row.is-cursor {
+  border-inline-start: 3px solid color-mix(in srgb, var(--theme-wave-played) 80%, #4488ff);
+}
+
+html[data-browser-style="flat-list"] .xdj-az-col-header {
+  background: color-mix(in srgb, var(--color-xdj-panel) 95%, #000);
+  border-bottom: 2px solid var(--color-xdj-border);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+html[data-browser-style="flat-list"] .xdj-az-toolbar {
+  border-bottom: 2px solid color-mix(in srgb, var(--theme-accent) 25%, var(--color-xdj-border));
+}
+
+/* ── Browser: card mosaic (album tiles) ───────────────────── */
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, border-color 0.15s, box-shadow 0.15s;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--theme-accent), var(--theme-accent-secondary));
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card.is-playing::before,
+html[data-browser-style="card-mosaic"] .xdj-az-track-card.is-cursor::before {
+  opacity: 1;
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-track-card.is-playing {
+  background: color-mix(in srgb, var(--theme-accent) 10%, #111114);
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-mobile-folders {
+  gap: 0.35rem;
+  padding: 0.5rem 0.65rem 0;
+  border-bottom: 1px solid var(--color-xdj-border);
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-mobile-folder {
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  background: color-mix(in srgb, var(--color-xdj-panel) 80%, #000);
+  border: 1px solid var(--color-xdj-border);
+}
+
+html[data-browser-style="card-mosaic"] .xdj-az-mobile-folder.is-active {
+  border-color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+/* ── Browser: studio dense (Rekordbox accents) ────────────── */
+
+html[data-browser-style="studio-dense"] .xdj-hw-faceplate {
+  background: linear-gradient(180deg, #1e1a18 0%, var(--theme-faceplate) 35%);
+  border-color: #3a3230;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-col-header {
+  background: linear-gradient(180deg, #2a2018, #181418);
+  border-bottom: 2px solid var(--theme-accent);
+  color: color-mix(in srgb, var(--theme-accent) 70%, #ccc);
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-row.is-playing {
+  background: color-mix(in srgb, var(--theme-accent) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--theme-accent);
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-folder-item.is-active {
+  border-inline-start: 3px solid var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent) 10%, transparent);
+  color: #eee;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-toolbar {
+  background: #141218;
+  border-bottom: 1px solid #2a2428;
+}
+
+html[data-browser-style="studio-dense"] .xdj-az-folders {
+  background: #101014;
+  border-inline-end: 1px solid #2a2428;
+}

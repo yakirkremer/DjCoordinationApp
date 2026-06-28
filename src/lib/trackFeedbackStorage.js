@@ -1,31 +1,36 @@
 import { DEFAULT_PREFERENCES, mergePreferences } from "./preferences";
 import { fetchFeedback, saveFeedback as saveFeedbackApi } from "./api/dataApi";
-import { OFFICIAL_CATEGORIES } from "./categories";
 import { migrateTrackRatings } from "./trackRating";
 
 export function feedbackStorageKey(clientId) {
   return `kremer-music-track-feedback-v1-${clientId}`;
 }
 
-export function emptyFeedback(defaultCategories = OFFICIAL_CATEGORIES) {
+export function emptyFeedback() {
   return {
     ratings: {},
     comments: {},
-    selectedCategories: defaultCategories,
+    selectedCategories: [],
     categoryRatings: {},
     preferences: { ...DEFAULT_PREFERENCES },
   };
 }
 
 export function normalizeFeedback(parsed, defaultCategories) {
-  if (!parsed) return emptyFeedback(defaultCategories);
+  if (!parsed) return emptyFeedback();
+  const valid = new Set(defaultCategories);
+  const selected = Array.isArray(parsed.selectedCategories)
+    ? parsed.selectedCategories.filter((c) => valid.has(c))
+    : [];
+  const categoryRatings = { ...(parsed.categoryRatings ?? {}) };
+  for (const key of Object.keys(categoryRatings)) {
+    if (!valid.has(key)) delete categoryRatings[key];
+  }
   return {
     ratings: migrateTrackRatings(parsed.ratings ?? {}),
     comments: parsed.comments ?? {},
-    selectedCategories: Array.isArray(parsed.selectedCategories)
-      ? parsed.selectedCategories
-      : defaultCategories,
-    categoryRatings: parsed.categoryRatings ?? {},
+    selectedCategories: selected,
+    categoryRatings,
     preferences: mergePreferences(parsed.preferences),
   };
 }

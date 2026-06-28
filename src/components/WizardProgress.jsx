@@ -2,7 +2,7 @@ import React from "react";
 import { getWizardStepTheme } from "../lib/wizardStepTheme";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-export default function WizardProgress({ currentStep, totalSteps, steps = [] }) {
+export default function WizardProgress({ currentStep, totalSteps, steps = [], onStepSelect }) {
   const { t, dir } = useI18n();
   const currentTheme = getWizardStepTheme(steps[currentStep]?.stepType);
 
@@ -14,6 +14,7 @@ export default function WizardProgress({ currentStep, totalSteps, steps = [] }) 
           const isComplete = i < currentStep;
           const isCurrent = i === currentStep;
           const state = isCurrent ? "current" : isComplete ? "complete" : "upcoming";
+          const canJump = isComplete && typeof onStepSelect === "function";
 
           return (
             <li
@@ -22,12 +23,23 @@ export default function WizardProgress({ currentStep, totalSteps, steps = [] }) 
               style={{ "--step-accent": theme.accent }}
               aria-current={isCurrent ? "step" : undefined}
             >
-              <div className="wizard-stepper-node" title={stepDef.title}>
+              <button
+                type="button"
+                className={`wizard-stepper-node${canJump ? " is-clickable" : ""}`}
+                title={stepDef.title}
+                disabled={!canJump}
+                onClick={() => canJump && onStepSelect(i)}
+                aria-label={
+                  canJump
+                    ? t("wizard.goToStep", { title: stepDef.title, step: i + 1 })
+                    : t("wizard.stepOf", { current: i + 1, total: totalSteps })
+                }
+              >
                 <span className="wizard-stepper-icon" aria-hidden>
                   {isComplete ? "✓" : theme.icon}
                 </span>
                 <span className="wizard-stepper-num">{i + 1}</span>
-              </div>
+              </button>
               <span className="wizard-stepper-label">{stepDef.title}</span>
               {i < steps.length - 1 ? (
                 <span

@@ -27,6 +27,20 @@ export const TRACK_RATING_OPTIONS = [
   },
 ];
 
+const RATING_KEY_SEP = "::";
+
+export function makeRatingKey(trackId, versionId) {
+  if (!trackId) return "";
+  if (!versionId) return trackId;
+  return `${trackId}${RATING_KEY_SEP}${versionId}`;
+}
+
+export function parseRatingKey(key) {
+  const sep = key.indexOf(RATING_KEY_SEP);
+  if (sep === -1) return { trackId: key, versionId: null };
+  return { trackId: key.slice(0, sep), versionId: key.slice(sep + RATING_KEY_SEP.length) };
+}
+
 export function normalizeTrackRating(value) {
   if (value === TRACK_RATING.LIKE || value === TRACK_RATING.OK || value === TRACK_RATING.DISLIKE) {
     return value;
@@ -39,17 +53,54 @@ export function normalizeTrackRating(value) {
   return TRACK_RATING.OK;
 }
 
-export function getTrackRating(ratings, trackId) {
-  return normalizeTrackRating(ratings?.[trackId]);
+export function getTrackRating(ratings, trackId, versionId = null) {
+  if (!ratings || !trackId) return DEFAULT_TRACK_RATING;
+
+  if (versionId) {
+    const versionKey = makeRatingKey(trackId, versionId);
+    if (versionKey in ratings) {
+      return normalizeTrackRating(ratings[versionKey]);
+    }
+  }
+
+  if (trackId in ratings) {
+    return normalizeTrackRating(ratings[trackId]);
+  }
+
+  return DEFAULT_TRACK_RATING;
+}
+
+export function getTrackComment(comments, trackId, versionId = null) {
+  if (!comments || !trackId) return "";
+
+  if (versionId) {
+    const versionKey = makeRatingKey(trackId, versionId);
+    if (versionKey in comments) return comments[versionKey] ?? "";
+  }
+
+  return comments[trackId] ?? "";
+}
+
+/** True when the user explicitly saved a rating for this track version. */
+export function hasExplicitRating(ratings, trackId, versionId, defaultVersionId = null) {
+  if (!ratings || !trackId) return false;
+
+  if (versionId) {
+    const versionKey = makeRatingKey(trackId, versionId);
+    if (versionKey in ratings) return true;
+    if (trackId in ratings && defaultVersionId === versionId) return true;
+    return false;
+  }
+
+  return trackId in ratings;
 }
 
 export function migrateTrackRatings(ratings = {}) {
   const next = {};
-  for (const [trackId, value] of Object.entries(ratings)) {
+  for (const [key, value] of Object.entries(ratings)) {
     const normalized = normalizeTrackRating(value);
-    if (normalized !== DEFAULT_TRACK_RATING || value !== undefined) {
-      next[trackId] = normalized;
-    }
+    if (normalized === DEFAULT_TRACK_RATING && value === undefined) continue;
+    next[key] = normalized;
   }
   return next;
 }

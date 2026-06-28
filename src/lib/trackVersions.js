@@ -90,6 +90,24 @@ export function hasMultipleVersions(track) {
   return ensureTrackVersions(track).versions.length > 1;
 }
 
+export function reorderTrackVersions(track, versionOrder) {
+  const normalized = ensureTrackVersions(track);
+  const existingIds = normalized.versions.map((v) => v.id);
+  if (versionOrder.length !== existingIds.length) {
+    throw new Error("versionOrder must include every version");
+  }
+  const idSet = new Set(existingIds);
+  for (const id of versionOrder) {
+    if (!idSet.has(id)) throw new Error("Invalid version id in versionOrder");
+  }
+  const byId = Object.fromEntries(normalized.versions.map((v) => [v.id, v]));
+  return syncFlatFromVersions({
+    ...normalized,
+    versions: versionOrder.map((id) => byId[id]),
+    defaultVersionId: versionOrder[0],
+  });
+}
+
 export function stripTrackForCatalogSave(track) {
   const { isMissing, activeVersionId, audioVersion, ...rest } = track;
   const versions = (rest.versions || []).map(({ isMissing: _missing, ...version }) => version);
@@ -100,7 +118,7 @@ export function stripTrackForCatalogSave(track) {
   delete out.drop;
   delete out.remixer;
   delete out.dropboxSourcePath;
-  if (versions.length === 1) {
+  if (versions.length > 0) {
     out.defaultVersionId = versions[0].id;
   }
   return out;

@@ -27,7 +27,8 @@ function formatTrackList(tracks, empty = "—") {
   if (!tracks?.length) return empty;
   return tracks
     .map((t) => {
-      const base = `  • ${t.title} — ${t.artist}`;
+      const drop = t.drop?.trim() ? ` [${t.drop}]` : "";
+      const base = `  • ${t.title} — ${t.artist}${drop}`;
       return t.comment ? `${base}\n    הערה: ${t.comment}` : base;
     })
     .join("\n");

@@ -1,16 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import TrackCommentInput from "./TrackCommentInput";
 import TrackFeedback from "./TrackFeedback";
 import TrackRating from "./TrackRating";
 import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
 import TrackVersionPicker from "./TrackVersionPicker";
-import { getTrackRating } from "../lib/trackRating";
+import DropTypeBadge from "./DropTypeBadge";
+import { getTrackComment, getTrackRating } from "../lib/trackRating";
 import { getPreviewLength } from "../lib/previewCue";
 import { applyActiveVersion, ensureTrackVersions } from "../lib/trackVersions";
+import {
+  countTracksForGenre,
+  getTracksForGenre,
+} from "../lib/genreCatalog";
 
-function playbackTrack(track, activeVersionIds) {
-  return applyActiveVersion(ensureTrackVersions(track), activeVersionIds[track.id]);
+function resolveRowVersionId(track, entry, activeVersionIds) {
+  if (entry?.lockVersion) return entry.versionId;
+  const normalized = ensureTrackVersions(track);
+  return (
+    activeVersionIds[track.id] ??
+    entry?.versionId ??
+    normalized.defaultVersionId ??
+    normalized.versions?.[0]?.id
+  );
 }
 
 function FolderIcon({ open }) {
@@ -49,6 +61,7 @@ function TransportIcon({ type }) {
 
 export default function TrackList({
   tracks,
+  genreTabs = null,
   currentTrack,
   activeVersionIds = {},
   onSelectVersion,
@@ -61,7 +74,10 @@ export default function TrackList({
   onRateTrack,
   onCommentChange,
 }) {
-  const categoriesInTracks = [...new Set(tracks.map((t) => t.bucket))];
+  const catalogMode = Array.isArray(genreTabs) && genreTabs.length > 0;
+  const categoriesInTracks = catalogMode
+    ? genreTabs
+    : [...new Set(tracks.map((t) => t.bucket))];
   const [activeTab, setActiveTab] = useState(categoriesInTracks[0] || "");
   const [showPreview, setShowPreview] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : true
@@ -76,27 +92,109 @@ export default function TrackList({
     }
   }, [categoriesKey, activeTab, categoriesInTracks]);
 
+  const genreEntries = useMemo(() => {
+    if (!catalogMode || !activeTab) return [];
+    return getTracksForGenre(tracks, activeTab);
+  }, [catalogMode, tracks, activeTab]);
+
   const folderTracks = tracks.filter((t) => t.bucket === activeTab);
   const query = searchQuery.trim().toLowerCase();
   const filteredTracks = query
-    ? folderTracks.filter(
-        (t) =>
-          t.title?.toLowerCase().includes(query) || t.artist?.toLowerCase().includes(query)
-      )
-    : folderTracks;
+    ? (catalogMode ? genreEntries : folderTracks).filter((item) => {
+        const track = catalogMode ? item.track : item;
+        return (
+          track.title?.toLowerCase().includes(query) ||
+          track.artist?.toLowerCase().includes(query)
+        );
+      })
+    : catalogMode
+      ? genreEntries
+      : folderTracks;
 
-  const currentIndex = filteredTracks.findIndex((t) => t.id === currentTrack?.id);
+  const resolveRow = (item, index) => {
+    if (catalogMode) {
+      const entry = item;
+      const track = entry.track;
+      const versionId = resolveRowVersionId(track, entry, activeVersionIds);
+      const playTrack = applyActiveVersion(ensureTrackVersions(track), versionId);
+      const isSelected =
+        currentTrack?.id === track.id &&
+        (entry.lockVersion ? currentTrack?.activeVersionId === entry.versionId : true);
+      return {
+        entry,
+        playTrack,
+        track,
+        versionId,
+        isSelected,
+        rowKey: entry.lockVersion ? `${track.id}-${entry.versionId}` : track.id,
+        index,
+      };
+    }
+    const track = item;
+    const versionId = resolveRowVersionId(track, null, activeVersionIds);
+    const playTrack = applyActiveVersion(ensureTrackVersions(track), versionId);
+    const isSelected = currentTrack?.id === track.id;
+    return { entry: null, playTrack, track, versionId, isSelected, rowKey: track.id, index };
+  };
+
+  const selectRow = (row) => {
+    if (catalogMode && row.entry) {
+      onTrackSelect(row.track, {
+        versionId: row.versionId,
+        lockVersion: row.entry.lockVersion,
+      });
+    } else {
+      onTrackSelect(row.track, { versionId: row.versionId, lockVersion: false });
+    }
+  };
+
+  const playPauseForTab = () => {
+    if (!currentTrack) return;
+    if (catalogMode && activeTab) {
+      const entry = genreEntries.find((e) => e.track.id === currentTrack.id);
+      if (entry) {
+        const versionId = resolveRowVersionId(entry.track, entry, activeVersionIds);
+        onTrackSelect(entry.track, {
+          versionId,
+          lockVersion: entry.lockVersion,
+        });
+        return;
+      }
+    }
+    onTrackSelect(currentTrack, { lockVersion: false });
+  };
+
+  useEffect(() => {
+    if (!catalogMode || !activeTab || !currentTrack?.id) return;
+    const entry = genreEntries.find((e) => e.track.id === currentTrack.id);
+    // Only force version when browsing a drop-mirror genre (Techno, House, etc.).
+    if (!entry?.lockVersion) return;
+    if (entry.versionId === currentTrack.activeVersionId) return;
+    onTrackSelect(entry.track, {
+      versionId: entry.versionId,
+      lockVersion: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resync locked version when genre tab changes
+  }, [activeTab]);
+
+  const currentIndex = catalogMode
+    ? filteredTracks.findIndex((e) => {
+        if (currentTrack?.id !== e.track.id) return false;
+        if (e.lockVersion) return currentTrack?.activeVersionId === e.versionId;
+        return true;
+      })
+    : filteredTracks.findIndex((t) => t.id === currentTrack?.id);
 
   const goPrev = () => {
-    if (currentIndex > 0) onTrackSelect(filteredTracks[currentIndex - 1]);
-    else if (filteredTracks.length > 0) onTrackSelect(filteredTracks[0]);
+    if (currentIndex > 0) selectRow(resolveRow(filteredTracks[currentIndex - 1], currentIndex - 1));
+    else if (filteredTracks.length > 0) selectRow(resolveRow(filteredTracks[0], 0));
   };
 
   const goNext = () => {
     if (currentIndex >= 0 && currentIndex < filteredTracks.length - 1) {
-      onTrackSelect(filteredTracks[currentIndex + 1]);
+      selectRow(resolveRow(filteredTracks[currentIndex + 1], currentIndex + 1));
     } else if (filteredTracks.length > 0) {
-      onTrackSelect(filteredTracks[0]);
+      selectRow(resolveRow(filteredTracks[0], 0));
     }
   };
 
@@ -130,7 +228,9 @@ export default function TrackList({
           <div className="xdj-az-folders-label">COLLECTION</div>
           <ul className="xdj-az-folder-list">
             {categoriesInTracks.map((category) => {
-              const count = tracks.filter((t) => t.bucket === category).length;
+              const count = catalogMode
+                ? countTracksForGenre(tracks, category)
+                : tracks.filter((t) => t.bucket === category).length;
               const isActive = activeTab === category;
               return (
                 <li key={category}>
@@ -169,35 +269,43 @@ export default function TrackList({
             ) : (
               <>
                 <div className="xdj-az-mobile-cards">
-                  {filteredTracks.map((track) => {
-                    const isSelected = currentTrack?.id === track.id;
-                    const isThisPlaying = isSelected && isPlaying;
-                    const playTrack = playbackTrack(track, activeVersionIds);
+                  {filteredTracks.map((item, index) => {
+                    const row = resolveRow(item, index);
+                    const { track, playTrack, isSelected, rowKey, entry, versionId } = row;
+                    const isThisPlaying =
+                      isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
 
                     return (
                       <div
-                        key={track.id}
+                        key={rowKey}
                         className={`xdj-az-track-card ${
                           isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""
                         }`}
-                        onClick={() => onTrackSelect(track)}
+                        onClick={() => selectRow(row)}
                       >
                         <div className="xdj-az-track-card-top">
                           <TrackArtwork track={track} />
                           <div className="xdj-az-track-card-meta">
                             <div className="xdj-az-track-card-title">{track.title}</div>
                             <div className="xdj-az-track-card-artist">{track.artist}</div>
-                            <TrackVersionPicker
-                              track={track}
-                              activeVersionId={activeVersionIds[track.id]}
-                              onSelectVersion={onSelectVersion}
-                              compact
-                            />
+                            {entry?.lockVersion ? (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
+                                <DropTypeBadge drop={playTrack.drop} compact />
+                              </div>
+                            ) : (
+                              <TrackVersionPicker
+                                track={track}
+                                activeVersionId={versionId}
+                                onSelectVersion={onSelectVersion}
+                                compact
+                              />
+                            )}
                           </div>
                           <div onClick={(e) => e.stopPropagation()}>
                             <TrackRating
-                              rating={getTrackRating(ratings, track.id)}
-                              onRate={(value) => onRateTrack(track.id, value)}
+                              rating={getTrackRating(ratings, track.id, versionId)}
+                              onRate={(value) => onRateTrack(track.id, value, versionId)}
                               compact
                               touchFriendly
                             />
@@ -208,7 +316,7 @@ export default function TrackList({
                             className="xdj-az-track-card-preview"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onTrackSelect(track);
+                              selectRow(row);
                             }}
                           >
                             <PreviewWaveform
@@ -219,10 +327,10 @@ export default function TrackList({
                           </div>
                         )}
                         <TrackFeedback
-                          rating={getTrackRating(ratings, track.id)}
-                          comment={comments[track.id] || ""}
-                          onRate={(value) => onRateTrack(track.id, value)}
-                          onCommentChange={(text) => onCommentChange(track.id, text)}
+                          rating={getTrackRating(ratings, track.id, versionId)}
+                          comment={getTrackComment(comments, track.id, versionId)}
+                          onRate={(value) => onRateTrack(track.id, value, versionId)}
+                          onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
                           mobile
                           hideRating
                         />
@@ -231,16 +339,17 @@ export default function TrackList({
                   })}
                 </div>
 
-                {filteredTracks.map((track, index) => {
-                const isSelected = currentTrack?.id === track.id;
-                const isThisPlaying = isSelected && isPlaying;
-                const playTrack = playbackTrack(track, activeVersionIds);
+                {filteredTracks.map((item, index) => {
+                const row = resolveRow(item, index);
+                const { track, playTrack, isSelected, rowKey, entry, versionId } = row;
+                const isThisPlaying =
+                  isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
 
                 return (
                   <div
-                    key={track.id}
+                    key={rowKey}
                     className={`xdj-az-row ${isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""}`}
-                    onClick={() => onTrackSelect(track)}
+                    onClick={() => selectRow(row)}
                   >
                     <div className="xdj-az-col xdj-az-col-no">
                       <span className="xdj-az-row-no">{String(index + 1).padStart(2, "0")}</span>
@@ -256,7 +365,7 @@ export default function TrackList({
                         className="xdj-az-col xdj-az-col-preview"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onTrackSelect(track);
+                          selectRow(row);
                         }}
                       >
                         <PreviewWaveform
@@ -269,13 +378,20 @@ export default function TrackList({
 
                     <div className="xdj-az-col xdj-az-col-title">
                       <span className="xdj-az-track-title">{track.title}</span>
-                      <TrackVersionPicker
-                        track={track}
-                        activeVersionId={activeVersionIds[track.id]}
-                        onSelectVersion={onSelectVersion}
-                        compact
-                        className="mt-0.5"
-                      />
+                      {entry?.lockVersion ? (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
+                          <DropTypeBadge drop={playTrack.drop} compact />
+                        </div>
+                      ) : (
+                        <TrackVersionPicker
+                          track={track}
+                          activeVersionId={versionId}
+                          onSelectVersion={onSelectVersion}
+                          compact
+                          className="mt-0.5"
+                        />
+                      )}
                     </div>
 
                     <div className="xdj-az-col xdj-az-col-artist hidden md:block">
@@ -290,10 +406,10 @@ export default function TrackList({
 
                     <div className="xdj-az-col xdj-az-col-rate" onClick={(e) => e.stopPropagation()}>
                       <TrackFeedback
-                        rating={getTrackRating(ratings, track.id)}
-                        comment={comments[track.id] || ""}
-                        onRate={(value) => onRateTrack(track.id, value)}
-                        onCommentChange={(text) => onCommentChange(track.id, text)}
+                        rating={getTrackRating(ratings, track.id, versionId)}
+                        comment={getTrackComment(comments, track.id, versionId)}
+                        onRate={(value) => onRateTrack(track.id, value, versionId)}
+                        onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
                         compact
                       />
                     </div>
@@ -303,8 +419,8 @@ export default function TrackList({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <TrackCommentInput
-                        value={comments[track.id] || ""}
-                        onChange={(text) => onCommentChange(track.id, text)}
+                        value={getTrackComment(comments, track.id, versionId)}
+                        onChange={(text) => onCommentChange(track.id, text, versionId)}
                       />
                     </div>
                   </div>
@@ -368,7 +484,7 @@ export default function TrackList({
             <button
               type="button"
               className="xdj-hw-transport-key xdj-hw-transport-key-lg"
-              onClick={onPlayPause}
+              onClick={onPlayPause ?? playPauseForTab}
               aria-label={isPlaying ? "Pause" : "Play"}
             >
               <TransportIcon type={isPlaying ? "pause" : "play"} />

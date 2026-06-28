@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "start": "node server.js",
     "scan-music": "python public/scan_music.py",
+    "compute-rgb-waveform": "node scripts/compute-rgb-waveform.mjs",
     "fetch-artwork": "python public/fetch_artwork.py",
     "deploy": "node scripts/deploy.mjs"
   },

@@ -10,11 +10,11 @@ import { updateTrack } from "../lib/api/uploadTrack";
 
 const EDITABLE_FIELDS = ["title", "artist", "bucket"];
 
-function pickEditable(track) {
+function pickEditable(track, genres) {
   return {
     title: track.title ?? "",
     artist: track.artist ?? "",
-    bucket: track.bucket ?? genres[0],
+    bucket: track.bucket ?? genres[0] ?? "",
   };
 }
 
@@ -38,44 +38,31 @@ export default function AdminTable({
   const missingCount = countMissingTracks(tracks);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const [editMode, setEditMode] = useState(false);
   const [drafts, setDrafts] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [rowError, setRowError] = useState({});
   const [expandedIds, setExpandedIds] = useState(() => new Set());
 
-  const hasUnsaved = Object.keys(drafts).length > 0;
-
   const getDraft = useCallback(
     (track) => {
       if (drafts[track.id]) {
-        return { ...pickEditable(track), ...drafts[track.id] };
+        return { ...pickEditable(track, genres), ...drafts[track.id] };
       }
-      return pickEditable(track);
+      return pickEditable(track, genres);
     },
-    [drafts]
+    [drafts, genres]
   );
 
   const isRowDirty = (track) => {
     const draft = drafts[track.id];
     if (!draft) return false;
-    return !draftsEqual(draft, pickEditable(track));
-  };
-
-  const handleToggleEditMode = () => {
-    if (editMode && hasUnsaved) {
-      const ok = window.confirm(t("admin.discardUnsaved"));
-      if (!ok) return;
-      setDrafts({});
-      setRowError({});
-    }
-    setEditMode((v) => !v);
+    return !draftsEqual(draft, pickEditable(track, genres));
   };
 
   const handleDraftChange = (id, field, value) => {
     setRowError((prev) => ({ ...prev, [id]: "" }));
     setDrafts((prev) => {
-      const base = prev[id] ?? pickEditable(tracks.find((tr) => tr.id === id) ?? {});
+      const base = prev[id] ?? pickEditable(tracks.find((tr) => tr.id === id) ?? {}, genres);
       return { ...prev, [id]: { ...base, [field]: value } };
     });
   };
@@ -91,7 +78,7 @@ export default function AdminTable({
 
   const handleSaveRow = async (track) => {
     const draft = getDraft(track);
-    const original = pickEditable(track);
+    const original = pickEditable(track, genres);
     if (draftsEqual(draft, original)) return;
 
     setSavingId(track.id);
@@ -143,17 +130,6 @@ export default function AdminTable({
       <div className="xdj-browser-header flex flex-wrap items-center justify-between gap-2">
         <span className="font-lcd text-xs tracking-[0.25em] text-xdj-cyan">{t("admin.catalogEditor")}</span>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={handleToggleEditMode}
-            className={`text-[10px] px-2 py-1 rounded border min-h-[28px] ${
-              editMode
-                ? "border-xdj-gold text-xdj-gold bg-xdj-gold/10"
-                : "border-xdj-cyan/40 text-xdj-cyan hover:bg-xdj-cyan/10"
-            }`}
-          >
-            {editMode ? t("admin.exitEditMode") : t("admin.editMode")}
-          </button>
           {onRefreshTrackFiles ? (
             <button
               type="button"
@@ -257,7 +233,7 @@ export default function AdminTable({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex flex-col items-center gap-1.5 min-w-[96px]">
-                      {editMode && dirty ? (
+                      {dirty ? (
                         <>
                           <button
                             type="button"
@@ -302,30 +278,22 @@ export default function AdminTable({
                   <td className="p-3 admin-col-title-cell" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col w-full min-w-0">
                       <div className="flex items-start gap-2">
-                        {editMode ? (
-                          <input
-                            className="admin-col-title-input bg-transparent border-b border-xdj-border focus:border-xdj-cyan outline-none w-full font-bold text-gray-200"
-                            value={row.title}
-                            onChange={(e) => handleDraftChange(track.id, "title", e.target.value)}
-                          />
-                        ) : (
-                          <span className="admin-col-title-text font-bold text-gray-200">{track.title}</span>
-                        )}
+                        <input
+                          className="admin-col-title-input bg-transparent border-b border-xdj-border focus:border-xdj-cyan outline-none w-full font-bold text-gray-200"
+                          value={row.title}
+                          onChange={(e) => handleDraftChange(track.id, "title", e.target.value)}
+                        />
                         {track.isMissing && (
                           <span className="text-[10px] text-red-400 font-bold bg-red-950 px-1.5 py-0.5 rounded border border-red-900 shadow-sm shrink-0">
                             {t("trackSource.missing")}
                           </span>
                         )}
                       </div>
-                      {editMode ? (
-                        <input
-                          className="bg-transparent text-xs text-gray-500 border-b border-xdj-border focus:border-xdj-cyan outline-none w-full mt-1"
-                          value={row.artist}
-                          onChange={(e) => handleDraftChange(track.id, "artist", e.target.value)}
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-500 mt-1">{track.artist}</span>
-                      )}
+                      <input
+                        className="bg-transparent text-xs text-gray-500 border-b border-xdj-border focus:border-xdj-cyan outline-none w-full mt-1"
+                        value={row.artist}
+                        onChange={(e) => handleDraftChange(track.id, "artist", e.target.value)}
+                      />
                       <div className="mt-2">
                         <TrackVersionPicker
                           track={track}
@@ -370,21 +338,17 @@ export default function AdminTable({
                     </div>
                   </td>
                   <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    {editMode ? (
-                      <select
-                        className="bg-gray-800 text-xs rounded px-2 py-1 outline-none border border-gray-700 text-gray-200"
-                        value={row.bucket}
-                        onChange={(e) => handleDraftChange(track.id, "bucket", e.target.value)}
-                      >
-                        {genres.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="text-xs text-gray-200">{track.bucket}</span>
-                    )}
+                    <select
+                      className="bg-gray-800 text-xs rounded px-2 py-1 outline-none border border-gray-700 text-gray-200"
+                      value={row.bucket}
+                      onChange={(e) => handleDraftChange(track.id, "bucket", e.target.value)}
+                    >
+                      {genres.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                 </tr>
                 {isExpanded ? (
@@ -392,7 +356,6 @@ export default function AdminTable({
                     track={track}
                     currentTrack={currentTrack}
                     activeVersionId={activeVersionId}
-                    editMode={editMode}
                     onSelectVersion={onSelectVersion}
                     onPreviewTrack={onPreviewTrack}
                     onTrackSaved={onTrackSaved}

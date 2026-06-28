@@ -3,8 +3,11 @@ import WaveSurfer from "wavesurfer.js";
 import TrackArtwork from "./TrackArtwork";
 import TrackReloadButton from "./TrackReloadButton";
 import TrackVersionPicker from "./TrackVersionPicker";
+import DropTypeBadge from "./DropTypeBadge";
 import { normalizePreviewCue, isWithinPreviewCue, MIN_PREVIEW_LENGTH, computeLinkedCue } from "../lib/previewCue";
 import { getTrackSourceSummary } from "../lib/trackSource";
+import { getWaveSurferOptions } from "../lib/waveformStyles";
+import { useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
 
 const PLAYER_EXPAND_KEY = "kramer-player-expanded";
 const LINK_CUES_KEY = "kramer-link-cues-v1";
@@ -28,6 +31,7 @@ export default function GlobalPlayer({
   currentTrack,
   catalogTrack,
   activeVersionId,
+  versionLocked = false,
   onSelectVersion,
   isPlaying,
   setIsPlaying,
@@ -42,6 +46,7 @@ export default function GlobalPlayer({
   onTrackReloaded,
   onPlaybackFailed,
 }) {
+  const { activeWaveformStyle, activeTheme } = useAppSettingsContext();
   const waveformRef = useRef(null);
   const waveCanvasRef = useRef(null);
   const wavesurferRef = useRef(null);
@@ -248,16 +253,7 @@ export default function GlobalPlayer({
 
       wavesurferRef.current = WaveSurfer.create({
         container: waveformRef.current,
-        waveColor: "#1e3a5f",
-        progressColor: "#2d9cff",
-        cursorColor: "#ffffff",
-        cursorWidth: 2,
-        barWidth: 2,
-        barGap: 1,
-        barRadius: 0,
-        responsive: true,
-        height: 88,
-        backend: "MediaElement",
+        ...getWaveSurferOptions(activeWaveformStyle, 88),
       });
 
       wavesurferRef.current.on("ready", () => {
@@ -328,6 +324,8 @@ export default function GlobalPlayer({
     currentTrack?.filename,
     currentTrack?.audioVersion,
     resolveTrackUrl,
+    activeWaveformStyle,
+    activeTheme,
   ]);
 
   useEffect(() => {
@@ -343,20 +341,11 @@ export default function GlobalPlayer({
     }
   }, [isPlaying, isAdmin, cue.startTime, cue.endTime, seekToCueIn, setIsPlaying]);
 
-  const previewPlay = () => {
-    if (!wavesurferRef.current) return;
-    const t = wavesurferRef.current.getCurrentTime();
-    if (t < cue.startTime || t >= cue.endTime) {
-      seekToCueIn(wavesurferRef.current);
-    }
-    setIsPlaying(true);
-  };
-
   const progressPct = previewLength > 0 ? (progressInCue / previewLength) * 100 : 0;
 
   return (
     <div
-      className={`xdj-az-player shrink-0 ${embedded ? "is-embedded" : ""} ${
+      className={`xdj-az-player shrink-0 ${isPlaying ? "is-playing" : ""} ${embedded ? "is-embedded" : ""} ${
         useMiniPlayer ? (expanded ? "is-expanded" : "is-collapsed") : ""
       }`}
       dir="ltr"
@@ -370,7 +359,7 @@ export default function GlobalPlayer({
             <div className="xdj-az-player-mini-meta">
               <h4 className="xdj-az-player-mini-title">{currentTrack.title}</h4>
               <p className="xdj-az-player-mini-artist">{currentTrack.artist}</p>
-              {catalogTrack && onSelectVersion ? (
+              {catalogTrack && onSelectVersion && !versionLocked ? (
                 <TrackVersionPicker
                   track={catalogTrack}
                   activeVersionId={activeVersionId}
@@ -378,6 +367,8 @@ export default function GlobalPlayer({
                   compact
                   className="mt-0.5"
                 />
+              ) : versionLocked && currentTrack?.drop ? (
+                <DropTypeBadge drop={currentTrack.drop} compact className="mt-0.5" />
               ) : null}
             </div>
             <button
@@ -419,13 +410,15 @@ export default function GlobalPlayer({
           <div className="xdj-az-player-track-meta">
             <h4 className="xdj-az-player-title">{currentTrack.title}</h4>
             <p className="xdj-az-player-artist">{currentTrack.artist}</p>
-            {catalogTrack && onSelectVersion ? (
+            {catalogTrack && onSelectVersion && !versionLocked ? (
               <TrackVersionPicker
                 track={catalogTrack}
                 activeVersionId={activeVersionId}
                 onSelectVersion={onSelectVersion}
                 className="mt-1"
               />
+            ) : versionLocked && currentTrack?.drop ? (
+              <DropTypeBadge drop={currentTrack.drop} className="mt-1" />
             ) : null}
           </div>
         </div>
@@ -589,18 +582,6 @@ export default function GlobalPlayer({
               .{String(Math.floor((currentTime % 1) * 100)).padStart(2, "0")}
             </span>
           </button>
-
-          {isAdmin ? (
-            <button
-              type="button"
-              onClick={previewPlay}
-              className="xdj-az-transport-btn"
-              aria-label="Play preview region"
-              title="נגן אזור התצוגה המקדימה (A→B)"
-            >
-              <span className="xdj-az-play-tri" />
-            </button>
-          ) : null}
 
           <button
             type="button"

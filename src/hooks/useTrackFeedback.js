@@ -4,13 +4,14 @@ import { DEFAULT_GENRES } from "../lib/categories";
 import { DEFAULT_PREFERENCES } from "../lib/preferences";
 import {
   DEFAULT_TRACK_RATING,
+  makeRatingKey,
   normalizeTrackRating,
 } from "../lib/trackRating";
 
 export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GENRES) {
   const [ratings, setRatings] = useState({});
   const [comments, setComments] = useState({});
-  const [selectedCategories, setSelectedCategories] = useState(allGenres);
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [categoryRatings, setCategoryRatings] = useState({});
   const [preferences, setPreferences] = useState({ ...DEFAULT_PREFERENCES });
   const [ready, setReady] = useState(!clientId);
@@ -51,7 +52,7 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
     if (!clientId) {
       setRatings({});
       setComments({});
-      setSelectedCategories(allGenres);
+      setSelectedCategories([]);
       setCategoryRatings({});
       setPreferences({ ...DEFAULT_PREFERENCES });
       setReady(true);
@@ -76,22 +77,47 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
     };
   }, [clientId, allGenres]);
 
+  useEffect(() => {
+    setSelectedCategories((prev) => {
+      const next = prev.filter((c) => allGenres.includes(c));
+      if (next.length === prev.length) return prev;
+      persist({ selectedCategories: next });
+      return next;
+    });
+    setCategoryRatings((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const key of Object.keys(next)) {
+        if (!allGenres.includes(key)) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      if (changed) persist({ categoryRatings: next });
+      return changed ? next : prev;
+    });
+  }, [allGenres, persist]);
+
   const rateTrack = useCallback(
-    (trackId, rating) => {
+    (trackId, rating, versionId) => {
+      const key = makeRatingKey(trackId, versionId);
       setRatings((prev) => {
-        const current = normalizeTrackRating(prev[trackId]);
+        const current = normalizeTrackRating(prev[key] ?? prev[trackId]);
         const nextRating = normalizeTrackRating(rating);
         const next = { ...prev };
 
         if (current === nextRating) {
           if (nextRating === DEFAULT_TRACK_RATING) {
-            delete next[trackId];
+            delete next[key];
           } else {
-            next[trackId] = DEFAULT_TRACK_RATING;
+            next[key] = DEFAULT_TRACK_RATING;
           }
         } else {
-          next[trackId] =
-            nextRating === DEFAULT_TRACK_RATING ? DEFAULT_TRACK_RATING : nextRating;
+          next[key] = nextRating === DEFAULT_TRACK_RATING ? DEFAULT_TRACK_RATING : nextRating;
+        }
+
+        if (versionId && trackId in next) {
+          delete next[trackId];
         }
 
         persist({ ratings: next });
@@ -102,13 +128,17 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
   );
 
   const setComment = useCallback(
-    (trackId, text) => {
+    (trackId, text, versionId) => {
+      const key = makeRatingKey(trackId, versionId);
       setComments((prev) => {
         const next = { ...prev };
         if (!text.trim()) {
-          delete next[trackId];
+          delete next[key];
         } else {
-          next[trackId] = text;
+          next[key] = text;
+        }
+        if (versionId && trackId in next) {
+          delete next[trackId];
         }
         persist({ comments: next });
         return next;

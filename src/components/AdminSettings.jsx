@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { THEMES, getThemeLabel } from "../lib/themes";
+import { PLAYER_STYLES, BROWSER_STYLES } from "../lib/designStyles";
+import { WAVEFORM_STYLES } from "../lib/waveformStyles";
+import DesignStylePicker from "./DesignStylePicker";
 import { LOCALE_LABELS, LOCALES } from "../lib/i18n/translations";
 import { normalizeGenres, sanitizeGenreName } from "../lib/categories";
 import { normalizeDropTypes } from "../lib/dropTypes";
@@ -24,6 +27,9 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
   const [draft, setDraft] = useState(() => ({
     defaultLocale: settings.defaultLocale,
     theme: settings.theme,
+    playerStyle: settings.playerStyle ?? "xdj-deck",
+    browserStyle: settings.browserStyle ?? "xdj-hardware",
+    waveformStyle: settings.waveformStyle ?? "classic",
     genres: initGenreRows(settings.genres),
     dropTypes: normalizeDropTypes(settings.dropTypes),
     dropTypeColors: normalizeDropTypeColors(settings.dropTypes, settings.dropTypeColors),
@@ -145,6 +151,9 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
       await updateSettings({
         defaultLocale: draft.defaultLocale,
         theme: draft.theme,
+        playerStyle: draft.playerStyle,
+        browserStyle: draft.browserStyle,
+        waveformStyle: draft.waveformStyle,
         genres,
         genreRenames,
         genreRemoved,
@@ -223,6 +232,39 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
             ))}
           </div>
           <p className="text-[10px] text-xdj-muted mt-2">{t("admin.themeHint")}</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.defaultPlayerStyle")}</label>
+          <DesignStylePicker
+            styles={PLAYER_STYLES}
+            value={draft.playerStyle}
+            onChange={(id) => setDraft((d) => ({ ...d, playerStyle: id }))}
+            locale={locale}
+          />
+          <p className="text-[10px] text-xdj-muted mt-2">{t("admin.playerStyleHint")}</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.defaultBrowserStyle")}</label>
+          <DesignStylePicker
+            styles={BROWSER_STYLES}
+            value={draft.browserStyle}
+            onChange={(id) => setDraft((d) => ({ ...d, browserStyle: id }))}
+            locale={locale}
+          />
+          <p className="text-[10px] text-xdj-muted mt-2">{t("admin.browserStyleHint")}</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.defaultWaveformStyle")}</label>
+          <DesignStylePicker
+            styles={WAVEFORM_STYLES}
+            value={draft.waveformStyle}
+            onChange={(id) => setDraft((d) => ({ ...d, waveformStyle: id }))}
+            locale={locale}
+          />
+          <p className="text-[10px] text-xdj-muted mt-2">{t("admin.waveformStyleHint")}</p>
         </div>
 
         <div>

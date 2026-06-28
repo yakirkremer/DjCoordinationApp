@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import CategoryStyleRow from "./CategoryStyleRow";
-import StarRating from "./StarRating";
+import GenreVibeMeter from "./GenreVibeMeter";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function CategorySelector({
@@ -101,11 +101,11 @@ export default function CategorySelector({
                 {focusedSelected && "● "}
                 {focusedCategory}
               </button>
-              <StarRating
+              <GenreVibeMeter
                 rating={categoryRatings[focusedCategory] || 0}
-                onRate={(star) => onRateCategory(focusedCategory, star)}
+                onRate={(level) => onRateCategory(focusedCategory, level)}
                 compact
-                touchFriendly
+                showLabel={false}
               />
             </div>
           </div>

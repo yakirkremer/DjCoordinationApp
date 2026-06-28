@@ -3,6 +3,8 @@ import { ENERGY_LEVELS, EVENT_PHASES } from "../lib/preferences";
 import { getFieldValue } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
 import WeddingTimelineSummary from "./WeddingTimelineSummary";
+import { getVibeLabel } from "./GenreVibeMeter";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function WizardStepSummary({
   formSchema,
@@ -16,6 +18,7 @@ export default function WizardStepSummary({
   description = "בדקו שהכל נכון לפני שממשיכים לדירוג השירים.",
   hideHeader = false,
 }) {
+  const { t } = useI18n();
   const energy = ENERGY_LEVELS.find((l) => l.id === preferences.energyLevel);
 
   const visibleSteps = filterStepsForClientType(formSchema?.steps ?? [], clientType);
@@ -56,7 +59,9 @@ export default function WizardStepSummary({
                 return (
                   <li key={cat} className="text-xdj-text text-sm">
                     {cat}
-                    {r > 0 && <span className="text-xdj-gold mr-2"> {"★".repeat(r)}</span>}
+                    {r > 0 && (
+                      <span className="text-xdj-gold mr-2"> — {getVibeLabel(t, r)}</span>
+                    )}
                   </li>
                 );
               })}

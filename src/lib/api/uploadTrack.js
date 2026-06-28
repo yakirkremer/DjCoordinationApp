@@ -81,6 +81,10 @@ export async function deleteTrackVersion(trackId, versionId) {
   return data.track;
 }
 
+export async function reorderTrackVersions(trackId, versionOrder) {
+  return updateTrack(trackId, { versionOrder });
+}
+
 export async function updateTrack(trackId, updates, versionId) {
   const res = await fetch("/api/music/update", {
     method: "POST",

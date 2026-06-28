@@ -8,13 +8,12 @@ import TrackVersionPicker, { getTrackWithVersion } from "./TrackVersionPicker";
 import { ensureTrackVersions, getVersionLabel } from "../lib/trackVersions";
 import { getTrackSourceSummary } from "../lib/trackSource";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
-import { updateTrack, deleteTrackVersion } from "../lib/api/uploadTrack";
+import { updateTrack, deleteTrackVersion, reorderTrackVersions } from "../lib/api/uploadTrack";
 
 export default function AdminTrackVersions({
   track,
   currentTrack,
   activeVersionId,
-  editMode,
   onSelectVersion,
   onPreviewTrack,
   onTrackSaved,
@@ -25,6 +24,7 @@ export default function AdminTrackVersions({
   const normalized = ensureTrackVersions(track);
   const versions = normalized.versions || [];
   const [savingVersionId, setSavingVersionId] = useState(null);
+  const [reordering, setReordering] = useState(false);
   const [versionDrafts, setVersionDrafts] = useState({});
   const [versionError, setVersionError] = useState({});
 
@@ -85,14 +85,39 @@ export default function AdminTrackVersions({
     }
   };
 
+  const handleMoveVersion = async (versionId, direction) => {
+    const idx = versions.findIndex((v) => v.id === versionId);
+    if (idx < 0) return;
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= versions.length) return;
+
+    const order = versions.map((v) => v.id);
+    [order[idx], order[targetIdx]] = [order[targetIdx], order[idx]];
+
+    setReordering(true);
+    try {
+      const saved = await reorderTrackVersions(track.id, order);
+      onTrackSaved?.(saved);
+    } catch (err) {
+      window.alert(err.message || t("admin.reorderVersionsFailed"));
+    } finally {
+      setReordering(false);
+    }
+  };
+
   return (
     <tr className="admin-version-row bg-black/30">
       <td colSpan={6} className="p-3 sm:p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-3" dir={dir}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="font-lcd text-[10px] text-xdj-muted uppercase">
-              {t("admin.versionsCount", { count: versions.length })}
-            </p>
+            <div>
+              <p className="font-lcd text-[10px] text-xdj-muted uppercase">
+                {t("admin.versionsCount", { count: versions.length })}
+              </p>
+              {versions.length > 1 ? (
+                <p className="text-[10px] text-xdj-muted mt-0.5">{t("admin.versionOrderHint")}</p>
+              ) : null}
+            </div>
             <TrackVersionPicker
               track={track}
               activeVersionId={activeVersionId}
@@ -108,19 +133,51 @@ export default function AdminTrackVersions({
               const isActive =
                 (activeVersionId || normalized.activeVersionId) === version.id;
               const isSelected = currentTrack?.id === track.id && isActive;
+              const isDefault = index === 0;
 
               return (
                 <div
                   key={version.id}
                   className={`admin-version-card rounded-sm border p-3 ${
                     isSelected ? "border-xdj-cyan/60 bg-xdj-cyan/5" : "border-xdj-border"
-                  }`}
+                  } ${isDefault ? "admin-version-card--default" : ""}`}
                   style={getCssVars(version.drop)}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                    <div>
-                      <DropTypeBadge drop={version.drop || getVersionLabel(version, index, locale)} className="mb-1" />
-                      <p className="text-[10px] text-xdj-muted font-mono">{version.filename}</p>
+                    <div className="flex items-start gap-2 min-w-0">
+                      {versions.length > 1 ? (
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveVersion(version.id, "up")}
+                            disabled={index === 0 || reordering}
+                            className="admin-version-reorder-btn"
+                            aria-label={t("admin.moveVersionUp")}
+                            title={t("admin.moveVersionUp")}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveVersion(version.id, "down")}
+                            disabled={index === versions.length - 1 || reordering}
+                            className="admin-version-reorder-btn"
+                            aria-label={t("admin.moveVersionDown")}
+                            title={t("admin.moveVersionDown")}
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      ) : null}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                          <DropTypeBadge drop={version.drop || getVersionLabel(version, index, locale)} />
+                          {isDefault ? (
+                            <span className="admin-version-default-badge">{t("admin.defaultVersion")}</span>
+                          ) : null}
+                        </div>
+                        <p className="text-[10px] text-xdj-muted font-mono truncate">{version.filename}</p>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       <button
@@ -152,39 +209,37 @@ export default function AdminTrackVersions({
                     </div>
                   </div>
 
-                  {editMode ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 mb-2">
-                      <DropTypeSelect
-                        value={draft.drop}
-                        onChange={(value) => handleVersionDraftChange(version.id, "drop", value)}
-                        className="input-luxury px-2 py-1 text-xs rounded-sm"
-                      />
-                      <input
-                        className="input-luxury px-2 py-1 text-xs rounded-sm font-mono col-span-2"
-                        value={draft.filename}
-                        onChange={(e) => handleVersionDraftChange(version.id, "filename", e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        className="input-luxury px-2 py-1 text-xs rounded-sm"
-                        value={draft.startTime}
-                        onChange={(e) => handleVersionDraftChange(version.id, "startTime", e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        className="input-luxury px-2 py-1 text-xs rounded-sm"
-                        value={draft.endTime}
-                        onChange={(e) => handleVersionDraftChange(version.id, "endTime", e.target.value)}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <DropTypeBadge drop={draft.drop} compact />
-                      <span className="text-[10px] text-xdj-muted">
-                        {draft.startTime}s–{draft.endTime}s
-                      </span>
-                    </div>
-                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 mb-2">
+                    <DropTypeSelect
+                      value={draft.drop}
+                      onChange={(value) => handleVersionDraftChange(version.id, "drop", value)}
+                      className="input-luxury px-2 py-1 text-xs rounded-sm"
+                    />
+                    <input
+                      className="input-luxury px-2 py-1 text-xs rounded-sm font-mono col-span-2"
+                      value={draft.filename}
+                      onChange={(e) => handleVersionDraftChange(version.id, "filename", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="input-luxury px-2 py-1 text-xs rounded-sm"
+                      value={draft.startTime}
+                      onChange={(e) => handleVersionDraftChange(version.id, "startTime", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="input-luxury px-2 py-1 text-xs rounded-sm"
+                      value={draft.endTime}
+                      onChange={(e) => handleVersionDraftChange(version.id, "endTime", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <DropTypeBadge drop={draft.drop} compact />
+                    <span className="text-[10px] text-xdj-muted">
+                      {draft.startTime}s–{draft.endTime}s
+                    </span>
+                  </div>
 
                   <div className="flex flex-wrap items-center gap-2 justify-between">
                     <span
@@ -204,16 +259,14 @@ export default function AdminTrackVersions({
                         compact
                         label={version.isMissing ? t("admin.reload") : t("admin.replace")}
                       />
-                      {editMode ? (
-                        <button
-                          type="button"
-                          onClick={() => handleSaveVersion(version)}
-                          disabled={savingVersionId === version.id}
-                          className="text-[10px] font-bold text-xdj-cyan px-2 py-1 rounded border border-xdj-cyan/50 disabled:opacity-40"
-                        >
-                          {savingVersionId === version.id ? t("common.saving") : t("admin.saveRow")}
-                        </button>
-                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => handleSaveVersion(version)}
+                        disabled={savingVersionId === version.id}
+                        className="text-[10px] font-bold text-xdj-cyan px-2 py-1 rounded border border-xdj-cyan/50 disabled:opacity-40"
+                      >
+                        {savingVersionId === version.id ? t("common.saving") : t("admin.saveRow")}
+                      </button>
                     </div>
                   </div>
                   {versionError[version.id] ? (

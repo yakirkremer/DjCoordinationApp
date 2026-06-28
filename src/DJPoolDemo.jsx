@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import TrackList from "./components/TrackList";
 import AdminTable from "./components/AdminTable";
+import AdminGenreOrganizer from "./components/AdminGenreOrganizer";
 import GlobalPlayer from "./components/GlobalPlayer";
 import CategorySelector from "./components/CategorySelector";
 import WelcomePage from "./components/WelcomePage";
@@ -14,7 +15,8 @@ import TrackUploadPanel from "./components/TrackUploadPanel";
 import DropboxImportPanel from "./components/DropboxImportPanel";
 import TrackReloadButton from "./components/TrackReloadButton";
 import LanguageSwitcher from "./components/LanguageSwitcher";
-import ThemeSwitcher from "./components/ThemeSwitcher";
+import AppearanceSwitcher from "./components/AppearanceSwitcher";
+import AccessibilityToolbar from "./components/AccessibilityToolbar";
 import AdminSettings from "./components/AdminSettings";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
@@ -75,6 +77,7 @@ export default function DJPoolDemo() {
   const dropboxImport = useDropboxImport();
   const catalogSaveTimer = useRef(null);
   const [activeVersionIds, setActiveVersionIds] = useState({});
+  const [lockedVersionIds, setLockedVersionIds] = useState({});
 
   const resolvePlaybackTrack = useCallback(
     (track, versionId) => {
@@ -211,6 +214,8 @@ export default function DJPoolDemo() {
 
   const handleSelectVersion = useCallback(
     (trackId, versionId) => {
+      if (lockedVersionIds[trackId]) return;
+
       setActiveVersionIds((prev) => ({ ...prev, [trackId]: versionId }));
 
       setTracks((prev) =>
@@ -239,7 +244,47 @@ export default function DJPoolDemo() {
 
       setIsPlaying((wasPlaying) => (currentTrack?.id === trackId ? true : wasPlaying));
     },
-    [currentTrack?.id]
+    [currentTrack?.id, lockedVersionIds]
+  );
+
+  const handleTrackSelect = useCallback(
+    (track, { versionId, lockVersion } = {}) => {
+      let base = ensureTrackVersions(track);
+
+      if (versionId) {
+        setActiveVersionIds((prev) => ({ ...prev, [track.id]: versionId }));
+        base = applyActiveVersion(base, versionId);
+        if (lockVersion) {
+          setLockedVersionIds((prev) => ({ ...prev, [track.id]: versionId }));
+        } else if (lockVersion === false) {
+          setLockedVersionIds((prev) => {
+            if (!prev[track.id]) return prev;
+            const next = { ...prev };
+            delete next[track.id];
+            return next;
+          });
+        }
+      } else if (lockedVersionIds[track.id]) {
+        base = applyActiveVersion(base, lockedVersionIds[track.id]);
+      } else {
+        base = resolvePlaybackTrack(track);
+      }
+
+      const normalized = normalizePreviewCue(base);
+      setCurrentTrack((prev) => {
+        if (
+          prev?.id === normalized.id &&
+          prev?.activeVersionId === normalized.activeVersionId
+        ) {
+          setIsPlaying((playing) => !playing);
+          return prev;
+        }
+        setCurrentTime(normalized.startTime);
+        setIsPlaying(true);
+        return normalized;
+      });
+    },
+    [lockedVersionIds, resolvePlaybackTrack]
   );
 
   const handleDeleteTrack = async (id) => {
@@ -258,17 +303,6 @@ export default function DJPoolDemo() {
       }
     } catch (err) {
       window.alert(err.message || t("admin.deleteFailed"));
-    }
-  };
-
-  const handleTrackSelect = (track) => {
-    const normalized = resolvePlaybackTrack(track);
-    if (currentTrack?.id === normalized.id && currentTrack?.activeVersionId === normalized.activeVersionId) {
-      setIsPlaying(!isPlaying);
-    } else {
-      setCurrentTrack(normalized);
-      setCurrentTime(normalized.startTime);
-      setIsPlaying(true);
     }
   };
 
@@ -413,9 +447,14 @@ export default function DJPoolDemo() {
   const isCoupleBrowse =
     !isAdmin && activeClient && coupleReady && clientScreen === "browse" && preferences.wizardCompleted;
 
+  const isWizardGenreListen =
+    !isAdmin && activeClient && clientScreen === "wizard" && currentTrack;
+
   const showPlayer =
     currentTrack &&
-    (isAdmin || (activeClient && clientScreen === "browse" && preferences.wizardCompleted));
+    (isAdmin ||
+      isWizardGenreListen ||
+      (activeClient && clientScreen === "browse" && preferences.wizardCompleted));
 
   const isAdminCatalog = isAdmin && adminTab === "catalog";
   const showFooterPlayer = showPlayer && !isAdminCatalog;
@@ -428,6 +467,7 @@ export default function DJPoolDemo() {
     currentTrack,
     catalogTrack: catalogTrackForPlayer,
     activeVersionId: currentTrack?.activeVersionId,
+    versionLocked: Boolean(currentTrack?.id && lockedVersionIds[currentTrack.id]),
     onSelectVersion: handleSelectVersion,
     isPlaying,
     setIsPlaying,
@@ -568,6 +608,17 @@ export default function DJPoolDemo() {
         </div>
       );
     }
+    if (adminTab === "organize") {
+      return (
+        <div className="flex flex-col flex-1 min-h-0">
+          <AdminGenreOrganizer
+            tracks={tracks}
+            onTrackSaved={handleTrackSaved}
+            onPreviewTrack={handleAdminPreviewTrack}
+          />
+        </div>
+      );
+    }
     if (adminTab === "clients") {
       return <ClientManager clients={clients} onCreateClient={createClient} onDeleteClient={deleteClient} />;
     }
@@ -587,6 +638,10 @@ export default function DJPoolDemo() {
 
   return (
     <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir={dir}>
+      <a href="#main-content" className="skip-to-content">
+        {t("a11y.skipToContent")}
+      </a>
+      <AccessibilityToolbar />
       {(isAdmin || activeClient || guestView === "guide") && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
@@ -614,7 +669,7 @@ export default function DJPoolDemo() {
         </div>
 
         <div className="flex flex-wrap gap-2 items-center justify-center">
-          <ThemeSwitcher className="max-w-full overflow-x-auto pb-1" />
+          <AppearanceSwitcher />
           <LanguageSwitcher />
           {!isAdmin && activeClient && clientScreen !== "home" && (
             <button
@@ -640,6 +695,8 @@ export default function DJPoolDemo() {
       )}
 
       <main
+        id="main-content"
+        tabIndex={-1}
         className={`app-main-safe flex-1 min-h-0 max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2 sm:pb-4 flex flex-col ${
           isCoupleBrowse || isAdmin || (activeClient && (clientScreen === "home" || clientScreen === "guide")) || guestView === "guide"
             ? "overflow-hidden"
@@ -698,9 +755,14 @@ export default function DJPoolDemo() {
             preferences={preferences}
             selectedCategories={selectedCategories}
             categoryRatings={categoryRatings}
+            tracks={tracks.filter((t) => ensureTrackVersions(t).versions.some((v) => !v.isMissing))}
             onUpdatePreferences={updatePreferences}
             onToggleCategory={toggleCategory}
             onRateCategory={rateCategory}
+            onTrackSelect={handleTrackSelect}
+            currentTrack={currentTrack}
+            isPlaying={isPlaying}
+            formatTime={formatTime}
             onComplete={handleWizardComplete}
             onSkip={handleWizardSkip}
             onSaveProgress={saveWizardProgress}
@@ -723,17 +785,15 @@ export default function DJPoolDemo() {
 
             <div className="flex-1 min-h-0">
               <TrackList
-                tracks={tracks.filter((t) => {
-                  const normalized = ensureTrackVersions(t);
-                  const playable = normalized.versions.some((v) => !v.isMissing);
-                  return playable && selectedCategories.includes(t.bucket);
-                })}
+                genreTabs={selectedCategories}
+                tracks={tracks.filter((t) =>
+                  ensureTrackVersions(t).versions.some((v) => !v.isMissing)
+                )}
                 currentTrack={currentTrack}
                 activeVersionIds={activeVersionIds}
                 onSelectVersion={handleSelectVersion}
                 isPlaying={isPlaying}
                 onTrackSelect={handleTrackSelect}
-                onPlayPause={() => currentTrack && handleTrackSelect(currentTrack)}
                 formatTime={formatTime}
                 ratings={ratings}
                 comments={comments}

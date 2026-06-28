@@ -1,7 +1,10 @@
 import React from "react";
+import { getVibeLabel } from "./GenreVibeMeter";
+import DropTypeBadge from "./DropTypeBadge";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 function TrackChip({ track, variant }) {
+  const dropLabel = track.drop?.trim();
   return (
     <li
       className={`category-track-chip category-track-chip--${variant}`}
@@ -9,6 +12,11 @@ function TrackChip({ track, variant }) {
     >
       <span className="category-track-chip-title">{track.title}</span>
       <span className="category-track-chip-artist">{track.artist}</span>
+      {dropLabel ? (
+        <span className="category-track-chip-drop">
+          <DropTypeBadge drop={dropLabel} compact />
+        </span>
+      ) : null}
       {track.comment ? <span className="category-track-chip-note">"{track.comment}"</span> : null}
     </li>
   );
@@ -23,7 +31,7 @@ function TrackColumn({ tracks, variant, emptyLabel, label }) {
       ) : (
         <ul className="category-track-list">
           {tracks.map((track) => (
-            <TrackChip key={track.id} track={track} variant={variant} />
+            <TrackChip key={`${track.id}-${track.versionId || "default"}`} track={track} variant={variant} />
           ))}
         </ul>
       )}
@@ -61,8 +69,8 @@ export default function CategoryTrackChoices({ groups, categoryRatings = {} }) {
                 <div className="category-track-category-cell">
                   <span className="category-track-category-name">{category}</span>
                   {stars > 0 ? (
-                    <span className="category-track-category-stars text-xdj-gold font-lcd text-[10px]">
-                      {"★".repeat(stars)}
+                    <span className="category-track-category-stars text-xdj-gold text-[10px]">
+                      {getVibeLabel(t, stars)}
                     </span>
                   ) : null}
                 </div>

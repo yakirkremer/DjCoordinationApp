@@ -357,6 +357,27 @@ export async function updateTrackInCatalog(trackId, updates, versionId) {
         track = { ...track, bucket: nextBucket, versions: movedVersions };
       }
     }
+
+    if (updates.versionOrder !== undefined) {
+      const order = updates.versionOrder;
+      if (!Array.isArray(order)) {
+        throw new Error("versionOrder must be an array");
+      }
+      const existingIds = track.versions.map((v) => v.id);
+      if (order.length !== existingIds.length) {
+        throw new Error("versionOrder must include every version");
+      }
+      const idSet = new Set(existingIds);
+      for (const id of order) {
+        if (!idSet.has(id)) throw new Error("Invalid version id in versionOrder");
+      }
+      const byId = Object.fromEntries(track.versions.map((v) => [v.id, v]));
+      track = {
+        ...track,
+        versions: order.map((id) => byId[id]),
+        defaultVersionId: order[0],
+      };
+    }
   }
 
   catalog[idx] = track;

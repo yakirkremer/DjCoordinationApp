@@ -1,4 +1,5 @@
 import React from "react";
+import DropTypeBadge from "./DropTypeBadge";
 
 export default function FiveStarList({ tracks }) {
   return (
@@ -10,12 +11,15 @@ export default function FiveStarList({ tracks }) {
       ) : (
         <div className="divide-y divide-gray-800">
           {tracks.map((track) => (
-            <div key={track.id} className="py-3 flex flex-col gap-1">
+            <div key={`${track.id}-${track.versionId || "default"}`} className="py-3 flex flex-col gap-1">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-gray-200">{track.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {track.artist} • <span className="text-purple-400">{track.bucket}</span>
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                    <span>{track.artist}</span>
+                    <span>•</span>
+                    <span className="text-purple-400">{track.bucket}</span>
+                    {track.drop ? <DropTypeBadge drop={track.drop} compact /> : null}
                   </p>
                 </div>
                 <span className="track-rating-pill track-rating-pill--like shrink-0">
