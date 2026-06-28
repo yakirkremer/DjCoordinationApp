@@ -4017,6 +4017,17 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
   min-width: 44px;
 }
 
+.genre-explore-row .xdj-az-art {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.genre-explore-row .xdj-az-art-letter {
+  font-size: 0.6rem;
+}
+
 .genre-explore-row-meta {
   flex: 1;
 }
