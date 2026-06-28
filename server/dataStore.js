@@ -1,6 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { normalizeGenres } from "../src/lib/categories.js";
+import { applyGenreSettings, ensureAllGenreDirs, readGenreList } from "./genreStorage.js";
 import { DATA_DIR } from "./storagePaths.js";
 
 export { DATA_DIR };
@@ -147,8 +149,19 @@ export async function handleDataApi(req, res) {
       }
       if (req.method === "PUT") {
         const body = JSON.parse(await readBody(req));
-        await writeJsonFile(DATA_FILES.settings, body);
-        sendJson(res, 200, { ok: true });
+        const { genreRenames, genreRemoved, ...settingsBody } = body;
+
+        if (Array.isArray(settingsBody.genres)) {
+          await applyGenreSettings({
+            genres: settingsBody.genres,
+            renames: Array.isArray(genreRenames) ? genreRenames : [],
+            removed: Array.isArray(genreRemoved) ? genreRemoved : [],
+          });
+          settingsBody.genres = normalizeGenres(settingsBody.genres);
+        }
+
+        await writeJsonFile(DATA_FILES.settings, settingsBody);
+        sendJson(res, 200, { ok: true, settings: settingsBody });
         return true;
       }
     }

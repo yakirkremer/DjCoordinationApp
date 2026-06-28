@@ -4,17 +4,19 @@ import {
   downloadReportFile,
   openClientReportEmail,
 } from "../lib/clientReport";
+import { useGenres } from "../hooks/useGenres";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function ClientReportExport({ client, feedback, tracks, formSchema, disabled }) {
   const { t, dir } = useI18n();
+  const genres = useGenres();
   const [recipient, setRecipient] = useState("");
   const [status, setStatus] = useState("");
 
   const exportPack = useMemo(() => {
     if (!client || !feedback) return null;
-    return exportClientReportFiles({ client, feedback, tracks, formSchema });
-  }, [client, feedback, tracks, formSchema]);
+    return exportClientReportFiles({ client, feedback, tracks, formSchema, allGenres: genres });
+  }, [client, feedback, tracks, formSchema, genres]);
 
   const handleDownloadTxt = () => {
     if (!exportPack) return;

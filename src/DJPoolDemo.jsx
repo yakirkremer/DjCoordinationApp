@@ -22,7 +22,7 @@ import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
 import useDropboxImport from "./hooks/useDropboxImport";
-import { OFFICIAL_CATEGORIES } from "./lib/categories";
+import { useGenres } from "./hooks/useGenres";
 import { normalizePreviewCue } from "./lib/previewCue";
 import { resolveTrackAudioUrl, verifyTracks } from "./lib/trackAudioUrl";
 import { deleteTrack } from "./lib/api/uploadTrack";
@@ -49,6 +49,8 @@ export default function DJPoolDemo() {
   const [clientScreen, setClientScreen] = useState("home");
   const [guestView, setGuestView] = useState("welcome");
 
+  const genres = useGenres();
+
   const { clients, activeClient, createClient, deleteClient, login, logout, ready: clientsReady } = useClients();
   const {
     ratings,
@@ -66,7 +68,7 @@ export default function DJPoolDemo() {
     skipWizard,
     reopenWizard,
     saveWizardProgress,
-  } = useTrackFeedback(activeClient?.id ?? null);
+  } = useTrackFeedback(activeClient?.id ?? null, genres);
 
   const formSchemaApi = useFormSchema();
   const { schema: formSchema, ready: formReady } = formSchemaApi;
@@ -320,6 +322,15 @@ export default function DJPoolDemo() {
     [persistCatalog]
   );
 
+  const handleGenresChanged = useCallback(async () => {
+    const data = await fetchCatalog();
+    const verified = await verifyTracks(
+      data.map((track) => normalizePreviewCue(ensureTrackVersions(track)))
+    );
+    setTracks(verified);
+    persistCatalog(verified);
+  }, [persistCatalog]);
+
   const handleTrackUploaded = (uploadedTracks) => {
     handleTracksImported(Array.isArray(uploadedTracks) ? uploadedTracks : [uploadedTracks]);
   };
@@ -564,7 +575,12 @@ export default function DJPoolDemo() {
       return <FormBuilder {...formSchemaApi} schema={formSchema} />;
     }
     if (adminTab === "settings") {
-      return <AdminSettings />;
+      return (
+        <AdminSettings
+          tracks={tracks}
+          onGenresChanged={handleGenresChanged}
+        />
+      );
     }
     return <AdminDashboard clients={clients} tracks={tracks} formSchema={formSchema} />;
   };
@@ -698,7 +714,7 @@ export default function DJPoolDemo() {
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <CategorySelector
-              allCategories={OFFICIAL_CATEGORIES}
+              allCategories={genres}
               selectedCategories={selectedCategories}
               categoryRatings={categoryRatings}
               onToggleCategory={toggleCategory}

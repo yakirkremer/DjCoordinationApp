@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import React, { useState, useRef, useEffect } from "react";
+import { useGenres } from "../hooks/useGenres";
 import { uploadTrack } from "../lib/api/uploadTrack";
 import { ACCEPT_AUDIO, isSupportedAudioFile, stripAudioExtension } from "../lib/audioFormats";
 
@@ -13,7 +13,8 @@ function guessMetaFromFile(file) {
 }
 
 export default function TrackUploadPanel({ onUploaded }) {
-  const [bucket, setBucket] = useState(OFFICIAL_CATEGORIES[0]);
+  const genres = useGenres();
+  const [bucket, setBucket] = useState(() => genres[0]);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [files, setFiles] = useState([]);
@@ -22,6 +23,12 @@ export default function TrackUploadPanel({ onUploaded }) {
   const [error, setError] = useState("");
   const [lastResult, setLastResult] = useState(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!genres.includes(bucket)) {
+      setBucket(genres[0]);
+    }
+  }, [genres, bucket]);
 
   const isMulti = files.length > 1;
   const isUploading = status === "uploading";
@@ -133,7 +140,7 @@ export default function TrackUploadPanel({ onUploaded }) {
               disabled={isUploading}
               className="input-luxury px-3 py-2 text-sm rounded-sm min-h-[44px]"
             >
-              {OFFICIAL_CATEGORIES.map((cat) => (
+              {genres.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>

@@ -8,6 +8,7 @@ import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
 import { initStorage, STORAGE_ROOT } from "./server/storagePaths.js";
+import { ensureAllGenreDirs, readGenreList } from "./server/genreStorage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, "dist");
@@ -107,6 +108,12 @@ const server = createServer((req, res) => {
 });
 
 await initStorage();
+try {
+  const genres = await readGenreList();
+  await ensureAllGenreDirs(genres);
+} catch (err) {
+  console.warn("Genre folder init:", err.message);
+}
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Kramer Music server running on port ${PORT}`);

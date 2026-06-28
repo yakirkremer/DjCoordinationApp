@@ -1,5 +1,5 @@
 import React from "react";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import { useGenres } from "../hooks/useGenres";
 import CategoryStyleRow from "./CategoryStyleRow";
 
 export default function WizardStepGenres({
@@ -9,16 +9,21 @@ export default function WizardStepGenres({
   onRateCategory,
   title = "אילו סגנונות מתאימים לכם?",
   description = "סמנו קטגוריות ודרגו כל סגנון מ-1 עד 5 כוכבים לפי כמה אתם אוהבים אותו.",
+  hideHeader = false,
 }) {
+  const genres = useGenres();
+
   return (
     <div className="flex flex-col gap-4" dir="rtl">
-      <div>
-        <h2 className="text-xl font-bold text-xdj-text mb-2">{title}</h2>
-        {description && <p className="text-xs text-xdj-muted">{description}</p>}
-      </div>
+      {!hideHeader && (
+        <div>
+          <h2 className="text-xl font-bold text-xdj-text mb-2">{title}</h2>
+          {description && <p className="text-xs text-xdj-muted">{description}</p>}
+        </div>
+      )}
 
       <div className="flex flex-col divide-y divide-xdj-border/30 border border-xdj-border/50 rounded-sm">
-        {OFFICIAL_CATEGORIES.map((category) => (
+        {genres.map((category) => (
           <CategoryStyleRow
             key={category}
             category={category}

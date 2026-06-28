@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import { useGenres } from "../hooks/useGenres";
 import TrackReloadButton from "./TrackReloadButton";
 import TrackVersionPicker from "./TrackVersionPicker";
 import AdminTrackVersions from "./AdminTrackVersions";
@@ -14,7 +14,7 @@ function pickEditable(track) {
   return {
     title: track.title ?? "",
     artist: track.artist ?? "",
-    bucket: track.bucket ?? OFFICIAL_CATEGORIES[0],
+    bucket: track.bucket ?? genres[0],
   };
 }
 
@@ -34,6 +34,7 @@ export default function AdminTable({
   onRefreshTrackFiles,
 }) {
   const { t, dir } = useI18n();
+  const genres = useGenres();
   const missingCount = countMissingTracks(tracks);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -375,7 +376,7 @@ export default function AdminTable({
                         value={row.bucket}
                         onChange={(e) => handleDraftChange(track.id, "bucket", e.target.value)}
                       >
-                        {OFFICIAL_CATEGORIES.map((cat) => (
+                        {genres.map((cat) => (
                           <option key={cat} value={cat}>
                             {cat}
                           </option>

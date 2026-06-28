@@ -9,6 +9,7 @@ import { applyTheme, readStoredTheme, setPersonalTheme, DEFAULT_THEME_ID } from 
 import { DEFAULT_APP_SETTINGS } from "../defaultAppSettings.js";
 import { normalizeDropTypes } from "../dropTypes.js";
 import { normalizeDropTypeColors } from "../dropTypeColors.js";
+import { normalizeGenres } from "../categories.js";
 import { fetchAppSettings, saveAppSettings } from "../api/dataApi.js";
 
 const AppSettingsContext = createContext(null);
@@ -28,9 +29,11 @@ export function AppSettingsProvider({ children }) {
         const remote = await fetchAppSettings();
         if (cancelled) return;
         const dropTypes = normalizeDropTypes(remote?.dropTypes ?? DEFAULT_APP_SETTINGS.dropTypes);
+        const genres = normalizeGenres(remote?.genres ?? DEFAULT_APP_SETTINGS.genres);
         const merged = {
           ...DEFAULT_APP_SETTINGS,
           ...(remote || {}),
+          genres,
           dropTypes,
           dropTypeColors: normalizeDropTypeColors(
             dropTypes,
@@ -73,20 +76,28 @@ export function AppSettingsProvider({ children }) {
     const dropTypes = patch.dropTypes
       ? normalizeDropTypes(patch.dropTypes)
       : normalizeDropTypes(settings.dropTypes);
+    const genres = patch.genres ? normalizeGenres(patch.genres) : normalizeGenres(settings.genres);
     const next = {
       ...settings,
       ...patch,
+      genres,
       dropTypes,
       dropTypeColors: normalizeDropTypeColors(
         dropTypes,
         patch.dropTypeColors ?? settings.dropTypeColors
       ),
     };
+    delete next.genreRenames;
+    delete next.genreRemoved;
     setSettings(next);
     if (patch.theme && !personalTheme) {
       applyTheme(patch.theme);
     }
-    await saveAppSettings(next);
+    await saveAppSettings({
+      ...next,
+      ...(patch.genreRenames ? { genreRenames: patch.genreRenames } : {}),
+      ...(patch.genreRemoved ? { genreRemoved: patch.genreRemoved } : {}),
+    });
     return next;
   }, [settings, personalTheme]);
 

@@ -2,7 +2,7 @@ import React from "react";
 import DynamicQuestionField from "./DynamicQuestionField";
 import { setFieldValue, validateQuestionsStep } from "../lib/formAnswers";
 
-export default function DynamicWizardStep({ step, preferences, onUpdatePreferences }) {
+export default function DynamicWizardStep({ step, preferences, onUpdatePreferences, hideHeader = false }) {
   const handleChange = (question, value) => {
     onUpdatePreferences(setFieldValue(preferences, question, value));
   };
@@ -11,12 +11,14 @@ export default function DynamicWizardStep({ step, preferences, onUpdatePreferenc
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <div>
-        <h2 className="text-2xl font-bold text-xdj-text mb-2">{step.title}</h2>
-        {step.description && (
-          <p className="text-sm text-xdj-muted leading-relaxed">{step.description}</p>
-        )}
-      </div>
+      {!hideHeader && (
+        <div>
+          <h2 className="text-2xl font-bold text-xdj-text mb-2">{step.title}</h2>
+          {step.description && (
+            <p className="text-sm text-xdj-muted leading-relaxed">{step.description}</p>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         {step.questions.map((question) => (

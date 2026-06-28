@@ -54,13 +54,15 @@ function TagListInput({ label, description, items, onAdd, onRemove, placeholder 
   );
 }
 
-export default function WizardStepPlaylists({ mustPlay, doNotPlay, djNotes, onUpdate, title, description }) {
+export default function WizardStepPlaylists({ mustPlay, doNotPlay, djNotes, onUpdate, title, description, hideHeader = false }) {
   return (
     <div className="flex flex-col gap-8" dir="rtl">
-      <div>
-        <h2 className="text-xl font-bold text-xdj-text mb-2">{title ?? "רשימות שירים והערות"}</h2>
-        <p className="text-xs text-xdj-muted">{description ?? "ספרו לדיג'יי מה חובה לנגן ומה להימנע ממנו."}</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h2 className="text-xl font-bold text-xdj-text mb-2">{title ?? "רשימות שירים והערות"}</h2>
+          <p className="text-xs text-xdj-muted">{description ?? "ספרו לדיג'יי מה חובה לנגן ומה להימנע ממנו."}</p>
+        </div>
+      )}
 
       <TagListInput
         label="חובה לנגן"

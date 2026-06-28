@@ -14,6 +14,7 @@ export default function WizardStepSummary({
   onSkip,
   title = "סיכום ההעדפות שלכם",
   description = "בדקו שהכל נכון לפני שממשיכים לדירוג השירים.",
+  hideHeader = false,
 }) {
   const energy = ENERGY_LEVELS.find((l) => l.id === preferences.energyLevel);
 
@@ -24,10 +25,12 @@ export default function WizardStepSummary({
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <div>
-        <h2 className="text-xl font-bold text-xdj-text mb-2">{title}</h2>
-        <p className="text-xs text-xdj-muted">{description}</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h2 className="text-xl font-bold text-xdj-text mb-2">{title}</h2>
+          <p className="text-xs text-xdj-muted">{description}</p>
+        </div>
+      )}
 
       <div className="bg-[#0a0a0c] border border-xdj-border rounded-sm p-5 flex flex-col gap-4 text-sm">
         {questionSteps.map((step) =>

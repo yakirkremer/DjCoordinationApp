@@ -3,7 +3,7 @@ import ClientPreferencesSummary from "./ClientPreferencesSummary";
 import CategoryBreakdown from "./CategoryBreakdown";
 import CategoryTrackChoices from "./CategoryTrackChoices";
 import { getCategoryBreakdown, getLikedTracks, getTracksByCategoryRating } from "../lib/feedbackAnalytics";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import { useGenres } from "../hooks/useGenres";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function ClientHome({
@@ -21,8 +21,9 @@ export default function ClientHome({
   onLogout,
 }) {
   const { t, dir } = useI18n();
+  const genres = useGenres();
   const breakdown = getCategoryBreakdown(
-    OFFICIAL_CATEGORIES,
+    genres,
     selectedCategories,
     categoryRatings
   );
@@ -41,7 +42,7 @@ export default function ClientHome({
     wizardDone ||
     preferences.eventDate ||
     preferences.eventLocation ||
-    selectedCategories.length < OFFICIAL_CATEGORIES.length ||
+    selectedCategories.length < genres.length ||
     preferences.wizardStep > 0;
 
   const formCtaLabel = wizardDone

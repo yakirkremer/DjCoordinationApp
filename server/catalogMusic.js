@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { OFFICIAL_CATEGORIES } from "../src/lib/categories.js";
+import { assertValidGenre } from "./genreStorage.js";
 import { DEFAULT_DROP_TYPE } from "../src/lib/dropTypes.js";
 import {
   ensureTrackVersions,
@@ -55,10 +55,8 @@ export function generateTrackId() {
   return `track_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function assertValidBucket(bucket) {
-  if (!bucket || !OFFICIAL_CATEGORIES.includes(bucket)) {
-    throw new Error("Invalid category");
-  }
+export async function assertValidBucket(bucket) {
+  await assertValidGenre(bucket);
 }
 
 function sanitizeCatalogFilename(name) {
@@ -80,7 +78,7 @@ async function fileExists(filePath) {
 
 function resolveVersionFilePath(track, version) {
   if (!track?.bucket || !version?.filename) return null;
-  assertValidBucket(track.bucket);
+  if (!getCachedGenres().includes(track.bucket)) return null;
   const safeName = path.basename(version.filename);
   const filePath = path.join(MUSIC_ROOT, track.bucket, "analyzed", safeName);
   if (!filePath.startsWith(MUSIC_ROOT)) return null;
@@ -156,7 +154,7 @@ export async function saveTrackToCatalog({
   artist,
   dropboxPath = null,
 }) {
-  assertValidBucket(bucket);
+  await assertValidBucket(bucket);
 
   let safeName;
   try {
@@ -263,7 +261,7 @@ export async function reloadTrackFile({ trackId, versionId, bucket, filename, bu
 
   let track = ensureTrackVersions(catalog[idx]);
   const targetBucket = bucket || track.bucket;
-  assertValidBucket(targetBucket);
+  await assertValidBucket(targetBucket);
 
   const version = versionId
     ? track.versions.find((v) => v.id === versionId)
@@ -348,7 +346,7 @@ export async function updateTrackInCatalog(trackId, updates, versionId) {
     if (updates.artist !== undefined) track.artist = String(updates.artist).trim() || track.artist;
 
     if (updates.bucket !== undefined) {
-      assertValidBucket(updates.bucket);
+      await assertValidBucket(updates.bucket);
       const nextBucket = updates.bucket;
       if (nextBucket !== track.bucket) {
         const movedVersions = [];

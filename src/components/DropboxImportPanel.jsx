@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import React, { useState, useEffect } from "react";
+import { useGenres } from "../hooks/useGenres";
 import { stripAudioExtension } from "../lib/audioFormats";
 import { ensureTrackVersions } from "../lib/trackVersions";
 
@@ -10,7 +10,8 @@ function formatSize(bytes) {
 }
 
 export default function DropboxImportPanel({ dropbox, existingTracks, onImported }) {
-  const [bucket, setBucket] = useState(OFFICIAL_CATEGORIES[0]);
+  const genres = useGenres();
+  const [bucket, setBucket] = useState(() => genres[0]);
   const {
     isConfigured,
     canBrowse,
@@ -32,6 +33,12 @@ export default function DropboxImportPanel({ dropbox, existingTracks, onImported
     importSelected,
     refreshFolder,
   } = dropbox;
+
+  useEffect(() => {
+    if (!genres.includes(bucket)) {
+      setBucket(genres[0]);
+    }
+  }, [genres, bucket]);
 
   const existingFilenames = new Set(
     existingTracks
@@ -191,7 +198,7 @@ export default function DropboxImportPanel({ dropbox, existingTracks, onImported
                 onChange={(e) => setBucket(e.target.value)}
                 className="input-luxury px-3 py-2 text-sm rounded-sm min-h-[44px]"
               >
-                {OFFICIAL_CATEGORIES.map((cat) => (
+                {genres.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>

@@ -2,15 +2,17 @@ import React from "react";
 import { ENERGY_LEVELS } from "../lib/preferences";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-export default function WizardStepEnergy({ energyLevel, onSelect, title, description }) {
+export default function WizardStepEnergy({ energyLevel, onSelect, title, description, hideHeader = false }) {
   const { t, dir } = useI18n();
 
   return (
     <div className="flex flex-col gap-4" dir={dir}>
-      <div>
-        <h2 className="text-xl font-bold text-xdj-text mb-2">{title ?? "מה רמת האנרגיה שאתם רוצים?"}</h2>
-        <p className="text-xs text-xdj-muted">{description ?? "בחרו את האווירה הכללית של האירוע."}</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h2 className="text-xl font-bold text-xdj-text mb-2">{title ?? "מה רמת האנרגיה שאתם רוצים?"}</h2>
+          <p className="text-xs text-xdj-muted">{description ?? "בחרו את האווירה הכללית של האירוע."}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {ENERGY_LEVELS.map((level) => (

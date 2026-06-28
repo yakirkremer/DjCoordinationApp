@@ -51,6 +51,7 @@ export default function WizardStepTimeline({
   onUpdatePreferences,
   title = "לוח זמנים",
   description = "עדכנו את לוח הזמנים והוסיפו אבני דרך.",
+  hideHeader = false,
 }) {
   useEffect(() => {
     if (preferences.weddingTimeline?.length) return;
@@ -94,10 +95,12 @@ export default function WizardStepTimeline({
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <div>
-        <h2 className="text-xl font-bold text-xdj-text mb-2">{title}</h2>
-        <p className="text-xs text-xdj-muted">{description}</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h2 className="text-xl font-bold text-xdj-text mb-2">{title}</h2>
+          <p className="text-xs text-xdj-muted">{description}</p>
+        </div>
+      )}
 
       <div className="wedding-timeline">
         <div className="wedding-timeline-header hidden sm:grid">

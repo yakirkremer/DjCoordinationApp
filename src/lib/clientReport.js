@@ -1,4 +1,4 @@
-import { OFFICIAL_CATEGORIES } from "./categories";
+import { DEFAULT_GENRES } from "./categories";
 import { getFieldValue } from "./formAnswers";
 import { filterStepsForClientType } from "./formFilter";
 import { getClientTypeLabel, normalizeClientType } from "./clientTypes";
@@ -33,14 +33,14 @@ function formatTrackList(tracks, empty = "—") {
     .join("\n");
 }
 
-export function buildClientReportData({ client, feedback, tracks, formSchema }) {
+export function buildClientReportData({ client, feedback, tracks, formSchema, allGenres = DEFAULT_GENRES }) {
   const preferences = feedback?.preferences ?? {};
   const selectedCategories = feedback?.selectedCategories ?? [];
   const categoryRatings = feedback?.categoryRatings ?? {};
   const ratings = feedback?.ratings ?? {};
   const comments = feedback?.comments ?? {};
 
-  const breakdown = getCategoryBreakdown(OFFICIAL_CATEGORIES, selectedCategories, categoryRatings);
+  const breakdown = getCategoryBreakdown(allGenres, selectedCategories, categoryRatings);
   const likedTracks = getLikedTracks(tracks, ratings, comments);
   const categoryTracks = getTracksByCategoryRating(tracks, ratings, comments, selectedCategories);
   const energy = ENERGY_LEVELS.find((l) => l.id === preferences.energyLevel);
@@ -239,8 +239,8 @@ export function downloadReportFile(content, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-export function exportClientReportFiles({ client, feedback, tracks, formSchema }) {
-  const report = buildClientReportData({ client, feedback, tracks, formSchema });
+export function exportClientReportFiles({ client, feedback, tracks, formSchema, allGenres = DEFAULT_GENRES }) {
+  const report = buildClientReportData({ client, feedback, tracks, formSchema, allGenres });
   const text = buildClientReportText(report);
   const html = buildClientReportHtml(report, text);
   const base = safeFilename(client?.name);

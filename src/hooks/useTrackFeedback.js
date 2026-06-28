@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { loadFeedback, saveFeedback } from "../lib/trackFeedbackStorage";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import { DEFAULT_GENRES } from "../lib/categories";
 import { DEFAULT_PREFERENCES } from "../lib/preferences";
 import {
   DEFAULT_TRACK_RATING,
   normalizeTrackRating,
 } from "../lib/trackRating";
 
-export default function useTrackFeedback(clientId = null) {
+export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GENRES) {
   const [ratings, setRatings] = useState({});
   const [comments, setComments] = useState({});
-  const [selectedCategories, setSelectedCategories] = useState(OFFICIAL_CATEGORIES);
+  const [selectedCategories, setSelectedCategories] = useState(allGenres);
   const [categoryRatings, setCategoryRatings] = useState({});
   const [preferences, setPreferences] = useState({ ...DEFAULT_PREFERENCES });
   const [ready, setReady] = useState(!clientId);
@@ -51,7 +51,7 @@ export default function useTrackFeedback(clientId = null) {
     if (!clientId) {
       setRatings({});
       setComments({});
-      setSelectedCategories(OFFICIAL_CATEGORIES);
+      setSelectedCategories(allGenres);
       setCategoryRatings({});
       setPreferences({ ...DEFAULT_PREFERENCES });
       setReady(true);
@@ -61,7 +61,7 @@ export default function useTrackFeedback(clientId = null) {
     let cancelled = false;
     setReady(false);
 
-    loadFeedback(OFFICIAL_CATEGORIES, clientId).then((saved) => {
+    loadFeedback(allGenres, clientId).then((saved) => {
       if (cancelled) return;
       setRatings(saved.ratings);
       setComments(saved.comments);
@@ -74,7 +74,7 @@ export default function useTrackFeedback(clientId = null) {
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [clientId, allGenres]);
 
   const rateTrack = useCallback(
     (trackId, rating) => {

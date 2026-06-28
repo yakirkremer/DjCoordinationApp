@@ -138,7 +138,15 @@ export const DROP_GUIDE = {
 
 export function getGenreGuide(locale, genreId) {
   const entry = GENRE_GUIDE[genreId];
-  if (!entry) return { title: genreId, body: "" };
+  if (!entry) {
+    return {
+      title: genreId,
+      body:
+        locale === "en"
+          ? "Custom genre — tracks in this style appear in the catalog under this folder."
+          : "סגנון מותאם — שירים בסגנון זה מופיעים בקטלוג תחת תיקייה זו.",
+    };
+  }
   return entry[locale] || entry.he || { title: genreId, body: "" };
 }
 

@@ -1,25 +1,15 @@
 import React from "react";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
 import { getDropGuide, getGenreGuide } from "../lib/guideContent";
+import { getGenreAccent } from "../lib/genreColors";
+import { useGenres } from "../hooks/useGenres";
 import { normalizeDropTypes } from "../lib/dropTypes";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 import DropTypeBadge from "./DropTypeBadge";
 
-const BUCKET_COLORS = {
-  Israeli: "#c9a962",
-  Loazi: "#00c8e8",
-  Mizrahit: "#ff6b2c",
-  Oldies: "#a78bfa",
-  "Hip Hop": "#f472b6",
-  Regatton: "#34d399",
-  Trance: "#60a5fa",
-  Techno: "#fbbf24",
-  Tomorrowland: "#22c55e",
-};
-
 export default function DropsAndGenresGuide({ onBack }) {
   const { settings } = useAppSettingsContext();
   const { t, locale, dir } = useI18n();
+  const genres = useGenres();
   const dropTypes = normalizeDropTypes(settings.dropTypes);
 
   return (
@@ -41,9 +31,9 @@ export default function DropsAndGenresGuide({ onBack }) {
         <h2 className="guide-section-title">{t("guide.genresTitle")}</h2>
         <p className="text-xs text-xdj-muted mb-5 max-w-2xl">{t("guide.genresIntro")}</p>
         <div className="guide-card-grid">
-          {OFFICIAL_CATEGORIES.map((genre) => {
+          {genres.map((genre) => {
             const { title, body } = getGenreGuide(locale, genre);
-            const accent = BUCKET_COLORS[genre] || "#6b6b78";
+            const accent = getGenreAccent(genre);
             return (
               <article
                 key={genre}

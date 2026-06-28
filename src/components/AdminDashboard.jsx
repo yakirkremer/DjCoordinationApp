@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import { useGenres } from "../hooks/useGenres";
 import { loadFeedback } from "../lib/trackFeedbackStorage";
 import { getCategoryBreakdown, getLikedTracks, getTracksByCategoryRating } from "../lib/feedbackAnalytics";
 import { getClientTypeLabel } from "../lib/clientTypes";
@@ -10,6 +10,7 @@ import ClientPreferencesSummary from "./ClientPreferencesSummary";
 import ClientReportExport from "./ClientReportExport";
 
 export default function AdminDashboard({ clients, tracks, formSchema }) {
+  const genres = useGenres();
   const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id ?? "");
   const [feedback, setFeedback] = useState(null);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
@@ -31,7 +32,7 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
     let cancelled = false;
     setLoadingFeedback(true);
 
-    loadFeedback(OFFICIAL_CATEGORIES, client.id).then((data) => {
+    loadFeedback(genres, client.id).then((data) => {
       if (!cancelled) {
         setFeedback(data);
         setLoadingFeedback(false);
@@ -41,10 +42,10 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
     return () => {
       cancelled = true;
     };
-  }, [client?.id]);
+  }, [client?.id, genres]);
 
   const breakdown = getCategoryBreakdown(
-    OFFICIAL_CATEGORIES,
+    genres,
     feedback?.selectedCategories ?? [],
     feedback?.categoryRatings ?? {}
   );

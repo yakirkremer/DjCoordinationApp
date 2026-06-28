@@ -2032,6 +2032,307 @@ body {
   flex-direction: column;
   max-height: calc(100dvh - 7rem);
   min-height: 0;
+  border-top: 3px solid var(--wizard-shell-accent, var(--color-xdj-cyan));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--wizard-shell-accent, var(--color-xdj-cyan)) 25%, transparent);
+}
+
+.wizard-shell--questions { --wizard-shell-accent: #c9a962; }
+.wizard-shell--timeline { --wizard-shell-accent: #a78bfa; }
+.wizard-shell--genres { --wizard-shell-accent: #00c8e8; }
+.wizard-shell--energy { --wizard-shell-accent: #ff6b2c; }
+.wizard-shell--phases { --wizard-shell-accent: #f472b6; }
+.wizard-shell--playlists { --wizard-shell-accent: #34d399; }
+.wizard-shell--summary { --wizard-shell-accent: #c9a962; }
+
+/* Stepper */
+.wizard-stepper {
+  margin-bottom: 1rem;
+}
+
+.wizard-stepper-track {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.wizard-stepper-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 0 4.5rem;
+  min-width: 4.5rem;
+  max-width: 7rem;
+}
+
+.wizard-stepper-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-xdj-border);
+  background: var(--color-xdj-panel);
+  color: var(--color-xdj-muted);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.wizard-stepper-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.wizard-stepper-num {
+  display: none;
+  font-family: var(--font-lcd, monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+.wizard-stepper-label {
+  margin-top: 0.35rem;
+  font-size: 0.6rem;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--color-xdj-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wizard-stepper-connector {
+  position: absolute;
+  top: 1.2rem;
+  inset-inline-start: calc(50% + 1.35rem);
+  width: calc(100% - 2.7rem);
+  height: 2px;
+  background: var(--color-xdj-border);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wizard-stepper-connector.is-filled {
+  background: var(--step-accent, var(--color-xdj-cyan));
+  opacity: 0.65;
+}
+
+.wizard-stepper-item--complete .wizard-stepper-node {
+  border-color: var(--step-accent, var(--color-xdj-cyan));
+  background: color-mix(in srgb, var(--step-accent, var(--color-xdj-cyan)) 18%, var(--color-xdj-panel));
+  color: var(--step-accent, var(--color-xdj-cyan));
+}
+
+.wizard-stepper-item--complete .wizard-stepper-label {
+  color: color-mix(in srgb, var(--step-accent, var(--color-xdj-cyan)) 70%, var(--color-xdj-text));
+}
+
+.wizard-stepper-item--current .wizard-stepper-node {
+  border-color: var(--step-accent, var(--color-xdj-cyan));
+  background: color-mix(in srgb, var(--step-accent, var(--color-xdj-cyan)) 22%, #0a0a0c);
+  color: var(--step-accent, var(--color-xdj-cyan));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--step-accent, var(--color-xdj-cyan)) 28%, transparent),
+    0 0 18px color-mix(in srgb, var(--step-accent, var(--color-xdj-cyan)) 35%, transparent);
+  transform: scale(1.08);
+}
+
+.wizard-stepper-item--current .wizard-stepper-label {
+  color: var(--color-xdj-text);
+  font-weight: 700;
+}
+
+.wizard-stepper-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--color-xdj-border);
+  overflow: hidden;
+  position: relative;
+}
+
+.wizard-stepper-bar::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: calc(var(--wizard-progress, 0) * 1%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 70%, transparent),
+    var(--wizard-accent, var(--color-xdj-cyan))
+  );
+  border-radius: inherit;
+  transition: width 0.35s ease;
+}
+
+/* Step hero */
+.wizard-step-hero {
+  position: relative;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 35%, var(--color-xdj-border));
+  border-inline-start-width: 4px;
+  border-inline-start-color: var(--wizard-accent, var(--color-xdj-cyan));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 12%, #0a0a0c) 0%,
+    var(--color-xdj-panel) 55%
+  );
+  overflow: hidden;
+}
+
+.wizard-step-hero-glow {
+  position: absolute;
+  inset-inline-end: -2rem;
+  top: -2rem;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--wizard-accent) 35%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.wizard-step-hero-inner {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.wizard-step-hero-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--wizard-accent, var(--color-xdj-cyan));
+  background: color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 16%, #0a0a0c);
+  border: 1px solid color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 40%, transparent);
+}
+
+.wizard-step-hero-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.wizard-step-hero-count {
+  font-family: var(--font-lcd, monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-xdj-muted);
+}
+
+.wizard-step-hero-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wizard-accent, var(--color-xdj-cyan));
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.2rem;
+  background: color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wizard-accent, var(--color-xdj-cyan)) 35%, transparent);
+}
+
+.wizard-step-hero-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-xdj-text);
+  margin: 0;
+}
+
+.wizard-step-hero-desc {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-xdj-muted);
+  max-width: 42rem;
+}
+
+.wizard-autosave-hint {
+  font-size: 0.65rem;
+  text-align: center;
+  color: var(--color-xdj-muted);
+  margin-bottom: 0.85rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.2rem;
+  background: color-mix(in srgb, var(--wizard-shell-accent, var(--color-xdj-cyan)) 6%, transparent);
+}
+
+.wizard-step-panel {
+  padding: 1rem 1.1rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-xdj-border);
+  background: color-mix(in srgb, var(--wizard-panel-accent, var(--color-xdj-cyan)) 4%, #08080a);
+  animation: wizard-step-enter 0.28s ease;
+}
+
+.wizard-step-panel--questions { --wizard-panel-accent: #c9a962; }
+.wizard-step-panel--timeline { --wizard-panel-accent: #a78bfa; }
+.wizard-step-panel--genres { --wizard-panel-accent: #00c8e8; }
+.wizard-step-panel--energy { --wizard-panel-accent: #ff6b2c; }
+.wizard-step-panel--phases { --wizard-panel-accent: #f472b6; }
+.wizard-step-panel--playlists { --wizard-panel-accent: #34d399; }
+.wizard-step-panel--summary { --wizard-panel-accent: #c9a962; }
+
+@keyframes wizard-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 479px) {
+  .wizard-stepper-label {
+    display: none;
+  }
+
+  .wizard-stepper-item {
+    min-width: 2.75rem;
+    flex-basis: 2.75rem;
+  }
+
+  .wizard-stepper-node {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  .wizard-step-hero-title {
+    font-size: 1.15rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .wizard-step-hero {
+    padding: 1.15rem 1.35rem;
+  }
+
+  .wizard-step-hero-title {
+    font-size: 1.5rem;
+  }
 }
 
 .wizard-scroll {

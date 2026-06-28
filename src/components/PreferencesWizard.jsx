@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import WizardProgress from "./WizardProgress";
+import WizardStepHero from "./WizardStepHero";
 import DynamicWizardStep from "./DynamicWizardStep";
 import WizardStepGenres from "./WizardStepGenres";
 import WizardStepEnergy from "./WizardStepEnergy";
@@ -86,7 +87,7 @@ export default function PreferencesWizard({
     }
   };
 
-  const stepLabels = steps.map((s) => s.title);
+  const stepType = currentStepDef?.stepType ?? "questions";
 
   const renderStep = () => {
     if (!currentStepDef) return null;
@@ -98,6 +99,7 @@ export default function PreferencesWizard({
             step={currentStepDef}
             preferences={preferences}
             onUpdatePreferences={onUpdatePreferences}
+            hideHeader
           />
         );
       case "genres":
@@ -109,6 +111,7 @@ export default function PreferencesWizard({
             onRateCategory={onRateCategory}
             title={currentStepDef.title}
             description={currentStepDef.description}
+            hideHeader
           />
         );
       case "energy":
@@ -118,6 +121,7 @@ export default function PreferencesWizard({
             onSelect={(id) => onUpdatePreferences({ energyLevel: id })}
             title={currentStepDef.title}
             description={currentStepDef.description}
+            hideHeader
           />
         );
       case "phases":
@@ -128,6 +132,7 @@ export default function PreferencesWizard({
             onTogglePhaseGenre={handleTogglePhaseGenre}
             title={currentStepDef.title}
             description={currentStepDef.description}
+            hideHeader
           />
         );
       case "timeline":
@@ -138,6 +143,7 @@ export default function PreferencesWizard({
             onUpdatePreferences={onUpdatePreferences}
             title={currentStepDef.title}
             description={currentStepDef.description}
+            hideHeader
           />
         );
       case "playlists":
@@ -149,6 +155,7 @@ export default function PreferencesWizard({
             onUpdate={onUpdatePreferences}
             title={currentStepDef.title}
             description={currentStepDef.description}
+            hideHeader
           />
         );
       case "summary":
@@ -163,6 +170,7 @@ export default function PreferencesWizard({
             onSkip={onSkip}
             title={currentStepDef.title}
             description={currentStepDef.description}
+            hideHeader
           />
         );
       default:
@@ -173,10 +181,13 @@ export default function PreferencesWizard({
   const isSummary = currentStepDef?.stepType === "summary";
 
   return (
-    <section className="panel-luxury rounded-sm p-4 sm:p-8 wizard-shell" dir={dir}>
-      <WizardProgress currentStep={step} totalSteps={steps.length} stepLabels={stepLabels} />
-      <p className="text-[10px] text-xdj-muted text-center mb-4">{t("wizard.autoSave")}</p>
-      <div className="wizard-scroll">{renderStep()}</div>
+    <section className={`panel-luxury rounded-sm p-4 sm:p-6 lg:p-8 wizard-shell wizard-shell--${stepType}`} dir={dir}>
+      <WizardProgress currentStep={step} totalSteps={steps.length} steps={steps} />
+      <WizardStepHero stepDef={currentStepDef} currentStep={step} totalSteps={steps.length} />
+      <p className="wizard-autosave-hint">{t("wizard.autoSave")}</p>
+      <div className={`wizard-scroll wizard-step-panel wizard-step-panel--${stepType}`} key={step}>
+        {renderStep()}
+      </div>
 
       {!isSummary && (
         <div className="wizard-footer">
