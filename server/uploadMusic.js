@@ -171,7 +171,6 @@ export async function handleMusicAddVersion(req, res) {
       filename: filePart.filename || "version.mp3",
       buffer: filePart.data,
       drop: fields.drop,
-      remixer: fields.remixer,
     });
     sendJson(res, 201, { track });
   } catch (err) {

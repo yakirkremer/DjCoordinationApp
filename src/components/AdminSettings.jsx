@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { THEMES, getThemeLabel } from "../lib/themes";
 import { LOCALE_LABELS, LOCALES } from "../lib/i18n/translations";
+import { normalizeDropTypes } from "../lib/dropTypes";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function AdminSettings() {
@@ -9,17 +10,39 @@ export default function AdminSettings() {
   const [draft, setDraft] = useState(() => ({
     defaultLocale: settings.defaultLocale,
     theme: settings.theme,
+    dropTypes: normalizeDropTypes(settings.dropTypes),
   }));
+  const [newDropType, setNewDropType] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const themeName = (theme) => getThemeLabel(theme, locale);
 
+  const handleAddDropType = () => {
+    const label = newDropType.trim();
+    if (!label) return;
+    setDraft((d) => ({
+      ...d,
+      dropTypes: normalizeDropTypes([...d.dropTypes, label]),
+    }));
+    setNewDropType("");
+  };
+
+  const handleRemoveDropType = (drop) => {
+    setDraft((d) => {
+      const next = d.dropTypes.filter((item) => item !== drop);
+      return { ...d, dropTypes: normalizeDropTypes(next) };
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
     try {
-      await updateSettings(draft);
+      await updateSettings({
+        ...draft,
+        dropTypes: normalizeDropTypes(draft.dropTypes),
+      });
       setSaved(true);
     } finally {
       setSaving(false);
@@ -80,6 +103,52 @@ export default function AdminSettings() {
             ))}
           </div>
           <p className="text-[10px] text-xdj-muted mt-2">{t("admin.themeHint")}</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.dropTypesTitle")}</label>
+          <p className="text-[10px] text-xdj-muted mb-3">{t("admin.dropTypesHint")}</p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {draft.dropTypes.map((drop) => (
+              <span
+                key={drop}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-xdj-border bg-black/20 text-xs text-xdj-text"
+              >
+                {drop}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveDropType(drop)}
+                  disabled={draft.dropTypes.length <= 1}
+                  className="text-xdj-muted hover:text-red-300 disabled:opacity-30"
+                  aria-label={t("admin.removeDropType", { drop })}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              value={newDropType}
+              onChange={(e) => setNewDropType(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddDropType();
+                }
+              }}
+              placeholder={t("admin.dropTypePlaceholder")}
+              className="input-luxury px-3 py-2 text-xs rounded-sm flex-1 min-w-[10rem]"
+            />
+            <button
+              type="button"
+              onClick={handleAddDropType}
+              className="btn-luxury-secondary px-4 py-2 rounded-sm text-xs min-h-[36px]"
+            >
+              {t("admin.addDropType")}
+            </button>
+          </div>
         </div>
       </div>
 

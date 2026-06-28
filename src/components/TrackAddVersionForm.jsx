@@ -2,18 +2,22 @@ import React, { useRef, useState } from "react";
 import { ACCEPT_AUDIO, isSupportedAudioFile } from "../lib/audioFormats";
 import { addTrackVersion } from "../lib/api/uploadTrack";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
+import DropTypeSelect from "./DropTypeSelect";
 
 export default function TrackAddVersionForm({ track, onAdded }) {
   const { t, dir } = useI18n();
   const inputRef = useRef(null);
   const [drop, setDrop] = useState("");
-  const [remixer, setRemixer] = useState("");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const file = inputRef.current?.files?.[0];
+    if (!drop.trim()) {
+      setError(t("admin.dropRequired"));
+      return;
+    }
     if (!file || !isSupportedAudioFile(file)) {
       setError(t("admin.versionFileRequired"));
       return;
@@ -27,11 +31,9 @@ export default function TrackAddVersionForm({ track, onAdded }) {
         trackId: track.id,
         file,
         drop,
-        remixer,
       });
       onAdded?.(updated);
       setDrop("");
-      setRemixer("");
       if (inputRef.current) inputRef.current.value = "";
       setStatus("success");
       setTimeout(() => setStatus("idle"), 2000);
@@ -45,21 +47,11 @@ export default function TrackAddVersionForm({ track, onAdded }) {
     <form onSubmit={handleSubmit} className="track-add-version-form" dir={dir} onClick={(e) => e.stopPropagation()}>
       <p className="font-lcd text-[10px] text-xdj-cyan uppercase mb-2">{t("admin.addVersion")}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        <input
-          type="text"
+        <DropTypeSelect
           value={drop}
-          onChange={(e) => setDrop(e.target.value)}
-          placeholder={t("admin.versionDrop")}
-          className="input-luxury px-2 py-1.5 text-xs rounded-sm"
+          onChange={setDrop}
           disabled={status === "uploading"}
-        />
-        <input
-          type="text"
-          value={remixer}
-          onChange={(e) => setRemixer(e.target.value)}
-          placeholder={t("admin.versionRemixer")}
-          className="input-luxury px-2 py-1.5 text-xs rounded-sm"
-          disabled={status === "uploading"}
+          required
         />
         <input
           ref={inputRef}

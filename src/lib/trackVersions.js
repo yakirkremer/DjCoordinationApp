@@ -74,10 +74,7 @@ export function applyActiveVersion(track, versionId) {
 }
 
 export function getVersionLabel(version, index = 0, locale = "he") {
-  const parts = [];
-  if (version?.remixer?.trim()) parts.push(version.remixer.trim());
-  if (version?.drop?.trim()) parts.push(version.drop.trim());
-  if (parts.length) return parts.join(" · ");
+  if (version?.drop?.trim()) return version.drop.trim();
   if (locale === "en") return index === 0 ? "Original" : `Version ${index + 1}`;
   return index === 0 ? "מקור" : `גרסה ${index + 1}`;
 }

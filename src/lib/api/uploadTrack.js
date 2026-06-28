@@ -27,12 +27,12 @@ export async function uploadTrack({ file, bucket, title, artist }) {
   return data.track;
 }
 
-export async function addTrackVersion({ trackId, file, drop, remixer }) {
+export async function addTrackVersion({ trackId, file, drop }) {
   const form = new FormData();
   form.append("file", file);
   form.append("trackId", trackId);
-  if (drop?.trim()) form.append("drop", drop.trim());
-  if (remixer?.trim()) form.append("remixer", remixer.trim());
+  if (!drop?.trim()) throw new Error("Drop type is required");
+  form.append("drop", drop.trim());
 
   const res = await fetch("/api/music/add-version", {
     method: "POST",

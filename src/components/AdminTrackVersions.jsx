@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import TrackReloadButton from "./TrackReloadButton";
 import TrackAddVersionForm from "./TrackAddVersionForm";
+import DropTypeSelect from "./DropTypeSelect";
 import TrackVersionPicker, { getTrackWithVersion } from "./TrackVersionPicker";
 import { ensureTrackVersions, getVersionLabel } from "../lib/trackVersions";
 import { getTrackSourceSummary } from "../lib/trackSource";
@@ -27,7 +28,6 @@ export default function AdminTrackVersions({
   const getVersionDraft = (version) => {
     const base = {
       drop: version.drop ?? "",
-      remixer: version.remixer ?? "",
       filename: version.filename ?? "",
       startTime: version.startTime ?? 0,
       endTime: version.endTime ?? 0,
@@ -53,7 +53,6 @@ export default function AdminTrackVersions({
         track.id,
         {
           drop: draft.drop,
-          remixer: draft.remixer,
           filename: draft.filename,
           startTime: draft.startTime,
           endTime: draft.endTime,
@@ -152,18 +151,11 @@ export default function AdminTrackVersions({
                   </div>
 
                   {editMode ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-2">
-                      <input
-                        className="input-luxury px-2 py-1 text-xs rounded-sm"
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 mb-2">
+                      <DropTypeSelect
                         value={draft.drop}
-                        placeholder={t("admin.versionDrop")}
-                        onChange={(e) => handleVersionDraftChange(version.id, "drop", e.target.value)}
-                      />
-                      <input
+                        onChange={(value) => handleVersionDraftChange(version.id, "drop", value)}
                         className="input-luxury px-2 py-1 text-xs rounded-sm"
-                        value={draft.remixer}
-                        placeholder={t("admin.versionRemixer")}
-                        onChange={(e) => handleVersionDraftChange(version.id, "remixer", e.target.value)}
                       />
                       <input
                         className="input-luxury px-2 py-1 text-xs rounded-sm font-mono col-span-2"
@@ -185,7 +177,7 @@ export default function AdminTrackVersions({
                     </div>
                   ) : (
                     <p className="text-[10px] text-xdj-muted mb-2">
-                      {draft.drop || "—"} · {draft.remixer || "—"} · {draft.startTime}s–{draft.endTime}s
+                      {draft.drop || "—"} · {draft.startTime}s–{draft.endTime}s
                     </p>
                   )}
 

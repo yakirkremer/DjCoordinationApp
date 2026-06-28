@@ -178,7 +178,6 @@ export async function saveTrackToCatalog({
   const version = {
     id: versionId,
     drop: "",
-    remixer: "",
     filename: safeName,
     startTime: 30,
     endTime: 90,
@@ -201,7 +200,7 @@ export async function saveTrackToCatalog({
   return catalogTrackResponse(await setVersionMissingFlags(newTrack));
 }
 
-export async function addVersionToTrack({ trackId, buffer, filename, drop, remixer }) {
+export async function addVersionToTrack({ trackId, buffer, filename, drop }) {
   const catalog = await readJsonFile(DATA_FILES.catalog, []);
   const idx = catalog.findIndex((t) => t.id === trackId);
   if (idx === -1) throw new Error("Track not found");
@@ -224,11 +223,22 @@ export async function addVersionToTrack({ trackId, buffer, filename, drop, remix
   safeName = toCatalogMp3Filename(prepared.filename);
   safeName = await writeAudioToBucket(track.bucket, safeName, buffer);
 
+  if (!drop?.trim()) {
+    throw new Error("Drop type is required");
+  }
+
+  const dropLabel = drop.trim();
+  const duplicate = track.versions.find(
+    (v) => String(v.drop || "").trim().toLowerCase() === dropLabel.toLowerCase()
+  );
+  if (duplicate) {
+    throw new Error("This track already has a version with this drop type");
+  }
+
   const versionId = generateVersionId();
   const version = {
     id: versionId,
-    drop: drop?.trim() || "",
-    remixer: remixer?.trim() || "",
+    drop: dropLabel,
     filename: safeName,
     startTime: 30,
     endTime: 90,
@@ -314,7 +324,6 @@ export async function updateTrackInCatalog(trackId, updates, versionId) {
 
     const version = { ...track.versions[vIdx] };
     if (updates.drop !== undefined) version.drop = String(updates.drop).trim();
-    if (updates.remixer !== undefined) version.remixer = String(updates.remixer).trim();
     if (updates.startTime !== undefined) {
       version.startTime = parseInt(updates.startTime, 10) || 0;
     }

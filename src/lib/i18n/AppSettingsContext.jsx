@@ -7,6 +7,7 @@ import {
 } from "./translations.js";
 import { applyTheme, readStoredTheme, setPersonalTheme, DEFAULT_THEME_ID } from "../themes.js";
 import { DEFAULT_APP_SETTINGS } from "../defaultAppSettings.js";
+import { normalizeDropTypes } from "../dropTypes.js";
 import { fetchAppSettings, saveAppSettings } from "../api/dataApi.js";
 
 const AppSettingsContext = createContext(null);
@@ -25,7 +26,11 @@ export function AppSettingsProvider({ children }) {
       try {
         const remote = await fetchAppSettings();
         if (cancelled) return;
-        const merged = { ...DEFAULT_APP_SETTINGS, ...(remote || {}) };
+        const merged = {
+          ...DEFAULT_APP_SETTINGS,
+          ...(remote || {}),
+          dropTypes: normalizeDropTypes(remote?.dropTypes ?? DEFAULT_APP_SETTINGS.dropTypes),
+        };
         setSettings(merged);
         setLocaleState((prev) => readStoredLocale() ?? merged.defaultLocale ?? "he");
       } catch {
@@ -59,7 +64,13 @@ export function AppSettingsProvider({ children }) {
   }, []);
 
   const updateSettings = useCallback(async (patch) => {
-    const next = { ...settings, ...patch };
+    const next = {
+      ...settings,
+      ...patch,
+      dropTypes: patch.dropTypes
+        ? normalizeDropTypes(patch.dropTypes)
+        : normalizeDropTypes(settings.dropTypes),
+    };
     setSettings(next);
     if (patch.theme && !personalTheme) {
       applyTheme(patch.theme);
