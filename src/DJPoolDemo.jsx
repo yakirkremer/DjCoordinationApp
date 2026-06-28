@@ -459,7 +459,8 @@ export default function DJPoolDemo() {
       (activeClient && clientScreen === "browse" && preferences.wizardCompleted));
 
   const isAdminCatalog = isAdmin && adminTab === "catalog";
-  const showFooterPlayer = showPlayer && !isAdminCatalog;
+  const isAdminEmbeddedPlayer = isAdmin && (adminTab === "catalog" || adminTab === "order");
+  const showFooterPlayer = showPlayer && !isAdminEmbeddedPlayer;
 
   const catalogTrackForPlayer = currentTrack
     ? tracks.find((t) => t.id === currentTrack.id) ?? null
@@ -480,7 +481,7 @@ export default function DJPoolDemo() {
     onUpdateTrackCue: handleUpdateTrackCue,
     isAdmin,
     resolveTrackUrl,
-    embedded: isAdminCatalog,
+    embedded: isAdminEmbeddedPlayer,
     onTrackReloaded: handleTrackReloaded,
     onPlaybackFailed: handleTrackPlaybackFailed,
   };
@@ -644,7 +645,6 @@ export default function DJPoolDemo() {
               isPlaying={isPlaying}
               onTrackSelect={handleTrackSelect}
               formatTime={formatTime}
-              onPreviewTrack={handleAdminPreviewTrack}
             />
           </div>
         </div>

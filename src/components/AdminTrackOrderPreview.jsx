@@ -14,7 +14,6 @@ export default function AdminTrackOrderPreview({
   isPlaying,
   onTrackSelect,
   formatTime,
-  onPreviewTrack,
 }) {
   const { t, dir } = useI18n();
   const { settings, updateSettings } = useAppSettingsContext();
@@ -83,10 +82,7 @@ export default function AdminTrackOrderPreview({
           activeVersionIds={activeVersionIds}
           onSelectVersion={onSelectVersion}
           isPlaying={isPlaying}
-          onTrackSelect={(track, opts) => {
-            onTrackSelect?.(track, opts);
-            onPreviewTrack?.(track, { play: false });
-          }}
+          onTrackSelect={onTrackSelect}
           formatTime={formatTime}
           ratings={{}}
           comments={{}}
