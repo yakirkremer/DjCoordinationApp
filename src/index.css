@@ -882,6 +882,39 @@ body {
   color: #fff;
 }
 
+.client-stat-card {
+  background: #0a0a0c;
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 2px;
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.client-stat-label {
+  font-size: 0.625rem;
+  color: var(--color-xdj-muted);
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 0.05em;
+}
+
+.client-stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-xdj-text);
+}
+
+.welcome-page {
+  width: 100%;
+}
+
+.welcome-login-wrap .panel-luxury {
+  margin: 0;
+  box-shadow: none;
+  border: 1px solid var(--color-xdj-border);
+}
+
 /* ── XDJ-AZ Player (playback screen) ──────────────────────── */
 
 .xdj-az-player {

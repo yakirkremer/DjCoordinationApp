@@ -3,7 +3,8 @@ import TrackList from "./components/TrackList";
 import AdminTable from "./components/AdminTable";
 import GlobalPlayer from "./components/GlobalPlayer";
 import CategorySelector from "./components/CategorySelector";
-import ClientLogin from "./components/ClientLogin";
+import WelcomePage from "./components/WelcomePage";
+import ClientHome from "./components/ClientHome";
 import ClientManager from "./components/ClientManager";
 import AdminTabNav from "./components/AdminTabNav";
 import AdminDashboard from "./components/AdminDashboard";
@@ -33,6 +34,7 @@ export default function DJPoolDemo() {
   const [currentTime, setCurrentTime] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTab, setAdminTab] = useState("catalog");
+  const [clientScreen, setClientScreen] = useState("home");
 
   const { clients, activeClient, createClient, deleteClient, login, logout, ready: clientsReady } = useClients();
   const {
@@ -251,8 +253,8 @@ export default function DJPoolDemo() {
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const handleTrackUploaded = (newTrack) => {
-    handleTracksImported([newTrack]);
+  const handleTrackUploaded = (uploadedTracks) => {
+    handleTracksImported(Array.isArray(uploadedTracks) ? uploadedTracks : [uploadedTracks]);
   };
 
   const handleTracksImported = (importedTracks) => {
@@ -305,10 +307,11 @@ export default function DJPoolDemo() {
   }, []);
 
   const isCoupleBrowse =
-    !isAdmin && activeClient && coupleReady && preferences.wizardCompleted;
+    !isAdmin && activeClient && coupleReady && clientScreen === "browse" && preferences.wizardCompleted;
 
   const showPlayer =
-    currentTrack && (isAdmin || (activeClient && preferences.wizardCompleted));
+    currentTrack &&
+    (isAdmin || (activeClient && clientScreen === "browse" && preferences.wizardCompleted));
 
   const isAdminCatalog = isAdmin && adminTab === "catalog";
   const showFooterPlayer = showPlayer && !isAdminCatalog;
@@ -338,6 +341,58 @@ export default function DJPoolDemo() {
       setCurrentTime(first.startTime ?? 0);
     }
   }, [isAdminCatalog, catalogStatus, tracks, currentTrack]);
+
+  const handleEnterAdmin = useCallback(() => {
+    setIsAdmin(true);
+    setClientScreen("home");
+  }, []);
+
+  const handleExitAdmin = useCallback(() => {
+    setIsAdmin(false);
+    setAdminTab("catalog");
+  }, []);
+
+  const handleClientLogin = useCallback(
+    (code) => {
+      const ok = login(code);
+      if (ok) {
+        setClientScreen("home");
+        setIsAdmin(false);
+      }
+      return ok;
+    },
+    [login]
+  );
+
+  const handleClientLogout = useCallback(() => {
+    logout();
+    setClientScreen("home");
+    setIsAdmin(false);
+    setIsPlaying(false);
+  }, [logout]);
+
+  const handleWizardComplete = useCallback(() => {
+    completeWizard();
+    setClientScreen("home");
+  }, [completeWizard]);
+
+  const handleWizardSkip = useCallback(() => {
+    skipWizard();
+    setClientScreen("home");
+  }, [skipWizard]);
+
+  const handleStartWizard = useCallback(() => {
+    if (preferences.wizardCompleted) {
+      reopenWizard();
+    }
+    setClientScreen("wizard");
+  }, [preferences.wizardCompleted, reopenWizard]);
+
+  useEffect(() => {
+    if (!appReady || !activeClient) return;
+    if (isAdmin) return;
+    setClientScreen((screen) => (screen === "browse" || screen === "wizard" ? screen : "home"));
+  }, [appReady, activeClient?.id, isAdmin]);
 
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
@@ -412,6 +467,7 @@ export default function DJPoolDemo() {
 
   return (
     <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir="rtl">
+      {(isAdmin || activeClient) && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
         <div className="flex flex-col items-center sm:items-start gap-2 w-full sm:w-auto">
@@ -424,42 +480,44 @@ export default function DJPoolDemo() {
             {isAdmin
               ? "מערכת ניהול קטלוג ולקוחות"
               : activeClient
-                ? `שלום ${activeClient.name} — `
+                ? clientScreen === "browse"
+                  ? `שלום ${activeClient.name} — קטלוג מוזיקה`
+                  : clientScreen === "wizard"
+                    ? `שלום ${activeClient.name} — טופס העדפות`
+                    : `שלום ${activeClient.name}`
                 : "מערכת חכמה לתיאום המוזיקה לחתונה שלכם"}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {!isAdmin && activeClient && preferences.wizardCompleted && (
-            <button onClick={reopenWizard} className="btn-luxury px-4 py-2 rounded-sm">
-              ערוך העדפות
-            </button>
-          )}
-          {!isAdmin && activeClient && (
-            <button onClick={logout} className="btn-luxury px-4 py-2 rounded-sm">
-              יציאה
+          {!isAdmin && activeClient && clientScreen !== "home" && (
+            <button
+              onClick={() => setClientScreen("home")}
+              className="btn-luxury px-4 py-2 rounded-sm text-xs"
+            >
+              לוח בקרה
             </button>
           )}
           {isAdmin && (
-            <button onClick={downloadJSON} className="btn-luxury-gold px-4 py-2 rounded-sm text-xs">
-              EXPORT JSON
-            </button>
+            <>
+              <button onClick={downloadJSON} className="btn-luxury-gold px-4 py-2 rounded-sm text-xs">
+                EXPORT JSON
+              </button>
+              <button onClick={handleExitAdmin} className="btn-luxury px-4 py-2 rounded-sm text-xs">
+                חזרה לדף הבית
+              </button>
+            </>
           )}
-          <button
-            onClick={() => setIsAdmin(!isAdmin)}
-            className={`px-4 py-2 rounded-sm text-xs tracking-wider ${
-              isAdmin ? "btn-luxury" : "btn-luxury-primary"
-            }`}
-          >
-            {isAdmin ? "מצב משתמש" : "ADMIN"}
-          </button>
         </div>
       </header>
       </div>
+      )}
 
       <main
         className={`app-main-safe flex-1 min-h-0 max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2 sm:pb-4 flex flex-col ${
-          isCoupleBrowse || isAdmin ? "overflow-hidden" : "overflow-y-auto"
+          isCoupleBrowse || isAdmin || (activeClient && clientScreen === "home")
+            ? "overflow-hidden"
+            : "overflow-y-auto"
         }`}
       >
         {catalogStatus === "loading" || !appReady ? (
@@ -471,16 +529,27 @@ export default function DJPoolDemo() {
             <AdminTabNav activeTab={adminTab} onTabChange={setAdminTab} />
             <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
           </div>
-        ) : tracks.length === 0 ? (
-          <div className="text-center py-8 space-y-2">
-            <p className="font-lcd text-xs text-xdj-muted">NO TRACKS IN CATALOG</p>
-            <p className="text-xs text-xdj-muted">הקטלוג ריק — פנה למנהל המערכת</p>
-          </div>
         ) : !activeClient ? (
-          <ClientLogin onLogin={login} />
+          <WelcomePage onLogin={handleClientLogin} onEnterAdmin={handleEnterAdmin} />
         ) : !coupleReady ? (
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING SESSION...</p>
-        ) : !preferences.wizardCompleted ? (
+        ) : clientScreen === "home" ? (
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <ClientHome
+              client={activeClient}
+              preferences={preferences}
+              formSchema={formSchema}
+              selectedCategories={selectedCategories}
+              categoryRatings={categoryRatings}
+              ratings={ratings}
+              comments={comments}
+              tracks={tracks}
+              onStartWizard={handleStartWizard}
+              onBrowseMusic={() => setClientScreen("browse")}
+              onLogout={handleClientLogout}
+            />
+          </div>
+        ) : clientScreen === "wizard" ? (
           <PreferencesWizard
             key={activeClient.id}
             formSchema={formSchema}
@@ -491,11 +560,16 @@ export default function DJPoolDemo() {
             onUpdatePreferences={updatePreferences}
             onToggleCategory={toggleCategory}
             onRateCategory={rateCategory}
-            onComplete={completeWizard}
-            onSkip={skipWizard}
+            onComplete={handleWizardComplete}
+            onSkip={handleWizardSkip}
             onSaveProgress={saveWizardProgress}
-            onSaveAndExit={logout}
+            onSaveAndExit={() => setClientScreen("home")}
           />
+        ) : tracks.length === 0 ? (
+          <div className="text-center py-8 space-y-2">
+            <p className="font-lcd text-xs text-xdj-muted">NO TRACKS IN CATALOG</p>
+            <p className="text-xs text-xdj-muted">הקטלוג ריק — פנה למנהל המערכת</p>
+          </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <CategorySelector
