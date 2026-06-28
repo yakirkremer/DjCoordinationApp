@@ -3,6 +3,7 @@ import path from "path";
 import { OFFICIAL_CATEGORIES } from "../src/lib/categories.js";
 import { readJsonFile, writeJsonFile, DATA_FILES } from "./dataStore.js";
 import { MUSIC_ROOT } from "./storagePaths.js";
+import { optimizeMp3Buffer } from "./transcodeAudio.js";
 
 export { MUSIC_ROOT };
 export const MAX_MUSIC_BYTES = 80 * 1024 * 1024;
@@ -75,6 +76,8 @@ export async function saveTrackToCatalog({
     throw new Error(`File too large (max ${Math.floor(MAX_MUSIC_BYTES / 1024 / 1024)}MB)`);
   }
 
+  buffer = await optimizeMp3Buffer(buffer);
+
   const analyzedDir = path.join(MUSIC_ROOT, bucket, "analyzed");
   await fs.mkdir(analyzedDir, { recursive: true });
   safeName = await uniqueFilename(analyzedDir, safeName);
@@ -130,6 +133,8 @@ export async function reloadTrackFile({ trackId, bucket, filename, buffer }) {
   if (buffer.length > MAX_MUSIC_BYTES) {
     throw new Error(`File too large (max ${Math.floor(MAX_MUSIC_BYTES / 1024 / 1024)}MB)`);
   }
+
+  buffer = await optimizeMp3Buffer(buffer);
 
   const analyzedDir = path.join(MUSIC_ROOT, targetBucket, "analyzed");
   await fs.mkdir(analyzedDir, { recursive: true });

@@ -35,6 +35,10 @@ async function serveStatic(req, res) {
         const data = await readFile(filePath);
         const ext = path.extname(filePath).toLowerCase();
         res.setHeader("Content-Type", MIME[ext] || "application/octet-stream");
+        if (ext === ".mp3") {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          res.setHeader("Accept-Ranges", "bytes");
+        }
         res.end(data);
         return;
       } catch {

@@ -21,6 +21,10 @@ services:
         value: production
       - key: STORAGE_ROOT
         value: /var/data
+      - key: AUDIO_TRANSCODE
+        value: "1"
+      - key: AUDIO_BITRATE
+        value: 128k
       - key: VITE_DROPBOX_APP_KEY
         sync: false
       - key: DROPBOX_REFRESH_TOKEN

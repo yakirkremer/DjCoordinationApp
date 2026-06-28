@@ -8,7 +8,7 @@ export default function useAudioPreload(tracks, currentTrackId, enabled = true) 
     const timer = setTimeout(() => {
       preloadTrackAudioUrls(tracks, {
         aroundTrackId: currentTrackId,
-        limit: 8,
+        limit: 12,
       });
     }, 150);
 

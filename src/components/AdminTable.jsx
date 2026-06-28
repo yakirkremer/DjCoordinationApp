@@ -85,6 +85,14 @@ export default function AdminTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-xdj-border/30">
+          {tracks.length === 0 ? (
+            <tr>
+              <td colSpan={8} className="p-8 text-center">
+                <p className="font-lcd text-xs text-xdj-muted">אין שירים בקטלוג</p>
+                <p className="text-xs text-xdj-muted mt-2">השתמש בפאנל ההעלאה או Dropbox Import למעלה</p>
+              </td>
+            </tr>
+          ) : null}
           {tracks.map((track) => {
             const isSelected = currentTrack?.id === track.id;
             const canPreview = !track.isMissing;

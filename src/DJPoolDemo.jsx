@@ -372,7 +372,11 @@ export default function DJPoolDemo() {
             ) : (
               <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir="rtl">
                 <p className="font-lcd text-xs text-xdj-muted">PREVIEW EDITOR</p>
-                {countMissingTracks(tracks) > 0 ? (
+                {tracks.length === 0 ? (
+                  <p className="text-xs text-xdj-cyan mt-2 font-medium">
+                    הקטלוג ריק — העלה שיר למעלה או ייבא מ-Dropbox
+                  </p>
+                ) : countMissingTracks(tracks) > 0 ? (
                   <p className="text-xs text-red-400 mt-2 font-medium">
                     ⚠ {countMissingTracks(tracks)} שירים ללא קובץ בשרת — ראה עמודת &quot;מקור נגינה&quot; בטבלה
                   </p>
@@ -462,17 +466,15 @@ export default function DJPoolDemo() {
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING...</p>
         ) : catalogStatus === "error" ? (
           <p className="font-lcd text-xs text-xdj-orange text-center py-8">{catalogError}</p>
-        ) : tracks.length === 0 ? (
-          <div className="text-center py-8 space-y-2">
-            <p className="font-lcd text-xs text-xdj-muted">NO TRACKS IN CATALOG</p>
-            {isAdmin ? (
-              <p className="text-xs text-xdj-muted">העלה שירים דרך פאנל ההעלאה בלשונית CATALOG</p>
-            ) : null}
-          </div>
         ) : isAdmin ? (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <AdminTabNav activeTab={adminTab} onTabChange={setAdminTab} />
             <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
+          </div>
+        ) : tracks.length === 0 ? (
+          <div className="text-center py-8 space-y-2">
+            <p className="font-lcd text-xs text-xdj-muted">NO TRACKS IN CATALOG</p>
+            <p className="text-xs text-xdj-muted">הקטלוג ריק — פנה למנהל המערכת</p>
           </div>
         ) : !activeClient ? (
           <ClientLogin onLogin={login} />
