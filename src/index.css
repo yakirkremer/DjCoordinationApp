@@ -2821,6 +2821,55 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
   border-inline-start: 3px solid var(--drop-border, var(--color-xdj-border));
 }
 
+.admin-drop-type-list {
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 0.35rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.admin-drop-type-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.25rem;
+}
+
+.admin-drop-type-color-field {
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-drop-type-color-input {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.1rem;
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 0.35rem;
+  background: #0a0a0c;
+  cursor: pointer;
+}
+
+.admin-drop-type-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.admin-drop-type-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 0.2rem;
+}
+
+.admin-drop-type-hex {
+  min-width: 4.5rem;
+}
+
+.admin-drop-type-remove {
+  margin-inline-start: auto;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.15rem 0.35rem;
+}
+
 .track-version-picker-item.is-missing {
   opacity: 0.65;
 }

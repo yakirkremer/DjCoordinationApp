@@ -1,38 +1,20 @@
-/** Unique colors per drop type — fixed for defaults, stable hash for custom types. */
-const KNOWN_DROP_COLORS = {
-  dance: {
-    bg: "rgba(244, 114, 182, 0.18)",
-    border: "#f472b6",
-    text: "#fbcfe8",
-    glow: "rgba(244, 114, 182, 0.35)",
-  },
-  house: {
-    bg: "rgba(251, 146, 60, 0.18)",
-    border: "#fb923c",
-    text: "#fed7aa",
-    glow: "rgba(251, 146, 60, 0.35)",
-  },
-  techno: {
-    bg: "rgba(34, 211, 238, 0.18)",
-    border: "#22d3ee",
-    text: "#a5f3fc",
-    glow: "rgba(34, 211, 238, 0.35)",
-  },
-  trance: {
-    bg: "rgba(167, 139, 250, 0.18)",
-    border: "#a78bfa",
-    text: "#ddd6fe",
-    glow: "rgba(167, 139, 250, 0.35)",
-  },
+import { normalizeDropTypes } from "./dropTypes.js";
+
+/** Default border colors for built-in drop types. */
+export const DEFAULT_DROP_TYPE_COLOR_HEX = {
+  Dance: "#f472b6",
+  House: "#fb923c",
+  Techno: "#22d3ee",
+  Trance: "#a78bfa",
 };
 
-const EXTRA_DROP_COLORS = [
-  { bg: "rgba(74, 222, 128, 0.18)", border: "#4ade80", text: "#bbf7d0", glow: "rgba(74, 222, 128, 0.35)" },
-  { bg: "rgba(250, 204, 21, 0.18)", border: "#facc15", text: "#fef08a", glow: "rgba(250, 204, 21, 0.35)" },
-  { bg: "rgba(248, 113, 113, 0.18)", border: "#f87171", text: "#fecaca", glow: "rgba(248, 113, 113, 0.35)" },
-  { bg: "rgba(96, 165, 250, 0.18)", border: "#60a5fa", text: "#bfdbfe", glow: "rgba(96, 165, 250, 0.35)" },
-  { bg: "rgba(45, 212, 191, 0.18)", border: "#2dd4bf", text: "#99f6e4", glow: "rgba(45, 212, 191, 0.35)" },
-  { bg: "rgba(232, 121, 249, 0.18)", border: "#e879f9", text: "#f5d0fe", glow: "rgba(232, 121, 249, 0.35)" },
+const FALLBACK_PALETTE_HEX = [
+  "#4ade80",
+  "#facc15",
+  "#f87171",
+  "#60a5fa",
+  "#2dd4bf",
+  "#e879f9",
 ];
 
 const NEUTRAL_DROP_COLOR = {
@@ -50,15 +32,93 @@ function hashDropName(name) {
   return Math.abs(h);
 }
 
-export function getDropTypeColors(drop) {
-  const key = String(drop ?? "").trim().toLowerCase();
-  if (!key) return NEUTRAL_DROP_COLOR;
-  if (KNOWN_DROP_COLORS[key]) return KNOWN_DROP_COLORS[key];
-  return EXTRA_DROP_COLORS[hashDropName(key) % EXTRA_DROP_COLORS.length];
+function normalizeHex(hex) {
+  const raw = String(hex ?? "").trim();
+  if (!raw) return null;
+  if (/^#[0-9a-fA-F]{6}$/.test(raw)) return raw.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
+    const r = raw[1];
+    const g = raw[2];
+    const b = raw[3];
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return null;
 }
 
-export function getDropTypeStyle(drop) {
-  const colors = getDropTypeColors(drop);
+function hexToRgb(hex) {
+  const normalized = normalizeHex(hex);
+  if (!normalized) return null;
+  const value = parseInt(normalized.slice(1), 16);
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function mixRgb(rgb, target, amount) {
+  return {
+    r: Math.round(rgb.r + (target.r - rgb.r) * amount),
+    g: Math.round(rgb.g + (target.g - rgb.g) * amount),
+    b: Math.round(rgb.b + (target.b - rgb.b) * amount),
+  };
+}
+
+export function buildDropPalette(borderHex) {
+  const border = normalizeHex(borderHex);
+  const rgb = hexToRgb(border);
+  if (!border || !rgb) return NEUTRAL_DROP_COLOR;
+
+  const textRgb = mixRgb(rgb, { r: 255, g: 255, b: 255 }, 0.72);
+  return {
+    border,
+    bg: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.18)`,
+    text: `rgb(${textRgb.r}, ${textRgb.g}, ${textRgb.b})`,
+    glow: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`,
+  };
+}
+
+function findColorEntry(colorMap, drop) {
+  if (!colorMap || !drop) return null;
+  if (colorMap[drop]) return colorMap[drop];
+  const key = Object.keys(colorMap).find((k) => k.toLowerCase() === drop.toLowerCase());
+  return key ? colorMap[key] : null;
+}
+
+export function getDefaultHexForDrop(drop, index = 0) {
+  const label = String(drop ?? "").trim();
+  if (!label) return FALLBACK_PALETTE_HEX[0];
+  if (DEFAULT_DROP_TYPE_COLOR_HEX[label]) return DEFAULT_DROP_TYPE_COLOR_HEX[label];
+  const builtIn = Object.entries(DEFAULT_DROP_TYPE_COLOR_HEX).find(
+    ([name]) => name.toLowerCase() === label.toLowerCase()
+  );
+  if (builtIn) return builtIn[1];
+  return FALLBACK_PALETTE_HEX[index % FALLBACK_PALETTE_HEX.length];
+}
+
+/** Ensure every drop type has a saved border hex color. */
+export function normalizeDropTypeColors(dropTypes, colorMap = {}) {
+  const types = normalizeDropTypes(dropTypes);
+  const out = {};
+  types.forEach((drop, index) => {
+    const saved = normalizeHex(findColorEntry(colorMap, drop));
+    out[drop] = saved || getDefaultHexForDrop(drop, index);
+  });
+  return out;
+}
+
+export function getDropTypeColors(drop, colorMap = {}) {
+  const label = String(drop ?? "").trim();
+  if (!label) return NEUTRAL_DROP_COLOR;
+
+  const saved = normalizeHex(findColorEntry(colorMap, label));
+  if (saved) return buildDropPalette(saved);
+
+  return buildDropPalette(getDefaultHexForDrop(label, hashDropName(label)));
+}
+
+export function getDropTypeStyle(drop, colorMap = {}) {
+  const colors = getDropTypeColors(drop, colorMap);
   return {
     backgroundColor: colors.bg,
     borderColor: colors.border,
@@ -67,8 +127,8 @@ export function getDropTypeStyle(drop) {
   };
 }
 
-export function getDropTypeCssVars(drop) {
-  const colors = getDropTypeColors(drop);
+export function getDropTypeCssVars(drop, colorMap = {}) {
+  const colors = getDropTypeColors(drop, colorMap);
   return {
     "--drop-bg": colors.bg,
     "--drop-border": colors.border,

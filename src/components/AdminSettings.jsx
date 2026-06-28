@@ -2,7 +2,11 @@ import React, { useState } from "react";
 import { THEMES, getThemeLabel } from "../lib/themes";
 import { LOCALE_LABELS, LOCALES } from "../lib/i18n/translations";
 import { normalizeDropTypes } from "../lib/dropTypes";
-import { getDropTypeStyle } from "../lib/dropTypeColors";
+import {
+  getDefaultHexForDrop,
+  getDropTypeStyle,
+  normalizeDropTypeColors,
+} from "../lib/dropTypeColors";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function AdminSettings() {
@@ -12,6 +16,7 @@ export default function AdminSettings() {
     defaultLocale: settings.defaultLocale,
     theme: settings.theme,
     dropTypes: normalizeDropTypes(settings.dropTypes),
+    dropTypeColors: normalizeDropTypeColors(settings.dropTypes, settings.dropTypeColors),
   }));
   const [newDropType, setNewDropType] = useState("");
   const [saving, setSaving] = useState(false);
@@ -22,27 +27,52 @@ export default function AdminSettings() {
   const handleAddDropType = () => {
     const label = newDropType.trim();
     if (!label) return;
-    setDraft((d) => ({
-      ...d,
-      dropTypes: normalizeDropTypes([...d.dropTypes, label]),
-    }));
+    setDraft((d) => {
+      const dropTypes = normalizeDropTypes([...d.dropTypes, label]);
+      return {
+        ...d,
+        dropTypes,
+        dropTypeColors: normalizeDropTypeColors(dropTypes, {
+          ...d.dropTypeColors,
+          [label]: getDefaultHexForDrop(label, dropTypes.length - 1),
+        }),
+      };
+    });
     setNewDropType("");
   };
 
   const handleRemoveDropType = (drop) => {
     setDraft((d) => {
-      const next = d.dropTypes.filter((item) => item !== drop);
-      return { ...d, dropTypes: normalizeDropTypes(next) };
+      const dropTypes = normalizeDropTypes(d.dropTypes.filter((item) => item !== drop));
+      const dropTypeColors = { ...d.dropTypeColors };
+      delete dropTypeColors[drop];
+      return {
+        ...d,
+        dropTypes,
+        dropTypeColors: normalizeDropTypeColors(dropTypes, dropTypeColors),
+      };
     });
+  };
+
+  const handleDropColorChange = (drop, hex) => {
+    setDraft((d) => ({
+      ...d,
+      dropTypeColors: {
+        ...d.dropTypeColors,
+        [drop]: hex,
+      },
+    }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
     try {
+      const dropTypes = normalizeDropTypes(draft.dropTypes);
       await updateSettings({
         ...draft,
-        dropTypes: normalizeDropTypes(draft.dropTypes),
+        dropTypes,
+        dropTypeColors: normalizeDropTypeColors(dropTypes, draft.dropTypeColors),
       });
       setSaved(true);
     } finally {
@@ -109,25 +139,40 @@ export default function AdminSettings() {
         <div>
           <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.dropTypesTitle")}</label>
           <p className="text-[10px] text-xdj-muted mb-3">{t("admin.dropTypesHint")}</p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {draft.dropTypes.map((drop) => (
-              <span
-                key={drop}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border text-xs font-semibold uppercase tracking-wide"
-                style={getDropTypeStyle(drop)}
-              >
-                {drop}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveDropType(drop)}
-                  disabled={draft.dropTypes.length <= 1}
-                  className="text-xdj-muted hover:text-red-300 disabled:opacity-30"
-                  aria-label={t("admin.removeDropType", { drop })}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
+          <div className="admin-drop-type-list flex flex-col gap-2 mb-3">
+            {draft.dropTypes.map((drop) => {
+              const color = draft.dropTypeColors[drop];
+              return (
+                <div key={drop} className="admin-drop-type-row">
+                  <span
+                    className="admin-drop-type-chip inline-flex items-center px-2.5 py-1 rounded-sm border text-xs font-semibold uppercase tracking-wide min-w-[5.5rem]"
+                    style={getDropTypeStyle(drop, draft.dropTypeColors)}
+                  >
+                    {drop}
+                  </span>
+                  <label className="admin-drop-type-color-field">
+                    <span className="sr-only">{t("admin.dropTypeColor", { drop })}</span>
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => handleDropColorChange(drop, e.target.value)}
+                      className="admin-drop-type-color-input"
+                      aria-label={t("admin.dropTypeColor", { drop })}
+                    />
+                  </label>
+                  <span className="admin-drop-type-hex font-mono text-[10px] text-xdj-muted">{color}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveDropType(drop)}
+                    disabled={draft.dropTypes.length <= 1}
+                    className="admin-drop-type-remove text-xdj-muted hover:text-red-300 disabled:opacity-30"
+                    aria-label={t("admin.removeDropType", { drop })}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <div className="flex flex-wrap gap-2">
             <input

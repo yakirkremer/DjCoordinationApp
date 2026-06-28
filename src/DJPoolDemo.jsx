@@ -15,7 +15,7 @@ import DropboxImportPanel from "./components/DropboxImportPanel";
 import TrackReloadButton from "./components/TrackReloadButton";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import ThemeSwitcher from "./components/ThemeSwitcher";
-import AdminSettings from "./components/AdminSettings";
+import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
 import useClients from "./hooks/useClients";
@@ -301,6 +301,22 @@ export default function DJPoolDemo() {
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
+  const handleArtworkFetched = useCallback(
+    async (updatedTracks) => {
+      const verified = await verifyTracks(
+        updatedTracks.map((track) => normalizePreviewCue(ensureTrackVersions(track)))
+      );
+      setTracks(verified);
+      persistCatalog(verified);
+      setCurrentTrack((ct) => {
+        if (!ct) return ct;
+        const fresh = verified.find((t) => t.id === ct.id);
+        return fresh ? normalizePreviewCue(applyActiveVersion(ensureTrackVersions(fresh), ct.activeVersionId)) : ct;
+      });
+    },
+    [persistCatalog]
+  );
+
   const handleTrackUploaded = (uploadedTracks) => {
     handleTracksImported(Array.isArray(uploadedTracks) ? uploadedTracks : [uploadedTracks]);
   };
@@ -486,6 +502,7 @@ export default function DJPoolDemo() {
               existingTracks={tracks}
               onImported={handleTracksImported}
             />
+            <AdminFetchArtwork tracks={tracks} onTracksUpdated={handleArtworkFetched} />
           </div>
 
           <div className="admin-catalog-player shrink-0">

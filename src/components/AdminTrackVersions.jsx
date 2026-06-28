@@ -3,7 +3,7 @@ import TrackReloadButton from "./TrackReloadButton";
 import TrackAddVersionForm from "./TrackAddVersionForm";
 import DropTypeSelect from "./DropTypeSelect";
 import DropTypeBadge from "./DropTypeBadge";
-import { getDropTypeCssVars } from "../lib/dropTypeColors";
+import { useDropColors } from "../hooks/useDropColors";
 import TrackVersionPicker, { getTrackWithVersion } from "./TrackVersionPicker";
 import { ensureTrackVersions, getVersionLabel } from "../lib/trackVersions";
 import { getTrackSourceSummary } from "../lib/trackSource";
@@ -21,6 +21,7 @@ export default function AdminTrackVersions({
   onTrackReloaded,
 }) {
   const { t, locale, dir } = useI18n();
+  const { getCssVars } = useDropColors();
   const normalized = ensureTrackVersions(track);
   const versions = normalized.versions || [];
   const [savingVersionId, setSavingVersionId] = useState(null);
@@ -114,7 +115,7 @@ export default function AdminTrackVersions({
                   className={`admin-version-card rounded-sm border p-3 ${
                     isSelected ? "border-xdj-cyan/60 bg-xdj-cyan/5" : "border-xdj-border"
                   }`}
-                  style={getDropTypeCssVars(version.drop)}
+                  style={getCssVars(version.drop)}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                     <div>

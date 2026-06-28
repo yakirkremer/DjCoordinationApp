@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware, refreshDropboxToken } from "./server/dropboxImport.js";
+import { createArtworkApiMiddleware } from "./server/artworkApi.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { publicFilesGuardPlugin } from "./server/publicFilesGuard.js";
 
@@ -11,6 +12,7 @@ function dataApiPlugin() {
   const attach = (server) => {
     server.middlewares.use(createDataApiMiddleware());
     server.middlewares.use(createUploadMusicMiddleware());
+    server.middlewares.use(createArtworkApiMiddleware());
   };
   return {
     name: "data-api",

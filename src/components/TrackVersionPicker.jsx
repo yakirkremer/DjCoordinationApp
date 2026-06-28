@@ -4,7 +4,7 @@ import {
   ensureTrackVersions,
   getVersionLabel,
 } from "../lib/trackVersions";
-import { getDropTypeCssVars } from "../lib/dropTypeColors";
+import { useDropColors } from "../hooks/useDropColors";
 import DropTypeBadge from "./DropTypeBadge";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
@@ -16,6 +16,7 @@ export default function TrackVersionPicker({
   className = "",
 }) {
   const { locale, t } = useI18n();
+  const { getCssVars } = useDropColors();
   const normalized = ensureTrackVersions(track);
   const versions = normalized.versions || [];
   const [open, setOpen] = useState(false);
@@ -37,7 +38,7 @@ export default function TrackVersionPicker({
       <button
         type="button"
         className="track-version-picker-toggle"
-        style={getDropTypeCssVars(currentDrop)}
+        style={getCssVars(currentDrop)}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
@@ -61,7 +62,7 @@ export default function TrackVersionPicker({
                   className={`track-version-picker-item ${isActive ? "is-active" : ""} ${
                     version.isMissing ? "is-missing" : ""
                   }`}
-                  style={getDropTypeCssVars(drop)}
+                  style={getCssVars(drop)}
                   onClick={() => {
                     onSelectVersion?.(track.id, version.id);
                     setOpen(false);
