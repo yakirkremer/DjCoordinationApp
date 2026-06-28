@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { OFFICIAL_CATEGORIES } from "../src/lib/categories.js";
+import { DEFAULT_DROP_TYPE } from "../src/lib/dropTypes.js";
 import {
   ensureTrackVersions,
   generateVersionId,
@@ -177,7 +178,7 @@ export async function saveTrackToCatalog({
   const versionId = generateVersionId();
   const version = {
     id: versionId,
-    drop: "",
+    drop: DEFAULT_DROP_TYPE,
     filename: safeName,
     startTime: 30,
     endTime: 90,

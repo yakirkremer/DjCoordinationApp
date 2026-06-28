@@ -132,6 +132,52 @@ body {
   box-shadow: inset 3px 0 0 var(--color-xdj-orange);
 }
 
+.admin-catalog-table {
+  table-layout: fixed;
+}
+
+.admin-catalog-table .admin-col-preview {
+  width: 3.5rem;
+}
+
+.admin-catalog-table .admin-col-actions {
+  width: 7.5rem;
+}
+
+.admin-catalog-table .admin-col-title {
+  width: 38%;
+  min-width: 16rem;
+}
+
+.admin-catalog-table .admin-col-versions {
+  width: 7rem;
+}
+
+.admin-catalog-table .admin-col-source {
+  width: 14rem;
+}
+
+.admin-catalog-table .admin-col-bucket {
+  width: 8rem;
+}
+
+.admin-col-title-cell {
+  vertical-align: top;
+  min-width: 16rem;
+}
+
+.admin-col-title-text {
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.admin-col-title-input {
+  min-width: 0;
+}
+
 .xdj-deck {
   background: linear-gradient(180deg, #1c1c22 0%, #0e0e12 12%, #0a0a0d 100%);
   border-top: 1px solid #3a3a44;

@@ -184,16 +184,24 @@ export default function AdminTable({
       ) : null}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-right border-collapse">
+        <table className="admin-catalog-table w-full min-w-[1100px] text-right border-collapse">
+          <colgroup>
+            <col className="admin-col-preview" />
+            <col className="admin-col-actions" />
+            <col className="admin-col-title" />
+            <col className="admin-col-versions" />
+            <col className="admin-col-source" />
+            <col className="admin-col-bucket" />
+          </colgroup>
           <thead>
             <tr className="xdj-browser-columns text-xs">
-              <th className="p-4 w-14 text-center">{t("admin.colPreview")}</th>
-              <th className="p-4 w-36 text-center sticky right-0 z-10 bg-xdj-panel/95 backdrop-blur-sm shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">
+              <th className="p-4 text-center">{t("admin.colPreview")}</th>
+              <th className="p-4 text-center sticky right-0 z-10 bg-xdj-panel/95 backdrop-blur-sm shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">
                 {t("admin.colActions")}
               </th>
               <th className="p-4">{t("admin.colTitle")}</th>
-              <th className="p-4 w-36">{t("admin.colVersions")}</th>
-              <th className="p-4 min-w-[200px]">{t("admin.colSource")}</th>
+              <th className="p-4">{t("admin.colVersions")}</th>
+              <th className="p-4">{t("admin.colSource")}</th>
               <th className="p-4">{t("admin.colBucket")}</th>
             </tr>
           </thead>
@@ -290,17 +298,17 @@ export default function AdminTable({
                       ) : null}
                     </div>
                   </td>
-                  <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex flex-col w-full">
-                      <div className="flex items-center gap-2">
+                  <td className="p-3 admin-col-title-cell" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col w-full min-w-0">
+                      <div className="flex items-start gap-2">
                         {editMode ? (
                           <input
-                            className="bg-transparent border-b border-xdj-border focus:border-xdj-cyan outline-none w-full font-bold text-gray-200"
+                            className="admin-col-title-input bg-transparent border-b border-xdj-border focus:border-xdj-cyan outline-none w-full font-bold text-gray-200"
                             value={row.title}
                             onChange={(e) => handleDraftChange(track.id, "title", e.target.value)}
                           />
                         ) : (
-                          <span className="font-bold text-gray-200">{track.title}</span>
+                          <span className="admin-col-title-text font-bold text-gray-200">{track.title}</span>
                         )}
                         {track.isMissing && (
                           <span className="text-[10px] text-red-400 font-bold bg-red-950 px-1.5 py-0.5 rounded border border-red-900 shadow-sm shrink-0">

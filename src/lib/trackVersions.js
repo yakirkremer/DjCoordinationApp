@@ -1,11 +1,18 @@
+import { DEFAULT_DROP_TYPE } from "./dropTypes.js";
+
 export function generateVersionId() {
   return `ver_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function withDefaultDrop(drop) {
+  const label = String(drop ?? "").trim();
+  return label || DEFAULT_DROP_TYPE;
 }
 
 export function createVersionFromLegacy(track, partial = {}) {
   return {
     id: partial.id || generateVersionId(),
-    drop: partial.drop ?? track?.drop ?? "",
+    drop: withDefaultDrop(partial.drop ?? track?.drop),
     remixer: partial.remixer ?? track?.remixer ?? "",
     filename: partial.filename ?? track?.filename,
     startTime: partial.startTime ?? track?.startTime ?? 30,
@@ -21,7 +28,7 @@ export function ensureTrackVersions(track) {
   if (Array.isArray(track.versions) && track.versions.length > 0) {
     const versions = track.versions.map((v) => ({
       ...v,
-      drop: v.drop ?? "",
+      drop: withDefaultDrop(v.drop),
       remixer: v.remixer ?? "",
     }));
     const defaultVersionId = track.defaultVersionId || versions[0].id;

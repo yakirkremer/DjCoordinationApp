@@ -1,13 +1,15 @@
 import React, { useRef, useState } from "react";
 import { ACCEPT_AUDIO, isSupportedAudioFile } from "../lib/audioFormats";
 import { addTrackVersion } from "../lib/api/uploadTrack";
-import { useI18n } from "../lib/i18n/AppSettingsContext";
+import { getDefaultDropType } from "../lib/dropTypes";
+import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 import DropTypeSelect from "./DropTypeSelect";
 
 export default function TrackAddVersionForm({ track, onAdded }) {
+  const { settings } = useAppSettingsContext();
   const { t, dir } = useI18n();
   const inputRef = useRef(null);
-  const [drop, setDrop] = useState("");
+  const [drop, setDrop] = useState(() => getDefaultDropType(settings.dropTypes));
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
 
@@ -33,7 +35,7 @@ export default function TrackAddVersionForm({ track, onAdded }) {
         drop,
       });
       onAdded?.(updated);
-      setDrop("");
+      setDrop(getDefaultDropType(settings.dropTypes));
       if (inputRef.current) inputRef.current.value = "";
       setStatus("success");
       setTimeout(() => setStatus("idle"), 2000);
