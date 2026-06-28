@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { OFFICIAL_CATEGORIES } from "../lib/categories";
+import { stripAudioExtension } from "../lib/audioFormats";
+import { ensureTrackVersions } from "../lib/trackVersions";
 
 function formatSize(bytes) {
   if (!bytes) return "";
@@ -25,15 +27,22 @@ export default function DropboxImportPanel({ dropbox, existingTracks, onImported
     openFolder,
     goUp,
     toggleSelect,
-    selectAllMp3,
+    selectAllAudio,
     clearSelection,
     importSelected,
     refreshFolder,
   } = dropbox;
 
   const existingFilenames = new Set(
-    existingTracks.filter((t) => t.bucket === bucket).map((t) => t.filename)
+    existingTracks
+      .filter((t) => t.bucket === bucket)
+      .flatMap((t) => {
+        const normalized = ensureTrackVersions(t);
+        return (normalized.versions || []).map((v) => v.filename).filter(Boolean);
+      })
   );
+
+  const catalogNameFromDropbox = (filename) => `${stripAudioExtension(filename)}.mp3`;
 
   const handleImport = async () => {
     const result = await importSelected(bucket);
@@ -133,9 +142,11 @@ export default function DropboxImportPanel({ dropbox, existingTracks, onImported
                     );
                   }
 
-                  if (!entry.isMp3) return null;
+                  if (!entry.isAudio && !entry.isMp3) return null;
 
-                  const alreadyLocal = existingFilenames.has(entry.name);
+                  const catalogName = catalogNameFromDropbox(entry.name);
+                  const alreadyLocal =
+                    existingFilenames.has(catalogName) || existingFilenames.has(entry.name);
                   const checked = selected.has(entry.path);
 
                   return (
@@ -163,7 +174,7 @@ export default function DropboxImportPanel({ dropbox, existingTracks, onImported
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={selectAllMp3} className="text-xs text-xdj-cyan hover:underline">
+            <button type="button" onClick={selectAllAudio} className="text-xs text-xdj-cyan hover:underline">
               בחר הכל
             </button>
             <button type="button" onClick={clearSelection} className="text-xs text-xdj-muted hover:underline">

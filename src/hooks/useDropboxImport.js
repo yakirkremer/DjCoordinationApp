@@ -148,9 +148,9 @@ export default function useDropboxImport() {
     });
   }, []);
 
-  const selectAllMp3 = useCallback(() => {
-    const mp3Paths = entries.filter((e) => !e.isFolder && e.isMp3).map((e) => e.path);
-    setSelected(new Set(mp3Paths));
+  const selectAllAudio = useCallback(() => {
+    const audioPaths = entries.filter((e) => !e.isFolder && (e.isAudio || e.isMp3)).map((e) => e.path);
+    setSelected(new Set(audioPaths));
   }, [entries]);
 
   const clearSelection = useCallback(() => {
@@ -207,7 +207,7 @@ export default function useDropboxImport() {
     openFolder,
     goUp,
     toggleSelect,
-    selectAllMp3,
+    selectAllAudio,
     clearSelection,
     importSelected,
     refreshFolder,

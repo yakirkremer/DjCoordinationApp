@@ -14,6 +14,7 @@ import TrackUploadPanel from "./components/TrackUploadPanel";
 import DropboxImportPanel from "./components/DropboxImportPanel";
 import TrackReloadButton from "./components/TrackReloadButton";
 import LanguageSwitcher from "./components/LanguageSwitcher";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 import AdminSettings from "./components/AdminSettings";
 import useTrackFeedback from "./hooks/useTrackFeedback";
 import useFormSchema from "./hooks/useFormSchema";
@@ -206,21 +207,34 @@ export default function DJPoolDemo() {
   const handleSelectVersion = useCallback(
     (trackId, versionId) => {
       setActiveVersionIds((prev) => ({ ...prev, [trackId]: versionId }));
+
       setTracks((prev) =>
         prev.map((t) => {
           if (t.id !== trackId) return t;
           return applyActiveVersion(ensureTrackVersions(t), versionId);
         })
       );
+
       setCurrentTrack((prev) => {
         if (prev?.id !== trackId) return prev;
-        const base = tracks.find((t) => t.id === trackId);
-        if (!base) return prev;
-        return normalizePreviewCue(applyActiveVersion(ensureTrackVersions(base), versionId));
+        const next = normalizePreviewCue(
+          applyActiveVersion(ensureTrackVersions(prev), versionId)
+        );
+        return next;
       });
-      setIsPlaying(false);
+
+      setCurrentTime((prevTime) => {
+        if (currentTrack?.id !== trackId) return prevTime;
+        const base = currentTrack;
+        const next = normalizePreviewCue(
+          applyActiveVersion(ensureTrackVersions(base), versionId)
+        );
+        return next.startTime ?? 0;
+      });
+
+      setIsPlaying((wasPlaying) => (currentTrack?.id === trackId ? true : wasPlaying));
     },
-    [tracks]
+    [currentTrack?.id]
   );
 
   const handleDeleteTrack = async (id) => {
@@ -560,6 +574,7 @@ export default function DJPoolDemo() {
         </div>
 
         <div className="flex flex-wrap gap-2 items-center justify-center">
+          <ThemeSwitcher className="max-w-full overflow-x-auto pb-1" />
           <LanguageSwitcher />
           {!isAdmin && activeClient && clientScreen !== "home" && (
             <button

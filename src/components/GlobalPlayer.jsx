@@ -322,7 +322,13 @@ export default function GlobalPlayer({
         }
       }
     };
-  }, [currentTrack?.id, currentTrack?.audioVersion, resolveTrackUrl]);
+  }, [
+    currentTrack?.id,
+    currentTrack?.activeVersionId,
+    currentTrack?.filename,
+    currentTrack?.audioVersion,
+    resolveTrackUrl,
+  ]);
 
   useEffect(() => {
     if (!wavesurferRef.current) return;

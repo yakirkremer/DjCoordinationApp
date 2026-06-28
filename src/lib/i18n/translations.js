@@ -16,6 +16,7 @@ const he = {
     continue: "המשך",
     dashboard: "לוח בקרה",
     language: "שפה",
+    theme: "עיצוב",
     theme: "ערכת עיצוב",
   },
   welcome: {
@@ -139,7 +140,7 @@ const he = {
     settingsSubtitle: "שפת ברירת מחדל וערכת עיצוב לכל המשתמשים",
     defaultLocale: "שפת ברירת מחדל",
     siteTheme: "ערכת עיצוב",
-    themeHint: "ניתן להוסיף ערכות נוספות בקוד — ראה src/lib/themes.js ו-index.css",
+    themeHint: "8 ערכות זמינות. המבקרים יכולים לבחור עיצוב בכותרת; כאן מגדירים ברירת מחדל לאתר.",
     saved: "ההגדרות נשמרו",
     colVersions: "גרסאות",
     versionsShort: "גרסאות",
@@ -187,6 +188,7 @@ const en = {
     continue: "Continue",
     dashboard: "Dashboard",
     language: "Language",
+    theme: "Theme",
     theme: "Theme",
   },
   welcome: {
@@ -311,7 +313,7 @@ const en = {
     settingsSubtitle: "Default language and theme for all visitors",
     defaultLocale: "Default language",
     siteTheme: "Site theme",
-    themeHint: "Add more themes in code — see src/lib/themes.js and index.css",
+    themeHint: "8 themes available. Visitors can pick a theme in the header; this sets the site default for first visit.",
     saved: "Settings saved",
     colVersions: "Versions",
     versionsShort: "ver.",

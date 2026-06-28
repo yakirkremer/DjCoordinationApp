@@ -106,12 +106,15 @@ function normalizeListEntry(entry) {
     };
   }
 
+  const lower = entry.name?.toLowerCase() ?? "";
+  const isAudio = lower.endsWith(".mp3") || lower.endsWith(".wav");
   return {
     name: entry.name,
     path: dropboxPath,
     isFolder: false,
     size: entry.size || 0,
-    isMp3: entry.name?.toLowerCase().endsWith(".mp3"),
+    isAudio,
+    isMp3: isAudio,
   };
 }
 

@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware, refreshDropboxToken } from "./server/dropboxImport.js";
+import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { publicFilesGuardPlugin } from "./server/publicFilesGuard.js";
 
 function dataApiPlugin() {
@@ -22,6 +23,7 @@ function dropboxImportPlugin(env) {
   const middleware = createDropboxImportMiddleware(() => refreshDropboxToken(env));
   const attach = (server) => {
     server.middlewares.use(middleware);
+    server.middlewares.use(createApiNotFoundMiddleware());
   };
   return {
     name: "dropbox-import-api",

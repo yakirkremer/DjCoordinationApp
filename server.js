@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
+import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { initStorage, STORAGE_ROOT } from "./server/storagePaths.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -78,6 +79,7 @@ async function serveStatic(req, res) {
 const dataApi = createDataApiMiddleware();
 const uploadMusic = createUploadMusicMiddleware();
 const dropboxImport = createDropboxImportMiddleware();
+const apiNotFound = createApiNotFoundMiddleware();
 
 const server = createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -92,7 +94,9 @@ const server = createServer((req, res) => {
   dataApi(req, res, () => {
     uploadMusic(req, res, () => {
       dropboxImport(req, res, () => {
-        serveStatic(req, res);
+        apiNotFound(req, res, () => {
+          serveStatic(req, res);
+        });
       });
     });
   });

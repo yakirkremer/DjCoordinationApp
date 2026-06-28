@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { THEMES } from "../lib/themes";
+import { THEMES, getThemeLabel } from "../lib/themes";
 import { LOCALE_LABELS, LOCALES } from "../lib/i18n/translations";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
@@ -13,7 +13,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const themeName = (theme) => (locale === "he" ? theme.nameHe : theme.nameEn);
+  const themeName = (theme) => getThemeLabel(theme, locale);
 
   const handleSave = async () => {
     setSaving(true);
@@ -54,7 +54,7 @@ export default function AdminSettings() {
 
         <div>
           <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.siteTheme")}</label>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
             {THEMES.map((theme) => (
               <button
                 key={theme.id}

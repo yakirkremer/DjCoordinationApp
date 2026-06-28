@@ -5,7 +5,7 @@ import {
   translate,
   writeStoredLocale,
 } from "./translations.js";
-import { applyTheme } from "../themes.js";
+import { applyTheme, readStoredTheme, setPersonalTheme, DEFAULT_THEME_ID } from "../themes.js";
 import { DEFAULT_APP_SETTINGS } from "../defaultAppSettings.js";
 import { fetchAppSettings, saveAppSettings } from "../api/dataApi.js";
 
@@ -15,6 +15,9 @@ export function AppSettingsProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULT_APP_SETTINGS);
   const [ready, setReady] = useState(false);
   const [locale, setLocaleState] = useState(() => readStoredLocale() ?? DEFAULT_APP_SETTINGS.defaultLocale);
+  const [personalTheme, setPersonalThemeState] = useState(() => readStoredTheme());
+
+  const activeTheme = personalTheme ?? settings.theme ?? DEFAULT_THEME_ID;
 
   useEffect(() => {
     let cancelled = false;
@@ -25,9 +28,8 @@ export function AppSettingsProvider({ children }) {
         const merged = { ...DEFAULT_APP_SETTINGS, ...(remote || {}) };
         setSettings(merged);
         setLocaleState((prev) => readStoredLocale() ?? merged.defaultLocale ?? "he");
-        applyTheme(merged.theme);
       } catch {
-        applyTheme(DEFAULT_APP_SETTINGS.theme);
+        /* use defaults */
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -43,21 +45,28 @@ export function AppSettingsProvider({ children }) {
   }, [locale]);
 
   useEffect(() => {
-    if (settings.theme) applyTheme(settings.theme);
-  }, [settings.theme]);
+    applyTheme(activeTheme);
+  }, [activeTheme]);
 
   const setLocale = useCallback((next) => {
     setLocaleState(next);
     writeStoredLocale(next);
   }, []);
 
+  const setTheme = useCallback((themeId) => {
+    const id = setPersonalTheme(themeId);
+    setPersonalThemeState(id);
+  }, []);
+
   const updateSettings = useCallback(async (patch) => {
     const next = { ...settings, ...patch };
     setSettings(next);
-    if (patch.theme) applyTheme(patch.theme);
+    if (patch.theme && !personalTheme) {
+      applyTheme(patch.theme);
+    }
     await saveAppSettings(next);
     return next;
-  }, [settings]);
+  }, [settings, personalTheme]);
 
   const t = useCallback((key, vars) => translate(locale, key, vars), [locale]);
   const dir = localeDir(locale);
@@ -70,11 +79,13 @@ export function AppSettingsProvider({ children }) {
       locale,
       setLocale,
       updateSettings,
+      activeTheme,
+      setTheme,
       t,
       dir,
       isRtl,
     }),
-    [ready, settings, locale, setLocale, updateSettings, t, dir, isRtl]
+    [ready, settings, locale, setLocale, updateSettings, activeTheme, setTheme, t, dir, isRtl]
   );
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;

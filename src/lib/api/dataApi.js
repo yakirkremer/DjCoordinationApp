@@ -4,12 +4,18 @@ async function request(path, options = {}) {
     ...options,
   });
 
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
+    const err = isJson ? await res.json().catch(() => ({})) : {};
     throw new Error(err.error || `Request failed (${res.status})`);
   }
 
   if (res.status === 204) return null;
+  if (!isJson) {
+    throw new Error("API returned non-JSON response — is the backend running?");
+  }
   return res.json();
 }
 

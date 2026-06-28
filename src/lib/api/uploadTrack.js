@@ -1,3 +1,16 @@
+async function parseApiJson(res, fallbackMessage) {
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson ? await res.json().catch(() => ({})) : {};
+  if (!res.ok) {
+    throw new Error(data.error || `${fallbackMessage} (${res.status})`);
+  }
+  if (!isJson) {
+    throw new Error("API returned non-JSON response — is the backend running?");
+  }
+  return data;
+}
+
 export async function uploadTrack({ file, bucket, title, artist }) {
   const form = new FormData();
   form.append("file", file);
@@ -10,11 +23,7 @@ export async function uploadTrack({ file, bucket, title, artist }) {
     body: form,
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Upload failed (${res.status})`);
-  }
-
+  const data = await parseApiJson(res, "Upload failed");
   return data.track;
 }
 
@@ -30,11 +39,7 @@ export async function addTrackVersion({ trackId, file, drop, remixer }) {
     body: form,
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Add version failed (${res.status})`);
-  }
-
+  const data = await parseApiJson(res, "Add version failed");
   return data.track;
 }
 
@@ -51,11 +56,7 @@ export async function reloadTrackFile({ trackId, versionId, file, bucket, filena
     body: form,
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Reload failed (${res.status})`);
-  }
-
+  const data = await parseApiJson(res, "Reload failed");
   return data.track;
 }
 
@@ -66,12 +67,7 @@ export async function deleteTrack(trackId) {
     body: JSON.stringify({ trackId }),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Delete failed (${res.status})`);
-  }
-
-  return data;
+  return parseApiJson(res, "Delete failed");
 }
 
 export async function deleteTrackVersion(trackId, versionId) {
@@ -81,11 +77,7 @@ export async function deleteTrackVersion(trackId, versionId) {
     body: JSON.stringify({ trackId, versionId }),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Delete version failed (${res.status})`);
-  }
-
+  const data = await parseApiJson(res, "Delete version failed");
   return data.track;
 }
 
@@ -96,10 +88,6 @@ export async function updateTrack(trackId, updates, versionId) {
     body: JSON.stringify({ trackId, updates, versionId }),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || `Update failed (${res.status})`);
-  }
-
+  const data = await parseApiJson(res, "Update failed");
   return data.track;
 }
