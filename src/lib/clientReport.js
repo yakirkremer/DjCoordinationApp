@@ -207,7 +207,8 @@ export function buildClientReportHtml(report, textBody) {
   <meta charset="utf-8" />
   <title>דוח — ${esc(report.client.name)}</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #eee; padding: 24px; line-height: 1.5; }
+    body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #111; color: #eee; padding: 24px; line-height: 1.5; }
+    code, pre { font-family: "JetBrains Mono", ui-monospace, monospace; }
     h1 { color: #c9a962; font-size: 1.4rem; }
     h2 { color: #00c8e8; font-size: 1rem; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 4px; }
     .meta { color: #999; font-size: 0.9rem; }

@@ -1,0 +1,19 @@
+/* Site typography — 2 families: Inter (UI) + JetBrains Mono (labels, timers, data) */
+
+:root {
+  --font-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+}
+
+body {
+  font-family: var(--font-ui);
+}
+
+.app-shell {
+  font-family: var(--font-ui);
+}
+
+/* “LCD” labels use mono + tracking — not a separate typeface */
+.font-lcd {
+  font-family: var(--font-mono);
+}

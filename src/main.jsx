@@ -21,11 +21,16 @@ import {
   DEFAULT_A11Y_PREFERENCES,
   readStoredAccessibility,
 } from './lib/accessibility.js'
+import {
+  applyBrowserRowSize,
+  DEFAULT_BROWSER_ROW_SIZE_ID,
+} from './lib/browserRowSize.js'
 
 applyTheme(readStoredTheme() ?? DEFAULT_THEME_ID)
 applyPlayerStyle(readStoredPlayerStyle() ?? DEFAULT_PLAYER_STYLE_ID)
 applyBrowserStyle(readStoredBrowserStyle() ?? DEFAULT_BROWSER_STYLE_ID)
 applyWaveformStyle(readStoredWaveformStyle() ?? DEFAULT_WAVEFORM_STYLE_ID)
+applyBrowserRowSize(DEFAULT_BROWSER_ROW_SIZE_ID)
 applyAccessibility(readStoredAccessibility() ?? DEFAULT_A11Y_PREFERENCES)
 
 createRoot(document.getElementById('root')).render(

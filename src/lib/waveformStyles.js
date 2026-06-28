@@ -106,8 +106,22 @@ function themeColors() {
 }
 
 /** Build WaveSurfer.create() options for a visual style. */
-export function getWaveSurferOptions(styleId, height = 88) {
-  const colors = themeColors();
+export function getWaveSurferOptions(styleId, height = 88, dropWaveColors = null) {
+  const theme = themeColors();
+  const colors = dropWaveColors
+    ? {
+        wave: dropWaveColors.waveUnplayed,
+        progress: dropWaveColors.wavePlayed,
+        accent: dropWaveColors.accent,
+        palette: dropWaveColors.rgbPalette,
+      }
+    : {
+        wave: theme.wave,
+        progress: theme.progress,
+        accent: theme.accent,
+        palette: null,
+      };
+
   const base = {
     responsive: true,
     height,
@@ -117,6 +131,15 @@ export function getWaveSurferOptions(styleId, height = 88) {
     waveColor: colors.wave,
     progressColor: colors.progress,
   };
+
+  const rgbPalette = colors.palette ?? undefined;
+  const rekordboxPalette = colors.palette
+    ? {
+        high: colors.palette.high,
+        mid: colors.palette.mid,
+        low: colors.palette.low,
+      }
+    : undefined;
 
   switch (styleId) {
     case "neon-bars":
@@ -149,7 +172,7 @@ export function getWaveSurferOptions(styleId, height = 88) {
         ...base,
         barWidth: 0,
         barGap: 0,
-        renderFunction: createRgbRenderFunction(),
+        renderFunction: createRgbRenderFunction(rgbPalette),
         waveColor: "#ffffff",
         progressColor: "#ffffff",
       };
@@ -159,7 +182,7 @@ export function getWaveSurferOptions(styleId, height = 88) {
         barWidth: 0,
         barGap: 0,
         normalize: true,
-        renderFunction: createRekordboxRenderFunction(),
+        renderFunction: createRekordboxRenderFunction(rekordboxPalette),
         waveColor: "#ffffff",
         progressColor: "#ffffff",
         cursorColor: "#ffffff",
@@ -270,7 +293,9 @@ export function analyzeRekordboxBands(samples, smoothWindow) {
 }
 
 /** Mirrored 3-layer Rekordbox waveform (blue → orange → cream). */
-export function createRekordboxRenderFunction(palette = REKORDBOX_PALETTE) {
+export function createRekordboxRenderFunction(palette) {
+  const colors = { ...REKORDBOX_PALETTE, ...(palette || {}) };
+
   return (channelData, ctx) => {
     const channel = Array.isArray(channelData) ? channelData[0] : channelData;
     if (!channel?.length) return;
@@ -298,13 +323,13 @@ export function createRekordboxRenderFunction(palette = REKORDBOX_PALETTE) {
       const midH = mid * maxHalf * 0.82;
       const lowH = low * maxHalf * 0.58;
 
-      ctx.fillStyle = palette.high;
+      ctx.fillStyle = colors.high;
       ctx.fillRect(x, centerY - highH, barW, highH * 2);
 
-      ctx.fillStyle = palette.mid;
+      ctx.fillStyle = colors.mid;
       ctx.fillRect(x, centerY - midH, barW, midH * 2);
 
-      ctx.fillStyle = palette.low;
+      ctx.fillStyle = colors.low;
       ctx.fillRect(x, centerY - lowH, barW, lowH * 2);
     }
   };

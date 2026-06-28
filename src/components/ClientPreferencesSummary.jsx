@@ -1,5 +1,5 @@
 import React from "react";
-import { ENERGY_LEVELS, EVENT_PHASES } from "../lib/preferences";
+import { EVENT_PHASES } from "../lib/preferences";
 import { getFieldValue } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
 import { getClientTypeLabel, normalizeClientType } from "../lib/clientTypes";
@@ -8,7 +8,6 @@ import WeddingTimelineSummary from "./WeddingTimelineSummary";
 export default function ClientPreferencesSummary({ preferences, formSchema, clientType }) {
   if (!preferences) return null;
 
-  const energy = ENERGY_LEVELS.find((l) => l.id === preferences.energyLevel);
   const questionSteps = filterStepsForClientType(
     (formSchema?.steps ?? []).filter((s) => s.stepType === "questions"),
     clientType
@@ -34,9 +33,6 @@ export default function ClientPreferencesSummary({ preferences, formSchema, clie
             📍 {preferences.eventLocation}
           </span>
         )}
-        <span className="text-xs bg-xdj-cyan/10 border border-xdj-cyan/30 rounded-sm px-3 py-1 text-xdj-cyan font-bold">
-          אנרגיה: {energy?.label ?? "—"}
-        </span>
         {!preferences.wizardCompleted && (
           <span className="text-xs bg-amber-950/50 border border-amber-800 rounded-sm px-3 py-1 text-amber-400">
             הטופס לא הושלם

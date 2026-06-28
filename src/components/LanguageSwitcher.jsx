@@ -6,7 +6,7 @@ export default function LanguageSwitcher({ className = "" }) {
   const { locale, setLocale, t } = useI18n();
 
   return (
-    <div className={`flex items-center gap-1 ${className}`} role="group" aria-label={t("common.language")}>
+    <div className={`language-switcher flex items-center gap-1 ${className}`} role="group" aria-label={t("common.language")}>
       {LOCALES.map((code) => (
         <button
           key={code}

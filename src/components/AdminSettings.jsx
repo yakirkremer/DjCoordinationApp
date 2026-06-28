@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import { THEMES, getThemeLabel } from "../lib/themes";
 import { PLAYER_STYLES, BROWSER_STYLES } from "../lib/designStyles";
 import { WAVEFORM_STYLES } from "../lib/waveformStyles";
+import {
+  BROWSER_ROW_SIZES,
+  DEFAULT_BROWSER_ROW_SIZE_ID,
+  getBrowserRowSizeDesc,
+  getBrowserRowSizeLabel,
+} from "../lib/browserRowSize";
 import DesignStylePicker from "./DesignStylePicker";
 import { LOCALE_LABELS, LOCALES } from "../lib/i18n/translations";
 import { normalizeGenres, sanitizeGenreName } from "../lib/categories";
@@ -29,6 +35,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
     theme: settings.theme,
     playerStyle: settings.playerStyle ?? "xdj-deck",
     browserStyle: settings.browserStyle ?? "xdj-hardware",
+    browserRowSize: settings.browserRowSize ?? DEFAULT_BROWSER_ROW_SIZE_ID,
     waveformStyle: settings.waveformStyle ?? "classic",
     genres: initGenreRows(settings.genres),
     dropTypes: normalizeDropTypes(settings.dropTypes),
@@ -153,6 +160,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
         theme: draft.theme,
         playerStyle: draft.playerStyle,
         browserStyle: draft.browserStyle,
+        browserRowSize: draft.browserRowSize,
         waveformStyle: draft.waveformStyle,
         genres,
         genreRenames,
@@ -254,6 +262,25 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
             locale={locale}
           />
           <p className="text-[10px] text-xdj-muted mt-2">{t("admin.browserStyleHint")}</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-xdj-text mb-2">{t("admin.browserRowSize")}</label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {BROWSER_ROW_SIZES.map((size) => (
+              <button
+                key={size.id}
+                type="button"
+                onClick={() => setDraft((d) => ({ ...d, browserRowSize: size.id }))}
+                className={`design-style-card text-start ${draft.browserRowSize === size.id ? "is-active" : ""}`}
+                aria-pressed={draft.browserRowSize === size.id}
+              >
+                <span className="design-style-card-name">{getBrowserRowSizeLabel(size, locale)}</span>
+                <span className="design-style-card-desc">{getBrowserRowSizeDesc(size, locale)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-xdj-muted mt-2">{t("admin.browserRowSizeHint")}</p>
         </div>
 
         <div>

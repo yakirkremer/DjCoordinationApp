@@ -1,4 +1,5 @@
 import { applyActiveVersion, ensureTrackVersions } from "./trackVersions.js";
+import { getGenreTrackOrder } from "./genreTrackOrder.js";
 
 /** Genres that also list tracks from other buckets when a version drop matches the genre name. */
 export const DROP_MIRROR_GENRES = ["Tomorrowland", "Techno", "Trance", "House"];
@@ -11,7 +12,7 @@ export function isDropMirrorGenre(genre, mirrorList = DROP_MIRROR_GENRES) {
   return mirrorList.some((g) => normGenreKey(g) === normGenreKey(genre));
 }
 
-export function getTracksForGenre(tracks, genre) {
+export function getTracksForGenre(tracks, genre, genreTrackOrders = {}) {
   const results = [];
   const seen = new Set();
   const genreKey = normGenreKey(genre);
@@ -52,8 +53,19 @@ export function getTracksForGenre(tracks, genre) {
     }
   }
 
+  const order = getGenreTrackOrder(genre, genreTrackOrders);
+  const orderIndex =
+    order.length > 0 ? Object.fromEntries(order.map((id, index) => [id, index])) : null;
+
   return results.sort((a, b) => {
     if (a.via !== b.via) return a.via === "bucket" ? -1 : 1;
+    if (orderIndex) {
+      const ai = orderIndex[a.track.id];
+      const bi = orderIndex[b.track.id];
+      if (ai !== undefined && bi !== undefined && ai !== bi) return ai - bi;
+      if (ai !== undefined && bi === undefined) return -1;
+      if (ai === undefined && bi !== undefined) return 1;
+    }
     return (a.track.title || "").localeCompare(b.track.title || "", "he");
   });
 }

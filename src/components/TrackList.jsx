@@ -13,6 +13,10 @@ import {
   countTracksForGenre,
   getTracksForGenre,
 } from "../lib/genreCatalog";
+import { sortTracksInGenre } from "../lib/genreTrackOrder";
+import { useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
+
+const REORDER_DRAG_TYPE = "application/x-dj-track-reorder-id";
 
 function resolveRowVersionId(track, entry, activeVersionIds) {
   if (entry?.lockVersion) return entry.versionId;
@@ -62,6 +66,10 @@ function TransportIcon({ type }) {
 export default function TrackList({
   tracks,
   genreTabs = null,
+  genreTrackOrders: genreTrackOrdersProp,
+  reorderMode = false,
+  savingReorderGenre = "",
+  onReorderTracks,
   currentTrack,
   activeVersionIds = {},
   onSelectVersion,
@@ -74,6 +82,8 @@ export default function TrackList({
   onRateTrack,
   onCommentChange,
 }) {
+  const { settings } = useAppSettingsContext();
+  const genreTrackOrders = genreTrackOrdersProp ?? settings.genreTrackOrders ?? {};
   const catalogMode = Array.isArray(genreTabs) && genreTabs.length > 0;
   const categoriesInTracks = catalogMode
     ? genreTabs
@@ -84,6 +94,8 @@ export default function TrackList({
   );
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dragTrackId, setDragTrackId] = useState(null);
+  const [dragOverTrackId, setDragOverTrackId] = useState(null);
   const categoriesKey = categoriesInTracks.join("|");
 
   useEffect(() => {
@@ -94,10 +106,13 @@ export default function TrackList({
 
   const genreEntries = useMemo(() => {
     if (!catalogMode || !activeTab) return [];
-    return getTracksForGenre(tracks, activeTab);
-  }, [catalogMode, tracks, activeTab]);
+    return getTracksForGenre(tracks, activeTab, genreTrackOrders);
+  }, [catalogMode, tracks, activeTab, genreTrackOrders]);
 
-  const folderTracks = tracks.filter((t) => t.bucket === activeTab);
+  const folderTracks = useMemo(() => {
+    const inFolder = tracks.filter((t) => t.bucket === activeTab);
+    return sortTracksInGenre(inFolder, activeTab, genreTrackOrders);
+  }, [tracks, activeTab, genreTrackOrders]);
   const query = searchQuery.trim().toLowerCase();
   const filteredTracks = query
     ? (catalogMode ? genreEntries : folderTracks).filter((item) => {
@@ -198,8 +213,39 @@ export default function TrackList({
     }
   };
 
+  const canReorderRow = (entry) => reorderMode && (!catalogMode || !entry?.lockVersion);
+
+  const handleReorderDragStart = (e, trackId, entry) => {
+    if (!canReorderRow(entry)) return;
+    e.dataTransfer.setData(REORDER_DRAG_TYPE, trackId);
+    e.dataTransfer.effectAllowed = "move";
+    setDragTrackId(trackId);
+  };
+
+  const handleReorderDragEnd = () => {
+    setDragTrackId(null);
+    setDragOverTrackId(null);
+  };
+
+  const handleReorderDragOver = (e, trackId, entry) => {
+    if (!reorderMode || !canReorderRow(entry)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverTrackId(trackId);
+  };
+
+  const handleReorderDrop = (e, targetTrackId, entry) => {
+    e.preventDefault();
+    if (!reorderMode || !canReorderRow(entry)) return;
+    const draggedId = e.dataTransfer.getData(REORDER_DRAG_TYPE);
+    setDragTrackId(null);
+    setDragOverTrackId(null);
+    if (!draggedId || draggedId === targetTrackId) return;
+    onReorderTracks?.(activeTab, draggedId, targetTrackId);
+  };
+
   const screenContent = (
-    <div className="xdj-az-browser xdj-az-browser-screen" dir="ltr">
+    <div className={`xdj-az-browser xdj-az-browser-screen ${reorderMode ? "is-reorder-mode" : ""}`} dir="ltr">
       <div className="xdj-az-toolbar">
         <div className="xdj-az-toolbar-left">
           <div className="xdj-az-breadcrumb">
@@ -220,6 +266,11 @@ export default function TrackList({
             />
           )}
           <span className="xdj-az-track-count">{filteredTracks.length} TRACKS</span>
+          {reorderMode ? (
+            <span className="xdj-az-reorder-hint text-[9px] text-xdj-cyan font-lcd tracking-wider">
+              {savingReorderGenre === activeTab ? "SAVING..." : "DRAG TO REORDER"}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -259,8 +310,14 @@ export default function TrackList({
             <div className="xdj-az-col xdj-az-col-title">TRACK TITLE</div>
             <div className="xdj-az-col xdj-az-col-artist hidden md:block">ARTIST</div>
             <div className="xdj-az-col xdj-az-col-time hidden sm:block">TIME</div>
-            <div className="xdj-az-col xdj-az-col-rate">RATE</div>
-            <div className="xdj-az-col xdj-az-col-note hidden lg:block">NOTE</div>
+            {!reorderMode ? (
+              <>
+                <div className="xdj-az-col xdj-az-col-rate">RATE</div>
+                <div className="xdj-az-col xdj-az-col-note hidden lg:block">NOTE</div>
+              </>
+            ) : (
+              <div className="xdj-az-col xdj-az-col-grip">ORDER</div>
+            )}
           </div>
 
           <div className="xdj-az-track-scroll">
@@ -348,7 +405,17 @@ export default function TrackList({
                 return (
                   <div
                     key={rowKey}
-                    className={`xdj-az-row ${isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""}`}
+                    className={`xdj-az-row ${isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""} ${
+                      dragOverTrackId === track.id ? "is-drag-over" : ""
+                    } ${dragTrackId === track.id ? "is-dragging" : ""} ${
+                      canReorderRow(entry) ? "is-reorderable" : ""
+                    }`}
+                    draggable={canReorderRow(entry)}
+                    onDragStart={(e) => handleReorderDragStart(e, track.id, entry)}
+                    onDragEnd={handleReorderDragEnd}
+                    onDragOver={(e) => handleReorderDragOver(e, track.id, entry)}
+                    onDragLeave={() => setDragOverTrackId((id) => (id === track.id ? null : id))}
+                    onDrop={(e) => handleReorderDrop(e, track.id, entry)}
                     onClick={() => selectRow(row)}
                   >
                     <div className="xdj-az-col xdj-az-col-no">
@@ -404,25 +471,39 @@ export default function TrackList({
                       </span>
                     </div>
 
-                    <div className="xdj-az-col xdj-az-col-rate" onClick={(e) => e.stopPropagation()}>
-                      <TrackFeedback
-                        rating={getTrackRating(ratings, track.id, versionId)}
-                        comment={getTrackComment(comments, track.id, versionId)}
-                        onRate={(value) => onRateTrack(track.id, value, versionId)}
-                        onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
-                        compact
-                      />
-                    </div>
+                    {!reorderMode ? (
+                      <>
+                        <div className="xdj-az-col xdj-az-col-rate" onClick={(e) => e.stopPropagation()}>
+                          <TrackFeedback
+                            rating={getTrackRating(ratings, track.id, versionId)}
+                            comment={getTrackComment(comments, track.id, versionId)}
+                            onRate={(value) => onRateTrack(track.id, value, versionId)}
+                            onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
+                            compact
+                          />
+                        </div>
 
-                    <div
-                      className="xdj-az-col xdj-az-col-note hidden lg:block"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <TrackCommentInput
-                        value={getTrackComment(comments, track.id, versionId)}
-                        onChange={(text) => onCommentChange(track.id, text, versionId)}
-                      />
-                    </div>
+                        <div
+                          className="xdj-az-col xdj-az-col-note hidden lg:block"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <TrackCommentInput
+                            value={getTrackComment(comments, track.id, versionId)}
+                            onChange={(text) => onCommentChange(track.id, text, versionId)}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="xdj-az-col xdj-az-col-grip">
+                        {canReorderRow(entry) ? (
+                          <span className="xdj-az-reorder-handle" title="Drag to reorder" aria-hidden>
+                            ⋮⋮
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-xdj-muted">—</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

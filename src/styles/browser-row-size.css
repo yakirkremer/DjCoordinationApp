@@ -1,0 +1,58 @@
+/* Browser row density — driven by --browser-* vars (set from browserRowSize.js) */
+
+:root {
+  --browser-row-h: 52px;
+  --browser-art-size: 44px;
+  --browser-preview-h: 30px;
+  --browser-col-art-w: 2.75rem;
+  --browser-col-preview-w: 6.5rem;
+  --browser-row-title-size: 0.84rem;
+  --browser-row-artist-size: 0.78rem;
+  --browser-row-pad-y: 0.35rem;
+  --browser-art-letter-size: 0.75rem;
+}
+
+.xdj-az-browser {
+  --az-row-h: var(--browser-row-h);
+  --az-art-size: var(--browser-art-size);
+  --az-preview-h: var(--browser-preview-h);
+  --az-col-art-w: var(--browser-col-art-w);
+  --az-col-preview-w: var(--browser-col-preview-w);
+}
+
+.xdj-az-row {
+  padding-block: var(--browser-row-pad-y);
+}
+
+.xdj-az-col-art {
+  width: var(--az-col-art-w);
+}
+
+.xdj-az-col-preview {
+  width: var(--az-col-preview-w);
+}
+
+.xdj-az-art {
+  width: var(--az-art-size);
+  height: var(--az-art-size);
+}
+
+.xdj-az-art-letter {
+  font-size: var(--browser-art-letter-size);
+}
+
+.xdj-az-preview-wave {
+  height: var(--az-preview-h);
+}
+
+.xdj-az-track-title {
+  font-size: var(--browser-row-title-size);
+}
+
+.xdj-az-track-artist {
+  font-size: var(--browser-row-artist-size);
+}
+
+.xdj-az-col-header {
+  padding-block: calc(var(--browser-row-pad-y) + 0.1rem);
+}

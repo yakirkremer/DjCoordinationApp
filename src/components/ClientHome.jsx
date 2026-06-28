@@ -56,7 +56,7 @@ export default function ClientHome({
       <div className="client-home-hero panel-luxury rounded-sm p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className="font-lcd text-[10px] tracking-[0.25em] text-xdj-cyan uppercase mb-1">
+            <p className="font-[system-ui,-apple-system,BlinkMacSystemFont,sans-serif] text-[10px] tracking-[0.25em] text-xdj-cyan uppercase mb-1">
               {t("home.dashboard")}
             </p>
             <h2 className="text-xl font-semibold text-xdj-gold">{t("home.hello", { name: client.name })}</h2>

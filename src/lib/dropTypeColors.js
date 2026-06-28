@@ -136,3 +136,57 @@ export function getDropTypeCssVars(drop, colorMap = {}) {
     "--drop-glow": colors.glow,
   };
 }
+
+/** Waveform + player accent colors derived from a drop type. */
+export function getDropWaveformColors(drop, colorMap = {}) {
+  const label = String(drop ?? "").trim();
+  const palette = getDropTypeColors(label, colorMap);
+  const border = palette.border;
+  const rgb = hexToRgb(border);
+
+  if (!rgb) {
+    return {
+      wavePlayed: "#2d9cff",
+      waveUnplayed: "#1e3a5f",
+      accent: "#ff5500",
+      accentDim: "rgba(255, 85, 0, 0.18)",
+      rgbPalette: null,
+    };
+  }
+
+  const unplayedRgb = mixRgb(rgb, { r: 8, g: 10, b: 18 }, 0.78);
+  const midRgb = mixRgb(rgb, { r: 255, g: 255, b: 255 }, 0.22);
+  const lowRgb = mixRgb(rgb, { r: 255, g: 255, b: 255 }, 0.68);
+
+  return {
+    wavePlayed: border,
+    waveUnplayed: `rgb(${unplayedRgb.r}, ${unplayedRgb.g}, ${unplayedRgb.b})`,
+    accent: border,
+    accentDim: palette.bg,
+    rgbPalette: {
+      high: border,
+      mid: `rgb(${midRgb.r}, ${midRgb.g}, ${midRgb.b})`,
+      low: `rgb(${lowRgb.r}, ${lowRgb.g}, ${lowRgb.b})`,
+    },
+  };
+}
+
+/** CSS variables for the player chrome tinted by active drop. */
+export function getDropPlayerCssVars(drop, colorMap = {}) {
+  const label = String(drop ?? "").trim();
+  if (!label) return {};
+
+  const dropVars = getDropTypeCssVars(label, colorMap);
+  const wave = getDropWaveformColors(label, colorMap);
+
+  return {
+    ...dropVars,
+    "--theme-wave-played": wave.wavePlayed,
+    "--theme-wave-unplayed": wave.waveUnplayed,
+    "--theme-accent": wave.accent,
+    "--theme-accent-dim": wave.accentDim,
+    "--az-orange": wave.accent,
+    "--az-blue": wave.wavePlayed,
+    "--az-blue-dim": wave.waveUnplayed,
+  };
+}

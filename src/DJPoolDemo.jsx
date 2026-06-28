@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import TrackList from "./components/TrackList";
 import AdminTable from "./components/AdminTable";
 import AdminGenreOrganizer from "./components/AdminGenreOrganizer";
+import AdminTrackOrderPreview from "./components/AdminTrackOrderPreview";
 import GlobalPlayer from "./components/GlobalPlayer";
 import CategorySelector from "./components/CategorySelector";
 import WelcomePage from "./components/WelcomePage";
@@ -616,6 +617,35 @@ export default function DJPoolDemo() {
             onTrackSaved={handleTrackSaved}
             onPreviewTrack={handleAdminPreviewTrack}
           />
+        </div>
+      );
+    }
+    if (adminTab === "order") {
+      return (
+        <div className="admin-order-layout flex flex-col flex-1 min-h-0 gap-3">
+          <div className="admin-catalog-player shrink-0">
+            {currentTrack && !currentTrack.isMissing ? (
+              <GlobalPlayer {...playerProps} />
+            ) : (
+              <div className="admin-catalog-player-empty panel-luxury p-4 text-center" dir={dir}>
+                <p className="font-lcd text-xs text-xdj-muted">{t("admin.previewEditor")}</p>
+                <p className="text-xs text-xdj-muted mt-1">{t("admin.trackOrderSelect")}</p>
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-h-0">
+            <AdminTrackOrderPreview
+              tracks={tracks}
+              genres={genres}
+              currentTrack={currentTrack}
+              activeVersionIds={activeVersionIds}
+              onSelectVersion={handleSelectVersion}
+              isPlaying={isPlaying}
+              onTrackSelect={handleTrackSelect}
+              formatTime={formatTime}
+              onPreviewTrack={handleAdminPreviewTrack}
+            />
+          </div>
         </div>
       );
     }

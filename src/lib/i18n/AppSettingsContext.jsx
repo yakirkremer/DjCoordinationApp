@@ -29,6 +29,11 @@ import {
   resetPersonalAccessibility,
   setPersonalAccessibility,
 } from "../accessibility.js";
+import {
+  applyBrowserRowSize,
+  DEFAULT_BROWSER_ROW_SIZE_ID,
+  getBrowserRowSizeById,
+} from "../browserRowSize.js";
 import { DEFAULT_APP_SETTINGS } from "../defaultAppSettings.js";
 import { normalizeDropTypes } from "../dropTypes.js";
 import { normalizeDropTypeColors } from "../dropTypeColors.js";
@@ -53,6 +58,8 @@ export function AppSettingsProvider({ children }) {
   const activePlayerStyle = personalPlayerStyle ?? settings.playerStyle ?? DEFAULT_PLAYER_STYLE_ID;
   const activeBrowserStyle = personalBrowserStyle ?? settings.browserStyle ?? DEFAULT_BROWSER_STYLE_ID;
   const activeWaveformStyle = personalWaveformStyle ?? settings.waveformStyle ?? DEFAULT_WAVEFORM_STYLE_ID;
+  const activeBrowserRowSize =
+    getBrowserRowSizeById(settings.browserRowSize ?? DEFAULT_BROWSER_ROW_SIZE_ID).id;
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +78,9 @@ export function AppSettingsProvider({ children }) {
             dropTypes,
             remote?.dropTypeColors ?? DEFAULT_APP_SETTINGS.dropTypeColors
           ),
+          browserRowSize: getBrowserRowSizeById(
+            remote?.browserRowSize ?? DEFAULT_APP_SETTINGS.browserRowSize
+          ).id,
         };
         setSettings(merged);
         setLocaleState((prev) => readStoredLocale() ?? merged.defaultLocale ?? "he");
@@ -105,6 +115,10 @@ export function AppSettingsProvider({ children }) {
   useEffect(() => {
     applyWaveformStyle(activeWaveformStyle);
   }, [activeWaveformStyle]);
+
+  useEffect(() => {
+    applyBrowserRowSize(activeBrowserRowSize);
+  }, [activeBrowserRowSize]);
 
   useEffect(() => {
     applyAccessibility(accessibility);
@@ -176,6 +190,9 @@ export function AppSettingsProvider({ children }) {
     }
     if (patch.waveformStyle && !personalWaveformStyle) {
       applyWaveformStyle(patch.waveformStyle);
+    }
+    if (patch.browserRowSize) {
+      applyBrowserRowSize(patch.browserRowSize);
     }
     await saveAppSettings({
       ...next,

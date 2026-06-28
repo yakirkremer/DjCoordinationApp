@@ -7,6 +7,8 @@ import DropTypeBadge from "./DropTypeBadge";
 import { normalizePreviewCue, isWithinPreviewCue, MIN_PREVIEW_LENGTH, computeLinkedCue } from "../lib/previewCue";
 import { getTrackSourceSummary } from "../lib/trackSource";
 import { getWaveSurferOptions } from "../lib/waveformStyles";
+import { getDropPlayerCssVars, getDropWaveformColors } from "../lib/dropTypeColors";
+import { useDropColors } from "../hooks/useDropColors";
 import { useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
 
 const PLAYER_EXPAND_KEY = "kramer-player-expanded";
@@ -47,6 +49,7 @@ export default function GlobalPlayer({
   onPlaybackFailed,
 }) {
   const { activeWaveformStyle, activeTheme } = useAppSettingsContext();
+  const { colorMap } = useDropColors();
   const waveformRef = useRef(null);
   const waveCanvasRef = useRef(null);
   const wavesurferRef = useRef(null);
@@ -118,6 +121,16 @@ export default function GlobalPlayer({
   const cueInPct = duration > 0 ? (cue.startTime / duration) * 100 : 0;
   const cueOutPct = duration > 0 ? (cue.endTime / duration) * 100 : 100;
   const playheadPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const activeDrop = currentTrack?.drop?.trim() || "";
+  const dropPlayerStyle = useMemo(
+    () => (activeDrop ? getDropPlayerCssVars(activeDrop, colorMap) : {}),
+    [activeDrop, colorMap]
+  );
+  const dropWaveColors = useMemo(
+    () => (activeDrop ? getDropWaveformColors(activeDrop, colorMap) : null),
+    [activeDrop, colorMap]
+  );
 
   const seekToCueIn = useCallback(
     (ws) => {
@@ -253,7 +266,7 @@ export default function GlobalPlayer({
 
       wavesurferRef.current = WaveSurfer.create({
         container: waveformRef.current,
-        ...getWaveSurferOptions(activeWaveformStyle, 88),
+        ...getWaveSurferOptions(activeWaveformStyle, 88, dropWaveColors),
       });
 
       wavesurferRef.current.on("ready", () => {
@@ -321,11 +334,13 @@ export default function GlobalPlayer({
   }, [
     currentTrack?.id,
     currentTrack?.activeVersionId,
+    currentTrack?.drop,
     currentTrack?.filename,
     currentTrack?.audioVersion,
     resolveTrackUrl,
     activeWaveformStyle,
     activeTheme,
+    dropWaveColors,
   ]);
 
   useEffect(() => {
@@ -347,7 +362,8 @@ export default function GlobalPlayer({
     <div
       className={`xdj-az-player shrink-0 ${isPlaying ? "is-playing" : ""} ${embedded ? "is-embedded" : ""} ${
         useMiniPlayer ? (expanded ? "is-expanded" : "is-collapsed") : ""
-      }`}
+      } ${activeDrop ? "has-drop-theme" : ""}`}
+      style={dropPlayerStyle}
       dir="ltr"
     >
       {useMiniPlayer && (
