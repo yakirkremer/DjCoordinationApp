@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import ClientLogin from "./ClientLogin";
+import AdminLogin from "./AdminLogin";
 import LanguageSwitcher from "./LanguageSwitcher";
 import EditableText from "./EditableText";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide, onOpenTutorial }) {
   const [showClientLogin, setShowClientLogin] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const { dir } = useI18n();
 
   return (
@@ -28,7 +30,24 @@ export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide, onOpen
       </div>
 
       <div className="welcome-actions w-full max-w-md flex flex-col gap-4">
-        {!showClientLogin ? (
+        {showAdminLogin ? (
+          <div className="welcome-login-wrap" dir={dir}>
+            <AdminLogin
+              onLogin={async (password) => {
+                const ok = await onEnterAdmin(password);
+                if (ok) setShowAdminLogin(false);
+                return ok;
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowAdminLogin(false)}
+              className="w-full mt-3 text-xs text-xdj-muted hover:text-xdj-text py-2"
+            >
+              <EditableText k="common.back" />
+            </button>
+          </div>
+        ) : !showClientLogin ? (
           <>
             <button
               type="button"
@@ -46,7 +65,7 @@ export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide, onOpen
             </div>
             <button
               type="button"
-              onClick={onEnterAdmin}
+              onClick={() => setShowAdminLogin(true)}
               className="btn-luxury px-6 py-4 rounded-sm text-sm tracking-wider min-h-[52px]"
             >
               <EditableText k="welcome.adminLogin" />
@@ -69,8 +88,8 @@ export default function WelcomePage({ onLogin, onEnterAdmin, onOpenGuide, onOpen
         ) : (
           <div className="welcome-login-wrap" dir={dir}>
             <ClientLogin
-              onLogin={(code) => {
-                const ok = onLogin(code);
+              onLogin={async (code) => {
+                const ok = await onLogin(code);
                 if (ok) setShowClientLogin(false);
                 return ok;
               }}

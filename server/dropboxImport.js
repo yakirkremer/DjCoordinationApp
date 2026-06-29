@@ -1,4 +1,5 @@
 import { sendJson } from "./dataStore.js";
+import { isAdminSession, parseRequestSession } from "./auth.js";
 import { saveTrackToCatalog } from "./catalogMusic.js";
 
 let cachedAccessToken = null;
@@ -196,6 +197,13 @@ export function createDropboxImportMiddleware(getAccessToken = () => refreshDrop
     if (req.method !== "POST") {
       next();
       return;
+    }
+
+    if (url.pathname === "/api/dropbox/list" || url.pathname === "/api/dropbox/import") {
+      if (!isAdminSession(parseRequestSession(req))) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return;
+      }
     }
 
     if (url.pathname === "/api/dropbox/list") {

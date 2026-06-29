@@ -7,13 +7,13 @@ export default function ClientLogin({ onLogin }) {
   const [error, setError] = useState("");
   const { t, dir } = useI18n();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!loginCode.trim()) {
       setError(t("login.codeRequired"));
       return;
     }
-    const success = onLogin(loginCode);
+    const success = await onLogin(loginCode);
     if (!success) {
       setError(t("login.codeInvalid"));
     }

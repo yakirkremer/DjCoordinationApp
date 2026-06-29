@@ -5,11 +5,14 @@ import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware, refreshDropboxToken } from "./server/dropboxImport.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
+import { createAuthApiMiddleware } from "./server/authApi.js";
+import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { publicFilesGuardPlugin } from "./server/publicFilesGuard.js";
 
 function dataApiPlugin() {
   const attach = (server) => {
+    server.middlewares.use(createAuthApiMiddleware());
     server.middlewares.use(createDataApiMiddleware());
     server.middlewares.use(createUploadMusicMiddleware());
     server.middlewares.use(createArtworkApiMiddleware());
@@ -26,6 +29,7 @@ function dropboxImportPlugin(env) {
   const attach = (server) => {
     server.middlewares.use(middleware);
     server.middlewares.use(createApiNotFoundMiddleware());
+    server.middlewares.use(createMediaAuthMiddleware());
   };
   return {
     name: "dropbox-import-api",

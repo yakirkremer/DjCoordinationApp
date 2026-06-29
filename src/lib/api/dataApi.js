@@ -1,5 +1,6 @@
 async function request(path, options = {}) {
   const res = await fetch(`/api/data/${path}`, {
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...options.headers },
     ...options,
   });

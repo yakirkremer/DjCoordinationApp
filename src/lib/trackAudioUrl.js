@@ -38,7 +38,7 @@ export async function verifyLocalTrack(track) {
     const timeout = setTimeout(() => controller.abort(), 8000);
 
     const probe = async (init) => {
-      const response = await fetch(url, { ...init, signal: controller.signal });
+      const response = await fetch(url, { ...init, credentials: "include", signal: controller.signal });
       const contentType = response.headers.get("content-type") || "";
       const validType = isAudioContentType(contentType);
       const okStatus = response.ok || response.status === 206;

@@ -29,6 +29,10 @@ services:
         sync: false
       - key: DROPBOX_REFRESH_TOKEN
         sync: false
+      - key: ADMIN_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
 
 # Persistent disk layout (on Render):
 #   /var/data/music/{category}/analyzed/*.mp3

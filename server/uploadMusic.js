@@ -1,6 +1,16 @@
 import { parseMultipart, readRequestBody } from "./parseMultipart.js";
 import { sendJson } from "./dataStore.js";
+import { isAdminSession, parseRequestSession } from "./auth.js";
 import { saveTrackToCatalog, reloadTrackFile, deleteTrackFromCatalog, updateTrackInCatalog, addVersionToTrack, deleteVersionFromCatalog } from "./catalogMusic.js";
+
+function requireAdmin(req, res) {
+  const session = parseRequestSession(req);
+  if (!isAdminSession(session)) {
+    sendJson(res, 403, { error: "Admin access required" });
+    return false;
+  }
+  return true;
+}
 
 export async function handleMusicUpload(req, res) {
   const contentType = req.headers["content-type"] || "";
@@ -228,6 +238,7 @@ export function createUploadMusicMiddleware() {
   return (req, res, next) => {
     const url = new URL(req.url, "http://localhost");
     if (req.method === "POST" && url.pathname === "/api/music/upload") {
+      if (!requireAdmin(req, res)) return;
       handleMusicUpload(req, res).catch((err) => {
         console.error("Upload failed:", err);
         sendJson(res, 500, { error: err.message || "Upload failed" });
@@ -235,6 +246,7 @@ export function createUploadMusicMiddleware() {
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/music/reload") {
+      if (!requireAdmin(req, res)) return;
       handleMusicReload(req, res).catch((err) => {
         console.error("Reload failed:", err);
         sendJson(res, 500, { error: err.message || "Reload failed" });
@@ -242,6 +254,7 @@ export function createUploadMusicMiddleware() {
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/music/delete") {
+      if (!requireAdmin(req, res)) return;
       handleMusicDelete(req, res).catch((err) => {
         console.error("Delete failed:", err);
         sendJson(res, 500, { error: err.message || "Delete failed" });
@@ -249,6 +262,7 @@ export function createUploadMusicMiddleware() {
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/music/update") {
+      if (!requireAdmin(req, res)) return;
       handleMusicUpdate(req, res).catch((err) => {
         console.error("Update failed:", err);
         sendJson(res, 500, { error: err.message || "Update failed" });
@@ -256,6 +270,7 @@ export function createUploadMusicMiddleware() {
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/music/add-version") {
+      if (!requireAdmin(req, res)) return;
       handleMusicAddVersion(req, res).catch((err) => {
         console.error("Add version failed:", err);
         sendJson(res, 500, { error: err.message || "Add version failed" });
@@ -263,6 +278,7 @@ export function createUploadMusicMiddleware() {
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/music/delete-version") {
+      if (!requireAdmin(req, res)) return;
       handleMusicDeleteVersion(req, res).catch((err) => {
         console.error("Delete version failed:", err);
         sendJson(res, 500, { error: err.message || "Delete version failed" });

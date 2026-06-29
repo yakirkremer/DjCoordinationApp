@@ -36,6 +36,7 @@ import { deleteTrack } from "./lib/api/uploadTrack";
 import { countMissingTracks } from "./lib/trackSource";
 import useAudioPreload from "./hooks/useAudioPreload";
 import { fetchCatalog, saveCatalog } from "./lib/api/dataApi";
+import { fetchSession, loginAdmin, logoutSession } from "./lib/api/auth";
 import { useI18n } from "./lib/i18n/AppSettingsContext";
 import {
   applyActiveVersion,
@@ -46,7 +47,7 @@ import {
 export default function DJPoolDemo() {
   const { t, dir } = useI18n();
   const [tracks, setTracks] = useState([]);
-  const [catalogStatus, setCatalogStatus] = useState("loading");
+  const [catalogStatus, setCatalogStatus] = useState("idle");
   const [catalogError, setCatalogError] = useState(null);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -58,7 +59,7 @@ export default function DJPoolDemo() {
 
   const genres = useGenres();
 
-  const { clients, activeClient, createClient, deleteClient, login, logout, ready: clientsReady } = useClients();
+  const { clients, activeClient, createClient, deleteClient, login, logout, ready: clientsReady, bootstrapAdmin } = useClients();
   const {
     ratings,
     comments,
@@ -94,7 +95,9 @@ export default function DJPoolDemo() {
     [activeVersionIds]
   );
 
-  const appReady = clientsReady && formReady && catalogStatus === "ready";
+  const catalogNeeded = isAdmin || Boolean(activeClient);
+  const catalogOk = !catalogNeeded || catalogStatus === "ready" || catalogStatus === "error";
+  const appReady = clientsReady && formReady && catalogOk;
   const coupleReady = !activeClient || feedbackReady;
 
   const resolveTrackUrl = useCallback((track) => resolveTrackAudioUrl(track), []);
@@ -105,6 +108,11 @@ export default function DJPoolDemo() {
   useAudioPreload(tracks, currentTrack?.id ?? null, canPreload);
 
   useEffect(() => {
+    if (!isAdmin && !activeClient) {
+      setCatalogStatus("idle");
+      return undefined;
+    }
+
     let cancelled = false;
 
     async function loadCatalog() {
@@ -112,15 +120,7 @@ export default function DJPoolDemo() {
       setCatalogError(null);
 
       try {
-        let data;
-        try {
-          data = await fetchCatalog();
-        } catch {
-          const res = await fetch("/data/catalog.json");
-          if (!res.ok) throw new Error(`Catalog not found (${res.status})`);
-          data = await res.json();
-        }
-
+        const data = await fetchCatalog();
         const verifiedTracks = await verifyTracks(
           data.map((track) => normalizePreviewCue(ensureTrackVersions(track)))
         );
@@ -143,7 +143,17 @@ export default function DJPoolDemo() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAdmin, activeClient?.id]);
+
+  useEffect(() => {
+    fetchSession()
+      .then((session) => {
+        if (session.authenticated && session.role === "admin") {
+          bootstrapAdmin().then(() => setIsAdmin(true));
+        }
+      })
+      .catch(() => {});
+  }, [bootstrapAdmin]);
 
   const persistCatalog = useCallback((nextTracks) => {
     clearTimeout(catalogSaveTimer.current);
@@ -500,22 +510,38 @@ export default function DJPoolDemo() {
     }
   }, [isAdminCatalog, catalogStatus, tracks, currentTrack]);
 
-  const handleEnterAdmin = useCallback(() => {
-    setIsAdmin(true);
-    setClientScreen("home");
-  }, []);
+  const handleEnterAdmin = useCallback(
+    async (password) => {
+      try {
+        await loginAdmin(password);
+        await bootstrapAdmin();
+        setIsAdmin(true);
+        setClientScreen("home");
+        setGuestView("welcome");
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [bootstrapAdmin]
+  );
 
   const handleExitAdmin = useCallback(() => {
+    logoutSession().catch(() => {});
     setIsAdmin(false);
     setAdminTab("catalog");
+    setTracks([]);
+    setCurrentTrack(null);
+    setCatalogStatus("idle");
   }, []);
 
   const handleClientLogin = useCallback(
-    (code) => {
-      const ok = login(code);
+    async (code) => {
+      const ok = await login(code);
       if (ok) {
         setClientScreen("home");
         setIsAdmin(false);
+        setGuestView("welcome");
       }
       return ok;
     },
@@ -527,6 +553,9 @@ export default function DJPoolDemo() {
     setClientScreen("home");
     setIsAdmin(false);
     setIsPlaying(false);
+    setTracks([]);
+    setCurrentTrack(null);
+    setCatalogStatus("idle");
   }, [logout]);
 
   const handleWizardComplete = useCallback(() => {

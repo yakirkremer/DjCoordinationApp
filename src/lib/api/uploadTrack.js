@@ -20,6 +20,7 @@ export async function uploadTrack({ file, bucket, title, artist }) {
 
   const res = await fetch("/api/music/upload", {
     method: "POST",
+    credentials: "include",
     body: form,
   });
 
@@ -36,6 +37,7 @@ export async function addTrackVersion({ trackId, file, drop }) {
 
   const res = await fetch("/api/music/add-version", {
     method: "POST",
+    credentials: "include",
     body: form,
   });
 
@@ -53,6 +55,7 @@ export async function reloadTrackFile({ trackId, versionId, file, bucket, filena
 
   const res = await fetch("/api/music/reload", {
     method: "POST",
+    credentials: "include",
     body: form,
   });
 
@@ -63,6 +66,7 @@ export async function reloadTrackFile({ trackId, versionId, file, bucket, filena
 export async function deleteTrack(trackId) {
   const res = await fetch("/api/music/delete", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ trackId }),
   });
@@ -73,6 +77,7 @@ export async function deleteTrack(trackId) {
 export async function deleteTrackVersion(trackId, versionId) {
   const res = await fetch("/api/music/delete-version", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ trackId, versionId }),
   });
@@ -88,6 +93,7 @@ export async function reorderTrackVersions(trackId, versionOrder) {
 export async function updateTrack(trackId, updates, versionId) {
   const res = await fetch("/api/music/update", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ trackId, updates, versionId }),
   });

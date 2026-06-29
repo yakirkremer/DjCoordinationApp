@@ -10,36 +10,16 @@ import {
   saveClients as saveClientsApi,
   deleteFeedback,
 } from "../lib/api/dataApi";
+import { fetchSession, loginClient, logoutSession } from "../lib/api/auth";
 import { migrateLocalStorageToServer, shouldMigrateLocalStorage } from "../lib/migrateLocalStorage";
 import * as dataApi from "../lib/api/dataApi";
 
-const ACTIVE_CLIENT_KEY = "kremer-music-active-client-v1";
-
-function loadActiveClientId() {
-  try {
-    return localStorage.getItem(ACTIVE_CLIENT_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function saveActiveClientId(clientId) {
-  try {
-    if (clientId) {
-      localStorage.setItem(ACTIVE_CLIENT_KEY, clientId);
-    } else {
-      localStorage.removeItem(ACTIVE_CLIENT_KEY);
-    }
-  } catch {
-    /* session stays per-browser */
-  }
-}
-
 export default function useClients() {
   const [clients, setClients] = useState([]);
+  const [activeClient, setActiveClient] = useState(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(null);
-  const [activeClientId, setActiveClientId] = useState(() => loadActiveClientId());
+  const [clientsLoaded, setClientsLoaded] = useState(false);
   const saveTimer = useRef(null);
 
   useEffect(() => {
@@ -47,19 +27,14 @@ export default function useClients() {
 
     (async () => {
       try {
-        if (shouldMigrateLocalStorage()) {
-          await migrateLocalStorageToServer(dataApi);
+        const session = await fetchSession();
+        if (!cancelled && session.authenticated && session.role === "client" && session.client) {
+          setActiveClient(normalizeClient(session.client));
         }
-        const data = await fetchClients();
-        if (!cancelled) {
-          setClients(Array.isArray(data) ? data.map(normalizeClient) : []);
-          setReady(true);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err.message);
-          setReady(true);
-        }
+      } catch {
+        /* welcome screen works without session */
+      } finally {
+        if (!cancelled) setReady(true);
       }
     })();
 
@@ -68,8 +43,17 @@ export default function useClients() {
     };
   }, []);
 
+  const ensureClientsLoaded = useCallback(async () => {
+    if (clientsLoaded) return clients;
+    const data = await fetchClients();
+    const normalized = Array.isArray(data) ? data.map(normalizeClient) : [];
+    setClients(normalized);
+    setClientsLoaded(true);
+    return normalized;
+  }, [clients, clientsLoaded]);
+
   useEffect(() => {
-    if (!ready) return;
+    if (!clientsLoaded) return;
 
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -80,20 +64,7 @@ export default function useClients() {
     }, 250);
 
     return () => clearTimeout(saveTimer.current);
-  }, [clients, ready]);
-
-  useEffect(() => {
-    saveActiveClientId(activeClientId);
-  }, [activeClientId]);
-
-  const activeClient = clients.find((c) => c.id === activeClientId) ?? null;
-
-  useEffect(() => {
-    if (!ready) return;
-    if (activeClientId && !activeClient) {
-      setActiveClientId(null);
-    }
-  }, [ready, activeClientId, activeClient]);
+  }, [clients, clientsLoaded]);
 
   const createClient = useCallback(
     (name, loginCode, clientType = DEFAULT_CLIENT_TYPE) => {
@@ -121,37 +92,49 @@ export default function useClients() {
   const deleteClient = useCallback(
     (id) => {
       setClients((prev) => prev.filter((c) => c.id !== id));
-      if (activeClientId === id) {
-        setActiveClientId(null);
+      if (activeClient?.id === id) {
+        setActiveClient(null);
+        logoutSession().catch(() => {});
       }
       deleteFeedback(id).catch((err) => console.error("Failed to delete client feedback:", err));
     },
-    [activeClientId]
+    [activeClient?.id]
   );
 
-  const login = useCallback(
-    (loginCode) => {
-      const code = loginCode.trim().toUpperCase();
-      const client = clients.find((c) => c.loginCode === code);
-      if (!client) return false;
-      setActiveClientId(client.id);
+  const login = useCallback(async (loginCode) => {
+    try {
+      const result = await loginClient(loginCode);
+      if (!result?.client) return false;
+      setActiveClient(normalizeClient(result.client));
       return true;
-    },
-    [clients]
-  );
+    } catch {
+      return false;
+    }
+  }, []);
 
   const logout = useCallback(() => {
-    setActiveClientId(null);
+    setActiveClient(null);
+    logoutSession().catch(() => {});
   }, []);
+
+  const bootstrapAdmin = useCallback(async () => {
+    if (shouldMigrateLocalStorage()) {
+      await migrateLocalStorageToServer(dataApi);
+    }
+    await ensureClientsLoaded();
+  }, [ensureClientsLoaded]);
 
   return {
     clients,
     activeClient,
     ready,
     error,
+    clientsLoaded,
     createClient,
     deleteClient,
     login,
     logout,
+    ensureClientsLoaded,
+    bootstrapAdmin,
   };
 }

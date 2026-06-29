@@ -1,18 +1,20 @@
 import fs from "fs";
 import path from "path";
-
-function isUnderRoot(filePath, root) {
-  const normalizedRoot = path.resolve(root);
-  const normalizedFile = path.resolve(filePath);
-  return normalizedFile === normalizedRoot || normalizedFile.startsWith(`${normalizedRoot}${path.sep}`);
-}
+import { isUnderRoot } from "./pathSafety.js";
 
 export function createPublicFilesGuard({ publicRoot, distRoot = null } = {}) {
   const root = publicRoot || path.join(process.cwd(), "public");
 
   return (req, res, next) => {
     const raw = req.url?.split("?")[0] || "";
-    if (!raw.startsWith("/music/") && !raw.startsWith("/data/")) {
+
+    if (raw.startsWith("/data/")) {
+      res.statusCode = 403;
+      res.end("Forbidden");
+      return;
+    }
+
+    if (!raw.startsWith("/music/")) {
       next();
       return;
     }

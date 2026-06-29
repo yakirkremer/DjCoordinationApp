@@ -14,6 +14,7 @@ async function parseApiJson(res, fallbackMessage) {
 export async function fetchCatalogArtwork({ force = false, trackId = null } = {}) {
   const res = await fetch("/api/admin/fetch-artwork", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ force, ...(trackId ? { trackId } : {}) }),
   });

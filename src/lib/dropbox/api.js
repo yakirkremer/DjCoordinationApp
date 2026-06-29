@@ -100,6 +100,7 @@ export async function listDropboxFolder(path = "") {
 
   const res = await fetch("/api/dropbox/list", {
     method: "POST",
+    credentials: "include",
     headers,
     body: JSON.stringify({ path }),
   });
@@ -116,6 +117,7 @@ export async function importFromDropbox(paths, bucket) {
 
   const res = await fetch("/api/dropbox/import", {
     method: "POST",
+    credentials: "include",
     headers,
     body: JSON.stringify({ paths, bucket }),
   });
@@ -128,6 +130,7 @@ export async function importFromDropbox(paths, bucket) {
 export async function probeDropboxServer() {
   const res = await fetch("/api/dropbox/list", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path: "" }),
   });

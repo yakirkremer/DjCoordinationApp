@@ -61,6 +61,14 @@ const he = {
     submit: "כניסה",
     placeholder: "ACCESS CODE",
   },
+  adminLogin: {
+    title: "כניסת מנהל",
+    subtitle: "הזינו את סיסמת הניהול כדי לגשת לקטלוג וללקוחות",
+    passwordRequired: "יש להזין סיסמה",
+    passwordInvalid: "סיסמה שגויה",
+    submit: "כניסה למערכת ניהול",
+    placeholder: "סיסמת מנהל",
+  },
   header: {
     adminSubtitle: "מערכת ניהול קטלוג ולקוחות",
     guestSubtitle: "מערכת חכמה לתיאום המוזיקה לחתונה שלכם",
@@ -542,6 +550,14 @@ const en = {
     codeInvalid: "Invalid code. Check with your DJ.",
     submit: "Sign in",
     placeholder: "ACCESS CODE",
+  },
+  adminLogin: {
+    title: "Admin sign-in",
+    subtitle: "Enter the admin password to manage catalog and clients",
+    passwordRequired: "Please enter a password",
+    passwordInvalid: "Invalid password",
+    submit: "Enter admin",
+    placeholder: "Admin password",
   },
   header: {
     adminSubtitle: "Catalog & client management",

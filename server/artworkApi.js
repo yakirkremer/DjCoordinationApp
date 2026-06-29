@@ -1,4 +1,5 @@
 import { sendJson } from "./dataStore.js";
+import { isAdminSession, parseRequestSession } from "./auth.js";
 import { fetchArtworkForCatalog, fetchArtworkForTrack } from "./artworkFetch.js";
 
 function readJsonBody(req) {
@@ -47,6 +48,10 @@ export function createArtworkApiMiddleware() {
   return (req, res, next) => {
     const url = new URL(req.url, "http://localhost");
     if (url.pathname === "/api/admin/fetch-artwork" && req.method === "POST") {
+      if (!isAdminSession(parseRequestSession(req))) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return;
+      }
       handleFetchArtwork(req, res);
       return;
     }

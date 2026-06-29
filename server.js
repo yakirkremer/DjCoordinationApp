@@ -7,6 +7,10 @@ import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
+import { createAuthApiMiddleware } from "./server/authApi.js";
+import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
+import { assertProductionSecrets } from "./server/auth.js";
+import { safePathUnderRoot } from "./server/pathSafety.js";
 import { initStorage, STORAGE_ROOT } from "./server/storagePaths.js";
 import { ensureAllGenreDirs, readGenreList } from "./server/genreStorage.js";
 
@@ -29,32 +33,42 @@ const MIME = {
 
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  let pathname = decodeURIComponent(url.pathname);
+  const pathname = decodeURIComponent(url.pathname);
 
-  if (pathname.startsWith("/music/") || pathname.startsWith("/data/")) {
-    const filePath = path.join(STORAGE_ROOT, pathname);
-    if (filePath.startsWith(STORAGE_ROOT)) {
-      try {
-        const data = await readFile(filePath);
-        const ext = path.extname(filePath).toLowerCase();
-        res.setHeader("Content-Type", MIME[ext] || "application/octet-stream");
-        if (ext === ".mp3") {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-          res.setHeader("Accept-Ranges", "bytes");
-        }
-        res.end(data);
-        return;
-      } catch {
-        res.statusCode = 404;
-        res.end("Not found");
-        return;
+  if (pathname.startsWith("/data/")) {
+    res.statusCode = 403;
+    res.end("Forbidden");
+    return;
+  }
+
+  if (pathname.startsWith("/music/")) {
+    const filePath = safePathUnderRoot(STORAGE_ROOT, pathname);
+    if (!filePath) {
+      res.statusCode = 403;
+      res.end("Forbidden");
+      return;
+    }
+    try {
+      const data = await readFile(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      res.setHeader("Content-Type", MIME[ext] || "application/octet-stream");
+      if (ext === ".mp3") {
+        res.setHeader("Cache-Control", "private, max-age=3600");
+        res.setHeader("Accept-Ranges", "bytes");
       }
+      res.end(data);
+      return;
+    } catch {
+      res.statusCode = 404;
+      res.end("Not found");
+      return;
     }
   }
 
-  if (pathname === "/") pathname = "/index.html";
+  let spaPath = pathname;
+  if (spaPath === "/") spaPath = "/index.html";
 
-  const filePath = path.join(DIST, pathname);
+  const filePath = path.join(DIST, spaPath);
   if (!filePath.startsWith(DIST)) {
     res.statusCode = 403;
     res.end("Forbidden");
@@ -82,6 +96,8 @@ const dataApi = createDataApiMiddleware();
 const uploadMusic = createUploadMusicMiddleware();
 const dropboxImport = createDropboxImportMiddleware();
 const artworkApi = createArtworkApiMiddleware();
+const authApi = createAuthApiMiddleware();
+const mediaAuth = createMediaAuthMiddleware();
 const apiNotFound = createApiNotFoundMiddleware();
 
 const server = createServer((req, res) => {
@@ -90,16 +106,20 @@ const server = createServer((req, res) => {
   if (url.pathname === "/health") {
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: true, storageRoot: STORAGE_ROOT }));
+    res.end(JSON.stringify({ ok: true }));
     return;
   }
 
-  dataApi(req, res, () => {
-    uploadMusic(req, res, () => {
-      dropboxImport(req, res, () => {
-        artworkApi(req, res, () => {
-          apiNotFound(req, res, () => {
-            serveStatic(req, res);
+  authApi(req, res, () => {
+    dataApi(req, res, () => {
+      uploadMusic(req, res, () => {
+        dropboxImport(req, res, () => {
+          artworkApi(req, res, () => {
+            apiNotFound(req, res, () => {
+              mediaAuth(req, res, () => {
+                serveStatic(req, res);
+              });
+            });
           });
         });
       });
@@ -108,6 +128,7 @@ const server = createServer((req, res) => {
 });
 
 await initStorage();
+assertProductionSecrets();
 try {
   const genres = await readGenreList();
   await ensureAllGenreDirs(genres);
