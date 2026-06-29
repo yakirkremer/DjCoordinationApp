@@ -7,6 +7,7 @@ import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
+import { createBackupApiMiddleware } from "./server/backupApi.js";
 import { createAuthApiMiddleware } from "./server/authApi.js";
 import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
 import { assertProductionSecrets } from "./server/auth.js";
@@ -96,6 +97,7 @@ const dataApi = createDataApiMiddleware();
 const uploadMusic = createUploadMusicMiddleware();
 const dropboxImport = createDropboxImportMiddleware();
 const artworkApi = createArtworkApiMiddleware();
+const backupApi = createBackupApiMiddleware();
 const authApi = createAuthApiMiddleware();
 const mediaAuth = createMediaAuthMiddleware();
 const apiNotFound = createApiNotFoundMiddleware();
@@ -115,9 +117,11 @@ const server = createServer((req, res) => {
       uploadMusic(req, res, () => {
         dropboxImport(req, res, () => {
           artworkApi(req, res, () => {
-            apiNotFound(req, res, () => {
-              mediaAuth(req, res, () => {
-                serveStatic(req, res);
+            backupApi(req, res, () => {
+              apiNotFound(req, res, () => {
+                mediaAuth(req, res, () => {
+                  serveStatic(req, res);
+                });
               });
             });
           });

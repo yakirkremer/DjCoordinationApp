@@ -17,6 +17,7 @@ import {
   getDropTypeStyle,
   normalizeDropTypeColors,
 } from "../lib/dropTypeColors";
+import { downloadBackupArchive } from "../lib/api/backupApi";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
 function initGenreRows(genres) {
@@ -44,6 +45,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
   const [newGenre, setNewGenre] = useState("");
   const [newDropType, setNewDropType] = useState("");
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
@@ -183,6 +185,18 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
       setError(err.message || t("admin.saveFailed"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleExportBackup = async () => {
+    setError("");
+    setExporting(true);
+    try {
+      await downloadBackupArchive();
+    } catch (err) {
+      setError(err.message || "Backup export failed");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -410,6 +424,21 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
       </div>
 
       {error ? <p className="text-xs text-xdj-orange mt-4">{error}</p> : null}
+
+      <div className="mt-8 border border-xdj-border/40 rounded-sm p-4 bg-black/20">
+        <p className="text-xs font-semibold text-xdj-text mb-1">Backup export</p>
+        <p className="text-[10px] text-xdj-muted mb-3">
+          Download full site data and music as one archive (`data` + `music`) to restore locally.
+        </p>
+        <button
+          type="button"
+          onClick={handleExportBackup}
+          disabled={exporting}
+          className="btn-luxury-secondary px-4 py-2 rounded-sm text-xs min-h-[36px] disabled:opacity-40"
+        >
+          {exporting ? "Exporting..." : "Download full backup"}
+        </button>
+      </div>
 
       <div className="flex items-center gap-3 mt-8">
         <button

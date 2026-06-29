@@ -5,6 +5,7 @@ import { createDataApiMiddleware } from "./server/dataStore.js";
 import { createUploadMusicMiddleware } from "./server/uploadMusic.js";
 import { createDropboxImportMiddleware, refreshDropboxToken } from "./server/dropboxImport.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
+import { createBackupApiMiddleware } from "./server/backupApi.js";
 import { createAuthApiMiddleware } from "./server/authApi.js";
 import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
@@ -16,6 +17,7 @@ function dataApiPlugin() {
     server.middlewares.use(createDataApiMiddleware());
     server.middlewares.use(createUploadMusicMiddleware());
     server.middlewares.use(createArtworkApiMiddleware());
+    server.middlewares.use(createBackupApiMiddleware());
   };
   return {
     name: "data-api",

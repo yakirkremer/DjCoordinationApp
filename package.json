@@ -12,6 +12,7 @@
     "scan-music": "python public/scan_music.py",
     "compute-rgb-waveform": "node scripts/compute-rgb-waveform.mjs",
     "fetch-artwork": "python public/fetch_artwork.py",
+    "restore-backup": "node scripts/restore-backup.mjs",
     "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {
