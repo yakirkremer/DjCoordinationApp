@@ -42,8 +42,10 @@ export default function ClientLogin({ onLogin }) {
           placeholder={t("login.placeholder")}
           className="input-luxury font-lcd px-4 py-4 text-center text-base tracking-[0.3em] text-xdj-cyan rounded-sm uppercase min-h-[44px]"
           dir="ltr"
-          inputMode="numeric"
-          autoComplete="one-time-code"
+          inputMode="text"
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
         />
 
         {error && <p className="text-xs text-xdj-orange text-center">{error}</p>}
