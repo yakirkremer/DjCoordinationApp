@@ -3,7 +3,7 @@ import {
   clearSessionCookie,
   createSessionToken,
   isAuthEnforced,
-  parseRequestSession,
+  readCookieSession,
   safeEqualSecret,
   setSessionCookie,
 } from "./auth.js";
@@ -98,18 +98,9 @@ function handleSession(req, res) {
 }
 
 async function handleSessionAsync(req, res) {
-  const session = parseRequestSession(req);
-  if (!session || session.bypass) {
-    sendJson(res, 200, {
-      authenticated: !isAuthEnforced() || Boolean(session),
-      role: session?.role ?? null,
-      clientId: session?.clientId ?? null,
-      client: null,
-    });
-    return;
-  }
+  const session = readCookieSession(req);
 
-  if (!session.role) {
+  if (!session?.role) {
     sendJson(res, 200, { authenticated: false, role: null, clientId: null, client: null });
     return;
   }

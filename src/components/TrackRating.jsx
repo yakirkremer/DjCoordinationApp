@@ -7,8 +7,6 @@ import {
 } from "../lib/trackRating";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-const CHIP_ORDER = [TRACK_RATING.LIKE, TRACK_RATING.OK, TRACK_RATING.DISLIKE];
-
 const THUMB_UP_PATH =
   "M23 10a2 2 0 0 0-2-2h-6.68l.96-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10a2 2 0 0 0 2 2h10l3.6-7.2c.3-.6.9-1 1.4-1.8V10zM1 21h4V9H1v12z";
 
@@ -43,31 +41,20 @@ export default function TrackRating({
   onRate,
   compact = false,
   touchFriendly = false,
-  variant = "default",
 }) {
   const { t } = useI18n();
   const active = normalizeTrackRating(rating);
-  const isChips = variant === "chips";
-  const options = isChips
-    ? CHIP_ORDER.map((value) => TRACK_RATING_OPTIONS.find((o) => o.value === value)).filter(Boolean)
-    : TRACK_RATING_OPTIONS;
-
-  const chipLabel = (value) => {
-    if (value === TRACK_RATING.LIKE) return t("rating.love");
-    if (value === TRACK_RATING.OK) return t("rating.maybe");
-    return t("rating.no");
-  };
 
   return (
     <div
       className={`track-rating ${compact ? "track-rating--compact" : ""} ${
-        touchFriendly || isChips ? "track-rating--touch" : ""
-      } ${isChips ? "track-rating--chips" : ""}`}
+        touchFriendly ? "track-rating--touch" : ""
+      }`}
       dir="ltr"
       role="group"
       aria-label={t("rating.groupLabel")}
     >
-      {options.map((option) => {
+      {TRACK_RATING_OPTIONS.map((option) => {
         const isActive = active === option.value;
         return (
           <button
@@ -75,21 +62,15 @@ export default function TrackRating({
             type="button"
             title={option.title}
             aria-pressed={isActive}
-            aria-label={isChips ? chipLabel(option.value) : option.label}
+            aria-label={option.label}
             onClick={() => onRate(option.value)}
             className={`track-rating-btn track-rating-btn--${option.value} ${
               isActive ? "is-active" : ""
             }`}
           >
-            {isChips ? (
-              <span className="track-rating-chip-label">{chipLabel(option.value)}</span>
-            ) : (
-              <>
-                <RatingIcon type={option.value} />
-                {!compact && option.value !== TRACK_RATING.OK && (
-                  <span className="track-rating-label">{option.labelHe}</span>
-                )}
-              </>
+            <RatingIcon type={option.value} />
+            {!compact && option.value !== TRACK_RATING.OK && (
+              <span className="track-rating-label">{option.labelHe}</span>
             )}
           </button>
         );

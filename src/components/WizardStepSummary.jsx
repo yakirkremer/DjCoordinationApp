@@ -14,6 +14,7 @@ export default function WizardStepSummary({
   categoryRatings = {},
   onComplete,
   onSkip,
+  wizardCompleted = false,
   title = "סיכום ההעדפות שלכם",
   description = "בדקו שהכל נכון לפני שממשיכים לדירוג השירים.",
   hideHeader = false,
@@ -123,11 +124,13 @@ export default function WizardStepSummary({
           onClick={onComplete}
           className="btn-luxury-primary flex-1 px-6 py-3 rounded-sm text-sm tracking-wide"
         >
-          סיום והמשך לדירוג שירים
+          {wizardCompleted ? t("wizard.summaryDone") : t("wizard.summaryFinish")}
         </button>
-        <button type="button" onClick={onSkip} className="btn-luxury px-6 py-3 rounded-sm text-sm">
-          דלג
-        </button>
+        {!wizardCompleted ? (
+          <button type="button" onClick={onSkip} className="btn-luxury px-6 py-3 rounded-sm text-sm">
+            {t("wizard.skipAll")}
+          </button>
+        ) : null}
       </div>
     </div>
   );

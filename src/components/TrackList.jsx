@@ -326,8 +326,6 @@ export default function TrackList({
     return t(`phases.${groupId}`);
   };
 
-  const ratingVariant = coupleBrowseUx ? "chips" : "default";
-
   const renderInlinePlayer = (visible) =>
     visible && inlinePlayer ? (
       <div className="xdj-az-inline-player" onClick={(e) => e.stopPropagation()}>
@@ -468,9 +466,8 @@ export default function TrackList({
                             <TrackRating
                               rating={getTrackRating(ratings, track.id, versionId)}
                               onRate={(value) => onRateTrack(track.id, value, versionId)}
-                              compact={!coupleBrowseUx}
+                              compact
                               touchFriendly={coupleBrowseUx}
-                              variant={ratingVariant}
                             />
                           </div>
                         </div>
@@ -588,7 +585,6 @@ export default function TrackList({
                             onRate={(value) => onRateTrack(track.id, value, versionId)}
                             onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
                             compact
-                            quickChips={coupleBrowseUx}
                           />
                         </div>
 

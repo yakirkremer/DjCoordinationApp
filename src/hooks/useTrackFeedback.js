@@ -212,6 +212,7 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
     });
   }, [persist]);
 
+  /** Clears completion flag — not used when couples edit preferences (completion stays sticky). */
   const reopenWizard = useCallback(() => {
     setPreferences((prev) => {
       const next = { ...prev, wizardCompleted: false };

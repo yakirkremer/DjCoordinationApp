@@ -19,6 +19,40 @@ function formatEventDate(value, locale) {
   });
 }
 
+function ProgressRing({ percent, label }) {
+  const clamped = Math.min(100, Math.max(0, percent));
+  return (
+    <div className="client-dash-ring" style={{ "--ring-pct": clamped }} aria-hidden>
+      <div className="client-dash-ring-inner">
+        <span className="client-dash-ring-value">{clamped}%</span>
+        <span className="client-dash-ring-label">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function ActionCard({ title, description, onClick, disabled = false, variant = "default", icon }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`client-dash-action-card client-dash-action-card--${variant}${disabled ? " is-disabled" : ""}`}
+    >
+      <span className="client-dash-action-icon" aria-hidden>
+        {icon}
+      </span>
+      <span className="client-dash-action-copy">
+        <span className="client-dash-action-title">{title}</span>
+        <span className="client-dash-action-desc">{description}</span>
+      </span>
+      <span className="client-dash-action-chevron" aria-hidden>
+        ›
+      </span>
+    </button>
+  );
+}
+
 export default function ClientHome({
   client,
   preferences,
@@ -34,13 +68,9 @@ export default function ClientHome({
   onOpenTutorial,
   onLogout,
 }) {
-  const { dir, locale } = useI18n();
+  const { dir, t, locale } = useI18n();
   const genres = useGenres();
-  const breakdown = getCategoryBreakdown(
-    genres,
-    selectedCategories,
-    categoryRatings
-  );
+  const breakdown = getCategoryBreakdown(genres, selectedCategories, categoryRatings);
   const likedTracks = getLikedTracks(tracks, ratings, comments);
   const categoryTrackGroups = getTracksByCategoryRating(
     tracks,
@@ -72,145 +102,147 @@ export default function ClientHome({
       : "home.startForm";
 
   return (
-    <div className="client-home flex flex-col gap-4 sm:gap-6 pb-4" dir={dir}>
-      <div className="client-home-hero panel-luxury rounded-sm p-5 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <p className="font-[system-ui,-apple-system,BlinkMacSystemFont,sans-serif] text-[10px] tracking-[0.25em] text-xdj-cyan uppercase mb-1">
-              <EditableText k="home.dashboard" />
+    <div className="client-dash" dir={dir}>
+      <header className="client-dash-header">
+        <div className="client-dash-header-copy">
+          <p className="client-dash-eyebrow">
+            <EditableText k="home.dashboard" />
+          </p>
+          <h1 className="client-dash-title">
+            <EditableText k="home.hello" vars={{ name: client.name }} />
+          </h1>
+          {eventDateLabel ? (
+            <p className="client-dash-meta">
+              <EditableText k="home.eventDate" />: {eventDateLabel}
             </p>
-            <h2 className="text-xl font-semibold text-xdj-gold">
-              <EditableText k="home.hello" vars={{ name: client.name }} />
-            </h2>
-            {eventDateLabel ? (
-              <p className="text-xs text-xdj-cyan mt-1">
-                <EditableText k="home.eventDate" />: {eventDateLabel}
-              </p>
-            ) : null}
-            <p className="text-xs text-xdj-muted mt-1">
-              {wizardDone ? (
-                <EditableText k="home.doneHint" />
-              ) : (
-                <EditableText k="home.startHint" />
-              )}
-            </p>
-          </div>
-          <button type="button" onClick={onLogout} className="btn-luxury px-4 py-2 rounded-sm text-xs shrink-0">
-            <EditableText k="common.logout" />
-          </button>
+          ) : null}
         </div>
+        <button type="button" onClick={onLogout} className="client-dash-logout btn-luxury-quiet">
+          <EditableText k="common.logout" />
+        </button>
+      </header>
 
-        {hasProgress ? (
-          <div className="client-progress-card mt-4">
-            <p className="client-progress-card-text">
-              {wizardDone ? (
-                <EditableText
-                  k="home.progressSummary"
-                  vars={{ percent: completionPercent, favorites: likedTracks.length }}
-                />
-              ) : (
-                <EditableText k="home.progressSummaryFormOnly" vars={{ percent: completionPercent }} />
-              )}
-            </p>
-            <div className="client-progress-bar" aria-hidden>
-              <span className="client-progress-bar-fill" style={{ width: `${completionPercent}%` }} />
-            </div>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-          <div className="client-stat-card">
-            <span className="client-stat-label">
-              <EditableText k="home.formStatus" />
-            </span>
-            <span className={`client-stat-value ${wizardDone ? "text-xdj-cyan" : "text-xdj-orange"}`}>
+      <section className="client-dash-status panel-luxury">
+        <div className="client-dash-status-main">
+          <ProgressRing percent={completionPercent} label={t("home.progressComplete")} />
+          <div className="client-dash-status-copy">
+            <span
+              className={`client-dash-badge${wizardDone ? " client-dash-badge--done" : " client-dash-badge--progress"}`}
+            >
               {wizardDone ? (
                 <EditableText k="home.formDone" />
               ) : (
                 <EditableText k="home.formInProgress" />
               )}
             </span>
+            <p className="client-dash-lead">
+              {wizardDone ? (
+                <EditableText k="home.doneHint" />
+              ) : (
+                <EditableText k="home.startHint" />
+              )}
+            </p>
+            {wizardDone ? (
+              <p className="client-dash-sublead">
+                <EditableText
+                  k="home.progressSummary"
+                  vars={{ percent: completionPercent, favorites: likedTracks.length }}
+                />
+              </p>
+            ) : hasProgress ? (
+              <p className="client-dash-sublead">
+                <EditableText k="home.progressSummaryFormOnly" vars={{ percent: completionPercent }} />
+              </p>
+            ) : null}
           </div>
-          <div className="client-stat-card">
-            <span className="client-stat-label">
-              <EditableText k="home.energy" />
-            </span>
-            <span className="client-stat-value">
+        </div>
+
+        <div className="client-dash-metrics">
+          <div className="client-dash-metric">
+            <span className="client-dash-metric-value">
               {energyId ? <EditableText k={`energy.${energyId}.label`} /> : "—"}
             </span>
+            <span className="client-dash-metric-label">
+              <EditableText k="home.energy" />
+            </span>
           </div>
-          <div className="client-stat-card">
-            <span className="client-stat-label">
+          <div className="client-dash-metric">
+            <span className="client-dash-metric-value client-dash-metric-value--gold">
+              {likedTracks.length}
+            </span>
+            <span className="client-dash-metric-label">
               <EditableText k="home.likedTracks" />
             </span>
-            <span className="client-stat-value text-xdj-gold">{likedTracks.length}</span>
           </div>
-          <div className="client-stat-card">
-            <span className="client-stat-label">
+          <div className="client-dash-metric">
+            <span className="client-dash-metric-value">{commentCount}</span>
+            <span className="client-dash-metric-label">
               <EditableText k="home.trackComments" />
             </span>
-            <span className="client-stat-value">{commentCount}</span>
           </div>
         </div>
+      </section>
 
-        <div className="client-home-cta mt-5">
-          <button
-            type="button"
+      <section className="client-dash-section" aria-labelledby="client-dash-actions-heading">
+        <h2 id="client-dash-actions-heading" className="client-dash-section-title">
+          <EditableText k="home.quickActions" />
+        </h2>
+        <div className="client-dash-action-grid">
+          <ActionCard
+            variant="primary"
+            title={t(primaryCtaKey)}
+            description={t("home.actionPreferencesDesc")}
             onClick={onStartWizard}
-            className="client-home-cta-primary btn-luxury-primary px-6 py-3.5 rounded-sm text-base font-semibold min-h-[48px] w-full sm:w-auto"
-          >
-            <EditableText k={primaryCtaKey} />
-          </button>
-          <div className="client-home-cta-secondary">
-            {wizardDone ? (
-              <button
-                type="button"
-                onClick={onBrowseMusic}
-                className="btn-luxury-gold px-4 py-2.5 rounded-sm text-sm min-h-[44px]"
-              >
-                <EditableText k="home.browseMusic" />
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onOpenTutorial}
-              className="btn-luxury-quiet px-4 py-2.5 rounded-sm text-sm min-h-[44px]"
-            >
-              <EditableText k="home.openTutorial" />
-            </button>
-            <button
-              type="button"
-              onClick={onOpenGuide}
-              className="btn-luxury-quiet px-4 py-2.5 rounded-sm text-sm min-h-[44px]"
-            >
-              <EditableText k="home.openGuide" />
-            </button>
-          </div>
+            icon="📋"
+          />
+          <ActionCard
+            title={t("home.actionBrowseTitle")}
+            description={t("home.actionBrowseDesc")}
+            onClick={onBrowseMusic}
+            icon="🎵"
+          />
+          <ActionCard
+            title={t("home.actionTutorialTitle")}
+            description={t("home.actionTutorialDesc")}
+            onClick={onOpenTutorial}
+            icon="✨"
+          />
+          <ActionCard
+            title={t("home.actionGuideTitle")}
+            description={t("home.actionGuideDesc")}
+            onClick={onOpenGuide}
+            icon="📖"
+          />
         </div>
+      </section>
 
-        <div className="client-trust-notes mt-4">
-          <p className="client-trust-note">
-            <EditableText k="home.privacyNote" />
-          </p>
-          <p className="client-trust-note">
-            <EditableText k="home.autoSaveNote" />
-          </p>
-        </div>
-      </div>
+      <footer className="client-dash-trust">
+        <p>
+          <EditableText k="home.privacyNote" />
+        </p>
+        <p>
+          <EditableText k="home.autoSaveNote" />
+        </p>
+      </footer>
 
       {hasProgress ? (
-        <>
-          <ClientPreferencesSummary
-            preferences={preferences}
-            formSchema={formSchema}
-            clientType={client.clientType}
-          />
-          <CategoryBreakdown breakdown={breakdown} />
-          <CategoryTrackChoices groups={categoryTrackGroups} categoryRatings={categoryRatings} />
-        </>
+        <section className="client-dash-section" aria-labelledby="client-dash-overview-heading">
+          <h2 id="client-dash-overview-heading" className="client-dash-section-title">
+            <EditableText k="home.overviewTitle" />
+          </h2>
+          <div className="client-dash-overview-stack">
+            <ClientPreferencesSummary
+              preferences={preferences}
+              formSchema={formSchema}
+              clientType={client.clientType}
+            />
+            <CategoryBreakdown breakdown={breakdown} />
+            <CategoryTrackChoices groups={categoryTrackGroups} categoryRatings={categoryRatings} />
+          </div>
+        </section>
       ) : (
-        <section className="panel-luxury rounded-sm p-6 text-center">
-          <p className="text-sm text-xdj-muted">
+        <section className="client-dash-empty panel-luxury">
+          <p>
             <EditableText k="home.emptyHint" />
           </p>
         </section>

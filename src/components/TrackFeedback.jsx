@@ -11,7 +11,6 @@ export default function TrackFeedback({
   compact = false,
   mobile = false,
   hideRating = false,
-  quickChips = false,
 }) {
   const [showComment, setShowComment] = useState(Boolean(comment));
   const activeRating = normalizeTrackRating(rating);
@@ -19,13 +18,7 @@ export default function TrackFeedback({
   if (compact && !mobile) {
     return (
       <div onClick={(e) => e.stopPropagation()}>
-        <TrackRating
-          rating={activeRating}
-          onRate={onRate}
-          compact={!quickChips}
-          variant={quickChips ? "chips" : "default"}
-          touchFriendly={quickChips}
-        />
+        <TrackRating rating={activeRating} onRate={onRate} compact />
       </div>
     );
   }
@@ -34,13 +27,7 @@ export default function TrackFeedback({
     return (
       <div onClick={(e) => e.stopPropagation()}>
         {!hideRating && (
-          <TrackRating
-            rating={activeRating}
-            onRate={onRate}
-            compact={!quickChips}
-            touchFriendly
-            variant={quickChips ? "chips" : "default"}
-          />
+          <TrackRating rating={activeRating} onRate={onRate} compact touchFriendly />
         )}
         {!showComment ? (
           <button

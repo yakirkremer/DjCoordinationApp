@@ -81,6 +81,12 @@ export function parseRequestSession(req) {
   return verifySessionToken(token);
 }
 
+/** Real cookie session only — used by /api/auth/session (never dev-bypass). */
+export function readCookieSession(req) {
+  const token = parseCookies(req)[COOKIE_NAME];
+  return verifySessionToken(token);
+}
+
 export function setSessionCookie(res, token) {
   const secure = process.env.NODE_ENV === "production";
   const maxAge = SESSION_DAYS * 24 * 60 * 60;

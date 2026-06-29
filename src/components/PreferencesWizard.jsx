@@ -37,6 +37,7 @@ export default function PreferencesWizard({
   onSkip,
   onSaveProgress,
   onSaveAndExit,
+  onBrowseMusic,
   lastSavedAt = null,
   isSaving = false,
 }) {
@@ -205,6 +206,7 @@ export default function PreferencesWizard({
             categoryRatings={categoryRatings}
             onComplete={onComplete}
             onSkip={onSkip}
+            wizardCompleted={wizardDone}
             title={currentStepDef.title}
             description={currentStepDef.description}
             hideHeader
@@ -216,6 +218,8 @@ export default function PreferencesWizard({
   };
 
   const isSummary = currentStepDef?.stepType === "summary";
+  const wizardDone = Boolean(preferences.wizardCompleted);
+  const canJumpToStep = (index) => wizardDone || index < step;
 
   return (
     <section className={`panel-luxury rounded-sm p-4 sm:p-6 lg:p-8 wizard-shell wizard-shell--${stepType}`} dir={dir}>
@@ -225,7 +229,7 @@ export default function PreferencesWizard({
         steps={steps}
         stepProgress={stepProgress}
         onStepSelect={(index) => {
-          if (index < step) persistStep(index);
+          if (canJumpToStep(index)) persistStep(index);
         }}
       />
       <WizardStepHero stepDef={currentStepDef} currentStep={step} totalSteps={steps.length} />
@@ -238,6 +242,9 @@ export default function PreferencesWizard({
         </p>
       ) : null}
       <WizardSaveStatus isSaving={isSaving} lastSavedAt={lastSavedAt} />
+      {wizardDone ? (
+        <p className="wizard-completed-banner">{t("wizard.alreadyCompleted")}</p>
+      ) : null}
       <p className="wizard-privacy-hint">{t("wizard.privacyNote")}</p>
       <div className={`wizard-scroll wizard-step-panel wizard-step-panel--${stepType}`} key={step}>
         {renderStep()}
@@ -262,6 +269,15 @@ export default function PreferencesWizard({
             >
               {saving ? t("common.saving") : t("wizard.saveExit")}
             </button>
+            {onBrowseMusic ? (
+              <button
+                type="button"
+                onClick={onBrowseMusic}
+                className="text-sm text-xdj-cyan hover:text-xdj-gold font-bold min-h-[44px] px-4"
+              >
+                {t("wizard.browseCatalog")}
+              </button>
+            ) : null}
             {!isSummary && (
               <>
                 <button

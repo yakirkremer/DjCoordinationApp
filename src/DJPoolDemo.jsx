@@ -23,6 +23,7 @@ import AdminTextEditor from "./components/AdminTextEditor";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
 import TutorialPage from "./components/TutorialPage";
+import AdminGate from "./components/AdminGate";
 import ClientBreadcrumb from "./components/ClientBreadcrumb";
 import Toast from "./components/Toast";
 import SiteTextEditPopover from "./components/SiteTextEditPopover";
@@ -47,21 +48,34 @@ import {
   stripTrackForCatalogSave,
 } from "./lib/trackVersions";
 import { getWizardSteps } from "./lib/wizardProgress";
+import useAppRouter from "./hooks/useAppRouter";
+import { adminTabPath, clientScreenPath } from "./lib/appRoutes";
 
 export default function DJPoolDemo() {
   const { t, dir } = useI18n();
+  const { pathname, route, navigate, replace } = useAppRouter();
+  const isAdminRoute = route.area === "admin";
+  const adminTab = route.adminTab ?? "catalog";
+  const clientScreen = route.clientScreen ?? "home";
+  const guestView = route.guestView ?? "welcome";
   const [tracks, setTracks] = useState([]);
   const [catalogStatus, setCatalogStatus] = useState("idle");
   const [catalogError, setCatalogError] = useState(null);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminTab, setAdminTab] = useState("catalog");
-  const [clientScreen, setClientScreen] = useState("home");
-  const [guestView, setGuestView] = useState("welcome");
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const resumeHandledRef = useRef(false);
+  const openedAdminOnLoadRef = useRef(
+    typeof window !== "undefined" && window.location.pathname.startsWith("/admin")
+  );
+  const [adminSessionChecked, setAdminSessionChecked] = useState(
+    () => !openedAdminOnLoadRef.current
+  );
+  const showAdminPanel = isAdminRoute && adminUnlocked;
+  const showAdminGate = isAdminRoute && adminUnlocked === false && adminSessionChecked;
+  const showAdminSessionLoading = isAdminRoute && !adminSessionChecked;
 
   const genres = useGenres();
 
@@ -80,7 +94,6 @@ export default function DJPoolDemo() {
     updatePreferences,
     completeWizard,
     skipWizard,
-    reopenWizard,
     saveWizardProgress,
     lastSavedAt,
     isSaving,
@@ -103,7 +116,7 @@ export default function DJPoolDemo() {
     [activeVersionIds]
   );
 
-  const catalogNeeded = isAdmin || Boolean(activeClient);
+  const catalogNeeded = showAdminPanel || Boolean(activeClient);
   const catalogOk = !catalogNeeded || catalogStatus === "ready" || catalogStatus === "error";
   const appReady = clientsReady && formReady && catalogOk;
   const coupleReady = !activeClient || feedbackReady;
@@ -116,7 +129,7 @@ export default function DJPoolDemo() {
   useAudioPreload(tracks, currentTrack?.id ?? null, canPreload);
 
   useEffect(() => {
-    if (!isAdmin && !activeClient) {
+    if (!showAdminPanel && !activeClient) {
       setCatalogStatus("idle");
       return undefined;
     }
@@ -151,17 +164,55 @@ export default function DJPoolDemo() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, activeClient?.id]);
+  }, [showAdminPanel, activeClient?.id]);
 
   useEffect(() => {
+    if (!isAdminRoute) {
+      setAdminUnlocked(false);
+      setAdminSessionChecked(true);
+      return undefined;
+    }
+
+    if (!openedAdminOnLoadRef.current) {
+      setAdminSessionChecked(true);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setAdminSessionChecked(false);
+
     fetchSession()
       .then((session) => {
+        if (cancelled) return;
         if (session.authenticated && session.role === "admin") {
-          bootstrapAdmin().then(() => setIsAdmin(true));
+          return bootstrapAdmin().then(() => {
+            if (!cancelled) setAdminUnlocked(true);
+          });
         }
       })
-      .catch(() => {});
-  }, [bootstrapAdmin]);
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAdminSessionChecked(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminRoute, bootstrapAdmin]);
+
+  useEffect(() => {
+    if (!clientsReady || isAdminRoute) return;
+    if (activeClient && pathname === "/") {
+      replace("/home");
+    }
+  }, [clientsReady, activeClient, pathname, isAdminRoute, replace]);
+
+  useEffect(() => {
+    if (!clientsReady || isAdminRoute) return;
+    if (route.requiresClient && !activeClient) {
+      replace("/");
+    }
+  }, [clientsReady, isAdminRoute, route.requiresClient, activeClient, replace]);
 
   const persistCatalog = useCallback((nextTracks) => {
     clearTimeout(catalogSaveTimer.current);
@@ -468,19 +519,19 @@ export default function DJPoolDemo() {
   }, []);
 
   const isCoupleBrowse =
-    !isAdmin && activeClient && coupleReady && clientScreen === "browse" && preferences.wizardCompleted;
+    !isAdminRoute && activeClient && coupleReady && clientScreen === "browse";
 
   const isWizardGenreListen =
-    !isAdmin && activeClient && clientScreen === "wizard" && currentTrack;
+    !isAdminRoute && activeClient && clientScreen === "wizard" && currentTrack;
 
   const showPlayer =
     currentTrack &&
-    (isAdmin ||
+    (showAdminPanel ||
       isWizardGenreListen ||
-      (activeClient && clientScreen === "browse" && preferences.wizardCompleted));
+      (activeClient && clientScreen === "browse"));
 
-  const isAdminCatalog = isAdmin && adminTab === "catalog";
-  const isAdminEmbeddedPlayer = isAdmin && (adminTab === "catalog" || adminTab === "order");
+  const isAdminCatalog = showAdminPanel && adminTab === "catalog";
+  const isAdminEmbeddedPlayer = showAdminPanel && (adminTab === "catalog" || adminTab === "order");
   const isBrowseInlinePlayer = false;
   const showFooterPlayer = showPlayer && !isAdminEmbeddedPlayer && !isBrowseInlinePlayer;
 
@@ -508,7 +559,7 @@ export default function DJPoolDemo() {
     formatTime,
     onUpdateTrack: handleUpdateTrack,
     onUpdateTrackCue: handleUpdateTrackCue,
-    isAdmin,
+    isAdmin: showAdminPanel,
     resolveTrackUrl,
     embedded: isAdminEmbeddedPlayer,
     onTrackReloaded: handleTrackReloaded,
@@ -530,97 +581,105 @@ export default function DJPoolDemo() {
       try {
         await loginAdmin(password);
         await bootstrapAdmin();
-        setIsAdmin(true);
-        setClientScreen("home");
-        setGuestView("welcome");
+        setAdminUnlocked(true);
+        replace("/admin");
         return true;
       } catch {
         return false;
       }
     },
-    [bootstrapAdmin]
+    [bootstrapAdmin, replace]
   );
 
-  const handleExitAdmin = useCallback(() => {
-    logoutSession().catch(() => {});
-    setIsAdmin(false);
-    setAdminTab("catalog");
+  const handleExitAdmin = useCallback(async () => {
+    try {
+      await logoutSession();
+    } catch {
+      /* still leave admin UI */
+    }
+    setAdminUnlocked(false);
     setTracks([]);
     setCurrentTrack(null);
     setCatalogStatus("idle");
-  }, []);
+    replace("/");
+  }, [replace]);
 
   const handleClientLogin = useCallback(
     async (code) => {
       const ok = await login(code);
       if (ok) {
-        setClientScreen("home");
-        setIsAdmin(false);
-        setGuestView("welcome");
+        setAdminUnlocked(false);
+        replace("/home");
       }
       return ok;
     },
-    [login]
+    [login, replace]
   );
 
   const handleClientLogout = useCallback(() => {
     logout();
-    setClientScreen("home");
-    setIsAdmin(false);
     setIsPlaying(false);
     setTracks([]);
     setCurrentTrack(null);
     setCatalogStatus("idle");
-  }, [logout]);
+    replace("/");
+  }, [logout, replace]);
 
   const handleWizardComplete = useCallback(() => {
     completeWizard();
-    setClientScreen("home");
-  }, [completeWizard]);
+    replace("/home");
+  }, [completeWizard, replace]);
 
   const handleWizardSkip = useCallback(() => {
     skipWizard();
-    setClientScreen("home");
-  }, [skipWizard]);
+    replace("/home");
+  }, [skipWizard, replace]);
 
   const handleStartWizard = useCallback(() => {
-    if (preferences.wizardCompleted) {
-      reopenWizard();
-    }
-    setClientScreen("wizard");
-  }, [preferences.wizardCompleted, reopenWizard]);
+    navigate("/wizard");
+  }, [navigate]);
+
+  const goClientScreen = useCallback(
+    (screen) => {
+      navigate(clientScreenPath(screen));
+    },
+    [navigate]
+  );
+
+  const goAdminTab = useCallback(
+    (tab) => {
+      navigate(adminTabPath(tab));
+    },
+    [navigate]
+  );
 
   useEffect(() => {
-    if (!appReady || !activeClient) return;
-    if (isAdmin) return;
-    setClientScreen((screen) => (screen === "browse" || screen === "wizard" ? screen : "home"));
-  }, [appReady, activeClient?.id, isAdmin]);
+    if (!coupleReady || !activeClient || isAdminRoute) return;
+    if (resumeHandledRef.current) return;
+    resumeHandledRef.current = true;
+
+    if (!preferences.wizardCompleted && (preferences.wizardStep ?? 0) > 0) {
+      setToastMessage(t("toast.resumeWizard"));
+    } else if (preferences.wizardCompleted) {
+      setToastMessage(t("toast.resumeBrowse"));
+    } else if (Object.keys(ratings).length > 0) {
+      setToastMessage(t("toast.resumeBrowse"));
+    }
+  }, [
+    coupleReady,
+    activeClient,
+    isAdminRoute,
+    preferences.wizardCompleted,
+    preferences.wizardStep,
+    ratings,
+    t,
+  ]);
 
   useEffect(() => {
     if (!activeClient?.id) {
       resumeHandledRef.current = false;
     }
   }, [activeClient?.id]);
-
-  useEffect(() => {
-    if (!coupleReady || !activeClient || isAdmin) return;
-    if (resumeHandledRef.current) return;
-    resumeHandledRef.current = true;
-
-    if (!preferences.wizardCompleted && (preferences.wizardStep ?? 0) > 0) {
-      setClientScreen("wizard");
-      setToastMessage(t("toast.resumeWizard"));
-    } else if (preferences.wizardCompleted) {
-      setToastMessage(t("toast.resumeBrowse"));
-    }
-  }, [
-    coupleReady,
-    activeClient,
-    isAdmin,
-    preferences.wizardCompleted,
-    preferences.wizardStep,
-    t,
-  ]);
 
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
@@ -754,8 +813,13 @@ export default function DJPoolDemo() {
         {t("a11y.skipToContent")}
       </a>
       <AccessibilityToolbar />
-      {isAdmin ? <SiteTextEditBanner /> : null}
-      {(isAdmin || activeClient || guestView === "guide" || guestView === "tutorial") && (
+      {showAdminPanel ? <SiteTextEditBanner /> : null}
+      {(showAdminPanel ||
+        showAdminGate ||
+        showAdminSessionLoading ||
+        activeClient ||
+        guestView === "guide" ||
+        guestView === "tutorial") && (
       <div className="app-header-safe shrink-0 p-2 sm:p-6 pb-0">
       <header className="max-w-7xl mx-auto mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 border-b border-xdj-border pb-4 sm:pb-5">
         <div className="flex flex-col items-center sm:items-start gap-2 w-full sm:w-auto">
@@ -765,7 +829,7 @@ export default function DJPoolDemo() {
             className="h-9 sm:h-11 w-auto max-w-[min(100%,320px)] object-contain"
           />
           <p className="text-xs text-xdj-muted text-center sm:text-right max-w-md">
-            {isAdmin
+            {showAdminPanel
               ? t("header.adminSubtitle")
               : activeClient
                 ? clientScreen === "browse"
@@ -788,15 +852,15 @@ export default function DJPoolDemo() {
         <div className="flex flex-wrap gap-2 items-center justify-center">
           <AppearanceSwitcher />
           <LanguageSwitcher />
-          {!isAdmin && activeClient && clientScreen !== "home" && (
+          {!showAdminPanel && activeClient && clientScreen !== "home" && (
             <button
-              onClick={() => setClientScreen("home")}
+              onClick={() => goClientScreen("home")}
               className="btn-luxury px-4 py-2 rounded-sm text-xs"
             >
               {t("common.dashboard")}
             </button>
           )}
-          {isAdmin && (
+          {showAdminPanel && (
             <>
               <SiteTextEditToggle />
               <button onClick={downloadJSON} className="btn-luxury-gold px-4 py-2 rounded-sm text-xs">
@@ -809,7 +873,7 @@ export default function DJPoolDemo() {
           )}
         </div>
       </header>
-      {!isAdmin && activeClient && clientScreen !== "home" ? (
+      {!showAdminPanel && activeClient && clientScreen !== "home" ? (
         <div className="max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2">
           <ClientBreadcrumb screen={clientScreen} wizardStepTitle={wizardStepTitle} />
         </div>
@@ -821,7 +885,14 @@ export default function DJPoolDemo() {
         id="main-content"
         tabIndex={-1}
         className={`app-main-safe flex-1 min-h-0 max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2 sm:pb-4 flex flex-col ${
-          isCoupleBrowse || isAdmin || (activeClient && (clientScreen === "home" || clientScreen === "guide" || clientScreen === "tutorial")) || guestView === "guide" || guestView === "tutorial"
+          isCoupleBrowse ||
+          showAdminPanel ||
+          showAdminGate ||
+          showAdminSessionLoading ||
+          (activeClient &&
+            (clientScreen === "home" || clientScreen === "guide" || clientScreen === "tutorial")) ||
+          guestView === "guide" ||
+          guestView === "tutorial"
             ? "overflow-hidden"
             : "overflow-y-auto"
         }`}
@@ -840,29 +911,33 @@ export default function DJPoolDemo() {
               {t("errors.catalogLoadAction")}
             </button>
           </section>
-        ) : isAdmin ? (
+        ) : showAdminSessionLoading ? (
+          <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING SESSION...</p>
+        ) : showAdminGate ? (
+          <AdminGate onLogin={handleEnterAdmin} onBackToClient={() => replace("/")} />
+        ) : showAdminPanel ? (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
-            <AdminTabNav activeTab={adminTab} onTabChange={setAdminTab} />
+            <AdminTabNav activeTab={adminTab} onTabChange={goAdminTab} />
             <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
           </div>
         ) : !activeClient ? (
           guestView === "guide" ? (
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <DropsAndGenresGuide onBack={() => setGuestView("welcome")} />
+              <DropsAndGenresGuide onBack={() => replace("/")} />
             </div>
           ) : guestView === "tutorial" ? (
             <div className="flex-1 min-h-0 overflow-y-auto">
               <TutorialPage
-                onBack={() => setGuestView("welcome")}
-                onOpenGuide={() => setGuestView("guide")}
+                onBack={() => replace("/")}
+                onOpenGuide={() => navigate("/guide")}
               />
             </div>
           ) : (
             <WelcomePage
               onLogin={handleClientLogin}
-              onEnterAdmin={handleEnterAdmin}
-              onOpenGuide={() => setGuestView("guide")}
-              onOpenTutorial={() => setGuestView("tutorial")}
+              onOpenAdmin={() => navigate("/admin")}
+              onOpenGuide={() => navigate("/guide")}
+              onOpenTutorial={() => navigate("/tutorial")}
             />
           )
         ) : !coupleReady ? (
@@ -879,21 +954,21 @@ export default function DJPoolDemo() {
               comments={comments}
               tracks={tracks}
               onStartWizard={handleStartWizard}
-              onBrowseMusic={() => setClientScreen("browse")}
-              onOpenGuide={() => setClientScreen("guide")}
-              onOpenTutorial={() => setClientScreen("tutorial")}
+              onBrowseMusic={() => goClientScreen("browse")}
+              onOpenGuide={() => goClientScreen("guide")}
+              onOpenTutorial={() => goClientScreen("tutorial")}
               onLogout={handleClientLogout}
             />
           </div>
         ) : clientScreen === "guide" ? (
           <div className="flex-1 min-h-0 overflow-y-auto">
-            <DropsAndGenresGuide onBack={() => setClientScreen("home")} />
+            <DropsAndGenresGuide onBack={() => goClientScreen("home")} />
           </div>
         ) : clientScreen === "tutorial" ? (
           <div className="flex-1 min-h-0 overflow-y-auto">
             <TutorialPage
-              onBack={() => setClientScreen("home")}
-              onOpenGuide={() => setClientScreen("guide")}
+              onBack={() => goClientScreen("home")}
+              onOpenGuide={() => goClientScreen("guide")}
             />
           </div>
         ) : clientScreen === "wizard" ? (
@@ -915,7 +990,8 @@ export default function DJPoolDemo() {
             onComplete={handleWizardComplete}
             onSkip={handleWizardSkip}
             onSaveProgress={saveWizardProgress}
-            onSaveAndExit={() => setClientScreen("home")}
+            onSaveAndExit={() => goClientScreen("home")}
+            onBrowseMusic={() => goClientScreen("browse")}
             lastSavedAt={lastSavedAt}
             isSaving={isSaving}
           />
@@ -926,7 +1002,7 @@ export default function DJPoolDemo() {
             <button
               type="button"
               className="btn-luxury px-5 py-2.5 rounded-sm text-sm min-h-[44px]"
-              onClick={() => setClientScreen("home")}
+              onClick={() => goClientScreen("home")}
             >
               {t("browse.emptyCatalogAction")}
             </button>
@@ -970,7 +1046,7 @@ export default function DJPoolDemo() {
           <GlobalPlayer {...playerProps} embedded={false} />
         </div>
       )}
-      {isAdmin ? <SiteTextEditPopover /> : null}
+      {showAdminPanel ? <SiteTextEditPopover /> : null}
       <Toast message={toastMessage} onDismiss={() => setToastMessage("")} />
     </div>
   );
