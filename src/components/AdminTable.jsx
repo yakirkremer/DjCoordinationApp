@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useGenres } from "../hooks/useGenres";
 import TrackReloadButton from "./TrackReloadButton";
 import TrackVersionPicker from "./TrackVersionPicker";
 import AdminTrackVersions from "./AdminTrackVersions";
+import DropTypeSelect from "./DropTypeSelect";
 import { countMissingTracks, getTrackSourceSummary } from "../lib/trackSource";
 import { ensureTrackVersions } from "../lib/trackVersions";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
@@ -42,6 +43,182 @@ export default function AdminTable({
   const [savingId, setSavingId] = useState(null);
   const [rowError, setRowError] = useState({});
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkGenre, setBulkGenre] = useState("");
+  const [bulkDrop, setBulkDrop] = useState("");
+  const [bulkApplying, setBulkApplying] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState("");
+  const [bulkError, setBulkError] = useState("");
+
+  const selectedCount = selectedIds.size;
+  const allSelected = tracks.length > 0 && selectedCount === tracks.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  const toggleSelected = (trackId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
+    setBulkMessage("");
+    setBulkError("");
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(tracks.map((t) => t.id)));
+    }
+    setBulkMessage("");
+    setBulkError("");
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setBulkMessage("");
+    setBulkError("");
+  };
+
+  const clearDraftField = (trackId, field) => {
+    setDrafts((prev) => {
+      if (!prev[trackId]?.[field]) return prev;
+      const next = { ...prev, [trackId]: { ...prev[trackId] } };
+      delete next[trackId][field];
+      if (Object.keys(next[trackId]).length === 0) {
+        const copy = { ...next };
+        delete copy[trackId];
+        return copy;
+      }
+      return next;
+    });
+  };
+
+  const resolveActiveVersionId = useCallback(
+    (track) => {
+      const normalized = ensureTrackVersions(track);
+      return activeVersionIds[track.id] || normalized.activeVersionId || normalized.versions?.[0]?.id;
+    },
+    [activeVersionIds]
+  );
+
+  const handleBulkApplyGenre = async () => {
+    const genreToApply = bulkGenre || defaultBulkGenre;
+    if (!genreToApply || selectedCount === 0 || bulkApplying) return;
+    setBulkApplying(true);
+    setBulkMessage("");
+    setBulkError("");
+
+    let ok = 0;
+    const failed = [];
+
+    for (const id of selectedIds) {
+      const track = tracks.find((tr) => tr.id === id);
+      if (!track) continue;
+      if (track.bucket === genreToApply) {
+        ok += 1;
+        continue;
+      }
+      try {
+        const saved = await updateTrack(id, { bucket: genreToApply });
+        onTrackSaved?.(saved);
+        clearDraftField(id, "bucket");
+        ok += 1;
+      } catch (err) {
+        failed.push({ id, label: track.title || id, error: err.message || t("admin.saveFailed") });
+      }
+    }
+
+    setBulkApplying(false);
+    if (failed.length === 0) {
+      setBulkMessage(t("admin.bulkGenreDone", { count: ok }));
+    } else {
+      setBulkError(
+        `${t("admin.bulkPartial", { ok, fail: failed.length })} — ${failed
+          .slice(0, 2)
+          .map((f) => f.label)
+          .join(", ")}${failed.length > 2 ? "…" : ""}`
+      );
+      if (ok > 0) setBulkMessage(t("admin.bulkGenreDone", { count: ok }));
+    }
+  };
+
+  const handleBulkApplyDrop = async () => {
+    if (!bulkDrop?.trim() || selectedCount === 0 || bulkApplying) return;
+    const dropLabel = bulkDrop.trim();
+    setBulkApplying(true);
+    setBulkMessage("");
+    setBulkError("");
+
+    let ok = 0;
+    const failed = [];
+
+    for (const id of selectedIds) {
+      const track = tracks.find((tr) => tr.id === id);
+      if (!track) continue;
+      const normalized = ensureTrackVersions(track);
+      const versionId = resolveActiveVersionId(track);
+      const version = normalized.versions?.find((v) => v.id === versionId);
+      if (!version) {
+        failed.push({ label: track.title || id, error: t("admin.saveFailed") });
+        continue;
+      }
+
+      const hasConflict = normalized.versions.some(
+        (v) =>
+          v.id !== versionId &&
+          String(v.drop || "")
+            .trim()
+            .toLowerCase() === dropLabel.toLowerCase()
+      );
+      if (hasConflict) {
+        failed.push({ label: track.title || id, error: t("admin.duplicateDrop") });
+        continue;
+      }
+
+      if (String(version.drop || "").trim() === dropLabel) {
+        ok += 1;
+        continue;
+      }
+
+      try {
+        const saved = await updateTrack(id, { drop: dropLabel }, versionId);
+        onTrackSaved?.(saved);
+        ok += 1;
+      } catch (err) {
+        failed.push({ label: track.title || id, error: err.message || t("admin.saveFailed") });
+      }
+    }
+
+    setBulkApplying(false);
+    if (failed.length === 0) {
+      setBulkMessage(t("admin.bulkDropDone", { count: ok }));
+    } else {
+      setBulkError(
+        `${t("admin.bulkPartial", { ok, fail: failed.length })} — ${failed
+          .slice(0, 2)
+          .map((f) => `${f.label}: ${f.error}`)
+          .join(" · ")}${failed.length > 2 ? "…" : ""}`
+      );
+      if (ok > 0) setBulkMessage(t("admin.bulkDropDone", { count: ok }));
+    }
+  };
+
+  const defaultBulkGenre = useMemo(() => genres[0] ?? "", [genres]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const valid = new Set(tracks.map((t) => t.id));
+      let changed = false;
+      const next = new Set();
+      for (const id of prev) {
+        if (valid.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [tracks]);
 
   const getDraft = useCallback(
     (track) => {
@@ -160,9 +337,70 @@ export default function AdminTable({
         </div>
       ) : null}
 
+      {selectedCount > 0 ? (
+        <div className="admin-catalog-bulk-bar" dir={dir} onClick={(e) => e.stopPropagation()}>
+          <span className="admin-catalog-bulk-count">{t("admin.bulkSelected", { count: selectedCount })}</span>
+
+          <div className="admin-catalog-bulk-group">
+            <span className="admin-catalog-bulk-label">{t("admin.bulkSetGenre")}</span>
+            <select
+              value={bulkGenre || defaultBulkGenre}
+              onChange={(e) => setBulkGenre(e.target.value)}
+              disabled={bulkApplying}
+              className="admin-catalog-bulk-select bg-gray-800 text-xs rounded px-2 py-1 outline-none border border-gray-700 text-gray-200"
+            >
+              {genres.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleBulkApplyGenre}
+              disabled={bulkApplying}
+              className="text-[10px] px-2 py-1 rounded border border-xdj-cyan/50 text-xdj-cyan hover:bg-xdj-cyan/10 disabled:opacity-40"
+            >
+              {bulkApplying ? t("admin.bulkApplying") : t("admin.bulkApplyGenre")}
+            </button>
+          </div>
+
+          <div className="admin-catalog-bulk-group">
+            <span className="admin-catalog-bulk-label">{t("admin.bulkSetDrop")}</span>
+            <DropTypeSelect
+              value={bulkDrop}
+              onChange={setBulkDrop}
+              disabled={bulkApplying}
+              className="admin-catalog-bulk-select input-luxury px-2 py-1 text-xs rounded-sm"
+            />
+            <button
+              type="button"
+              onClick={handleBulkApplyDrop}
+              disabled={bulkApplying || !bulkDrop?.trim()}
+              className="text-[10px] px-2 py-1 rounded border border-xdj-gold/50 text-xdj-gold hover:bg-xdj-gold/10 disabled:opacity-40"
+            >
+              {bulkApplying ? t("admin.bulkApplying") : t("admin.bulkApplyDrop")}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={clearSelection}
+            disabled={bulkApplying}
+            className="text-[10px] text-xdj-muted hover:text-xdj-text ms-auto disabled:opacity-40"
+          >
+            {t("admin.bulkClearSelection")}
+          </button>
+
+          {bulkMessage ? <span className="text-[10px] text-xdj-cyan w-full">{bulkMessage}</span> : null}
+          {bulkError ? <span className="text-[10px] text-xdj-orange w-full">{bulkError}</span> : null}
+        </div>
+      ) : null}
+
       <div className="overflow-x-auto">
         <table className="admin-catalog-table w-full min-w-[1100px] text-right border-collapse">
           <colgroup>
+            <col className="admin-col-select" />
             <col className="admin-col-preview" />
             <col className="admin-col-actions" />
             <col className="admin-col-title" />
@@ -172,6 +410,18 @@ export default function AdminTable({
           </colgroup>
           <thead>
             <tr className="xdj-browser-columns text-xs">
+              <th className="p-4 text-center">
+                <input
+                  type="checkbox"
+                  className="admin-catalog-row-check"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
+                  onChange={toggleSelectAll}
+                  aria-label={t("admin.bulkSelectAll")}
+                />
+              </th>
               <th className="p-4 text-center">{t("admin.colPreview")}</th>
               <th className="p-4 text-center sticky right-0 z-10 bg-xdj-panel/95 backdrop-blur-sm shadow-[-4px_0_8px_rgba(0,0,0,0.2)]">
                 {t("admin.colActions")}
@@ -185,7 +435,7 @@ export default function AdminTable({
           <tbody className="divide-y divide-xdj-border/30">
             {tracks.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center">
+                <td colSpan={7} className="p-8 text-center">
                   <p className="font-lcd text-xs text-xdj-muted">{t("admin.emptyTable")}</p>
                   <p className="text-xs text-xdj-muted mt-2">{t("admin.emptyTableHint")}</p>
                 </td>
@@ -203,6 +453,7 @@ export default function AdminTable({
               const saving = savingId === track.id;
               const isExpanded = expandedIds.has(track.id);
               const versionCount = normalized.versions?.length ?? 1;
+              const isChecked = selectedIds.has(track.id);
 
               return (
                 <React.Fragment key={track.id}>
@@ -210,8 +461,19 @@ export default function AdminTable({
                   onClick={() => onPreviewTrack(track)}
                   className={`xdj-browser-row transition-colors cursor-pointer ${
                     isSelected ? "bg-xdj-cyan/10 ring-1 ring-inset ring-xdj-cyan/30" : "hover:bg-xdj-cyan/5"
-                  } ${needsReload ? "bg-red-950/20 opacity-80" : ""} ${dirty ? "ring-1 ring-inset ring-xdj-gold/40" : ""}`}
+                  } ${needsReload ? "bg-red-950/20 opacity-80" : ""} ${dirty ? "ring-1 ring-inset ring-xdj-gold/40" : ""} ${
+                    isChecked ? "bg-xdj-gold/5" : ""
+                  }`}
                 >
+                  <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="admin-catalog-row-check"
+                      checked={isChecked}
+                      onChange={() => toggleSelected(track.id)}
+                      aria-label={track.title || track.id}
+                    />
+                  </td>
                   <td className="p-3 text-center">
                     <button
                       type="button"

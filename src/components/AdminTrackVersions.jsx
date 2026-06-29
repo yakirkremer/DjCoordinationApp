@@ -107,7 +107,7 @@ export default function AdminTrackVersions({
 
   return (
     <tr className="admin-version-row bg-black/30">
-      <td colSpan={6} className="p-3 sm:p-4" onClick={(e) => e.stopPropagation()}>
+      <td colSpan={7} className="p-3 sm:p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-col gap-3" dir={dir}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
