@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useGenres } from "../hooks/useGenres";
 import { uploadTrack } from "../lib/api/uploadTrack";
 import { ACCEPT_AUDIO, isSupportedAudioFile, stripAudioExtension } from "../lib/audioFormats";
@@ -12,6 +12,23 @@ function guessMetaFromFile(file) {
   return { artist: "", title: base };
 }
 
+function fileKey(file) {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+function mergeAudioFiles(existing, incoming) {
+  const seen = new Set(existing.map(fileKey));
+  const next = [...existing];
+  for (const file of incoming) {
+    if (!isSupportedAudioFile(file)) continue;
+    const key = fileKey(file);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    next.push(file);
+  }
+  return next;
+}
+
 export default function TrackUploadPanel({ onUploaded }) {
   const genres = useGenres();
   const [bucket, setBucket] = useState(() => genres[0]);
@@ -22,7 +39,9 @@ export default function TrackUploadPanel({ onUploaded }) {
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
   const [error, setError] = useState("");
   const [lastResult, setLastResult] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef(null);
+  const dragDepthRef = useRef(0);
 
   useEffect(() => {
     if (!genres.includes(bucket)) {
@@ -33,20 +52,82 @@ export default function TrackUploadPanel({ onUploaded }) {
   const isMulti = files.length > 1;
   const isUploading = status === "uploading";
 
-  const handleFileChange = (e) => {
-    const picked = Array.from(e.target.files ?? []).filter(isSupportedAudioFile);
-    setFiles(picked);
-    setError("");
-    setLastResult(null);
-
-    if (picked.length === 1) {
-      const meta = guessMetaFromFile(picked[0]);
+  const syncMetaForSingleFile = useCallback((list) => {
+    if (list.length === 1) {
+      const meta = guessMetaFromFile(list[0]);
       setTitle(meta.title);
       setArtist(meta.artist);
+    } else if (list.length === 0) {
+      setTitle("");
+      setArtist("");
     } else {
       setTitle("");
       setArtist("");
     }
+  }, []);
+
+  const addFiles = useCallback(
+    (incoming) => {
+      const picked = Array.from(incoming ?? []).filter(isSupportedAudioFile);
+      if (!picked.length) {
+        setError("רק קבצי MP3 או WAV נתמכים");
+        return;
+      }
+      setFiles((prev) => {
+        const next = mergeAudioFiles(prev, picked);
+        syncMetaForSingleFile(next);
+        return next;
+      });
+      setError("");
+      setLastResult(null);
+    },
+    [syncMetaForSingleFile]
+  );
+
+  const handleFileChange = (e) => {
+    addFiles(e.target.files);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current += 1;
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current -= 1;
+    if (dragDepthRef.current <= 0) {
+      dragDepthRef.current = 0;
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDragOver(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  const removeFile = (key) => {
+    setFiles((prev) => {
+      const next = prev.filter((f) => fileKey(f) !== key);
+      syncMetaForSingleFile(next);
+      return next;
+    });
+    setError("");
+    setLastResult(null);
   };
 
   const clearFiles = () => {
@@ -148,18 +229,49 @@ export default function TrackUploadPanel({ onUploaded }) {
             </select>
           </label>
 
-          <label className="flex flex-col gap-1 sm:col-span-1">
+          <div className="flex flex-col gap-1 sm:col-span-1">
             <span className="font-lcd text-[10px] text-xdj-muted uppercase">קבצי MP3 / WAV</span>
-            <input
-              ref={inputRef}
-              type="file"
-              accept={ACCEPT_AUDIO}
-              multiple
-              onChange={handleFileChange}
-              disabled={isUploading}
-              className="input-luxury px-3 py-2 text-sm rounded-sm min-h-[44px] file:mr-3 file:rounded-sm file:border-0 file:bg-xdj-cyan/20 file:px-3 file:py-1 file:text-xdj-cyan"
-            />
-          </label>
+            <div
+              className={`track-upload-dropzone ${isDragOver ? "is-drag-over" : ""} ${isUploading ? "is-disabled" : ""}`}
+              onDragEnter={isUploading ? undefined : handleDragEnter}
+              onDragLeave={isUploading ? undefined : handleDragLeave}
+              onDragOver={isUploading ? undefined : handleDragOver}
+              onDrop={isUploading ? undefined : handleDrop}
+              onClick={() => {
+                if (!isUploading) inputRef.current?.click();
+              }}
+              onKeyDown={(e) => {
+                if (!isUploading && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
+              role="button"
+              tabIndex={isUploading ? -1 : 0}
+            >
+              <input
+                ref={inputRef}
+                type="file"
+                accept={ACCEPT_AUDIO}
+                multiple
+                onChange={handleFileChange}
+                disabled={isUploading}
+                className="track-upload-dropzone-input"
+                aria-label="בחירת קבצי אודיו"
+              />
+              <div className="track-upload-dropzone-body">
+                <p className="track-upload-dropzone-title">
+                  {isDragOver ? "שחרר כאן להוספה לרשימה" : "גרור קבצים לכאן"}
+                </p>
+                <p className="track-upload-dropzone-hint">
+                  אפשר לשחרר שיר אחד, ואז עוד — הכל יועלה בלחיצה אחת
+                </p>
+                <span className="track-upload-dropzone-browse btn-luxury px-3 py-1.5 rounded-sm text-xs">
+                  בחר קבצים
+                </span>
+              </div>
+            </div>
+          </div>
 
           {!isMulti ? (
             <>
@@ -191,16 +303,31 @@ export default function TrackUploadPanel({ onUploaded }) {
         </div>
 
         {files.length > 0 ? (
-          <div className="rounded-sm border border-xdj-border/50 bg-black/20 px-3 py-2 max-h-32 overflow-y-auto">
+          <div className="rounded-sm border border-xdj-border/50 bg-black/20 px-3 py-2 max-h-40 overflow-y-auto">
             <p className="text-[10px] text-xdj-cyan font-lcd mb-1">
-              {files.length} קבצים נבחרו · כולם יועלו לקטגוריה {bucket}
+              {files.length} קבצים ברשימה · כולם יועלו לקטגוריה {bucket}
             </p>
-            <ul className="text-xs text-xdj-muted space-y-0.5">
-              {files.map((f) => (
-                <li key={`${f.name}-${f.size}`} className="truncate">
-                  {f.name}
-                </li>
-              ))}
+            <ul className="text-xs text-xdj-muted space-y-1">
+              {files.map((f) => {
+                const key = fileKey(f);
+                return (
+                  <li key={key} className="flex items-center gap-2 min-w-0">
+                    <span className="truncate flex-1" title={f.name}>
+                      {f.name}
+                    </span>
+                    {!isUploading ? (
+                      <button
+                        type="button"
+                        onClick={() => removeFile(key)}
+                        className="shrink-0 text-[10px] text-xdj-orange hover:text-xdj-text px-1"
+                        aria-label={`הסר ${f.name}`}
+                      >
+                        הסר
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}
@@ -226,7 +353,7 @@ export default function TrackUploadPanel({ onUploaded }) {
               onClick={clearFiles}
               className="btn-luxury px-4 py-2 rounded-sm text-sm min-h-[44px]"
             >
-              נקה
+              נקה הכל
             </button>
           ) : null}
           <button
