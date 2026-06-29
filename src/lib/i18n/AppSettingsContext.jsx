@@ -146,7 +146,14 @@ export function AppSettingsProvider({ children }) {
 
   useEffect(() => {
     applyAccessibility(accessibility);
-  }, [accessibility]);
+  }, [
+    accessibility,
+    activeTheme,
+    activePlayerStyle,
+    activeBrowserStyle,
+    activeWaveformStyle,
+    activeBrowserRowSize,
+  ]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("site-text-edit-mode", siteTextEditMode);

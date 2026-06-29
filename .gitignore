@@ -23,6 +23,7 @@ public/data/form-schema.json
 public/data/app-settings.json
 public/data/artwork/**
 public/music/**
+public/tmp_music/**
 !public/music/.gitkeep
 dist-ssr
 *.local

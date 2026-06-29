@@ -2,7 +2,13 @@ import React from "react";
 import { getWizardStepTheme } from "../lib/wizardStepTheme";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-export default function WizardProgress({ currentStep, totalSteps, steps = [], onStepSelect }) {
+export default function WizardProgress({
+  currentStep,
+  totalSteps,
+  steps = [],
+  stepProgress = [],
+  onStepSelect,
+}) {
   const { t, dir } = useI18n();
   const currentTheme = getWizardStepTheme(steps[currentStep]?.stepType);
 
@@ -11,10 +17,11 @@ export default function WizardProgress({ currentStep, totalSteps, steps = [], on
       <ol className="wizard-stepper-track">
         {steps.map((stepDef, i) => {
           const theme = getWizardStepTheme(stepDef.stepType);
-          const isComplete = i < currentStep;
+          const progress = stepProgress[i];
+          const isComplete = progress?.complete ?? i < currentStep;
           const isCurrent = i === currentStep;
           const state = isCurrent ? "current" : isComplete ? "complete" : "upcoming";
-          const canJump = isComplete && typeof onStepSelect === "function";
+          const canJump = isComplete && i < currentStep && typeof onStepSelect === "function";
 
           return (
             <li
@@ -41,6 +48,11 @@ export default function WizardProgress({ currentStep, totalSteps, steps = [], on
                 <span className="wizard-stepper-num">{i + 1}</span>
               </button>
               <span className="wizard-stepper-label">{stepDef.title}</span>
+              {progress?.total > 0 ? (
+                <span className="wizard-stepper-count" aria-hidden>
+                  {progress.answered}/{progress.total}
+                </span>
+              ) : null}
               {i < steps.length - 1 ? (
                 <span
                   className={`wizard-stepper-connector${isComplete ? " is-filled" : ""}`}

@@ -6,15 +6,17 @@ import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
 import TrackVersionPicker from "./TrackVersionPicker";
 import DropTypeBadge from "./DropTypeBadge";
-import { getTrackComment, getTrackRating } from "../lib/trackRating";
+import { getTrackComment, getTrackRating, hasExplicitRating } from "../lib/trackRating";
 import { getPreviewLength } from "../lib/previewCue";
 import { applyActiveVersion, ensureTrackVersions } from "../lib/trackVersions";
+import { groupGenresByPhase } from "../lib/phaseGroups";
 import {
   countTracksForGenre,
   getTracksForGenre,
 } from "../lib/genreCatalog";
 import { sortTracksInGenre } from "../lib/genreTrackOrder";
 import { useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 const REORDER_DRAG_TYPE = "application/x-dj-track-reorder-id";
 
@@ -82,8 +84,11 @@ export default function TrackList({
   onRateTrack,
   onCommentChange,
   inlinePlayer = null,
+  eventPhases = null,
+  coupleBrowseUx = false,
 }) {
   const { settings } = useAppSettingsContext();
+  const { t } = useI18n();
   const genreTrackOrders = genreTrackOrdersProp ?? settings.genreTrackOrders ?? {};
   const catalogMode = Array.isArray(genreTabs) && genreTabs.length > 0;
   const categoriesInTracks = catalogMode
@@ -100,7 +105,12 @@ export default function TrackList({
   const [searchQuery, setSearchQuery] = useState("");
   const [dragTrackId, setDragTrackId] = useState(null);
   const [dragOverTrackId, setDragOverTrackId] = useState(null);
+  const [hideRated, setHideRated] = useState(false);
   const categoriesKey = categoriesInTracks.join("|");
+  const phaseGroups = useMemo(() => {
+    if (!coupleBrowseUx || !catalogMode || !eventPhases) return null;
+    return groupGenresByPhase(categoriesInTracks, eventPhases);
+  }, [coupleBrowseUx, catalogMode, eventPhases, categoriesInTracks]);
 
   useEffect(() => {
     if (!categoriesInTracks.includes(activeTab) && categoriesInTracks.length > 0) {
@@ -125,7 +135,7 @@ export default function TrackList({
     return sortTracksInGenre(inFolder, activeTab, genreTrackOrders);
   }, [tracks, activeTab, genreTrackOrders]);
   const query = searchQuery.trim().toLowerCase();
-  const filteredTracks = query
+  const searchedTracks = query
     ? (catalogMode ? genreEntries : folderTracks).filter((item) => {
         const track = catalogMode ? item.track : item;
         return (
@@ -173,6 +183,38 @@ export default function TrackList({
       onTrackSelect(row.track, { versionId: row.versionId, lockVersion: false });
     }
   };
+
+  const filteredTracks = useMemo(() => {
+    if (!hideRated || !coupleBrowseUx) return searchedTracks;
+    return searchedTracks.filter((item) => {
+      const track = catalogMode ? item.track : item;
+      const entry = catalogMode ? item : null;
+      const versionId = resolveRowVersionId(track, entry, activeVersionIds);
+      const normalized = ensureTrackVersions(track);
+      return !hasExplicitRating(
+        ratings,
+        track.id,
+        versionId,
+        normalized.defaultVersionId
+      );
+    });
+  }, [hideRated, coupleBrowseUx, searchedTracks, catalogMode, ratings, activeVersionIds]);
+
+  const ratedInTab = useMemo(() => {
+    let rated = 0;
+    for (const item of searchedTracks) {
+      const track = catalogMode ? item.track : item;
+      const entry = catalogMode ? item : null;
+      const versionId = resolveRowVersionId(track, entry, activeVersionIds);
+      const normalized = ensureTrackVersions(track);
+      if (
+        hasExplicitRating(ratings, track.id, versionId, normalized.defaultVersionId)
+      ) {
+        rated += 1;
+      }
+    }
+    return { rated, total: searchedTracks.length };
+  }, [searchedTracks, catalogMode, ratings, activeVersionIds]);
 
   const playPauseForTab = () => {
     if (!currentTrack) return;
@@ -257,6 +299,35 @@ export default function TrackList({
 
   const hasSelectedInList = filteredTracks.some((item, index) => resolveRow(item, index).isSelected);
 
+  const renderFolderButton = (category) => {
+    const count = catalogMode
+      ? countTracksForGenre(tracks, category)
+      : tracks.filter((track) => track.bucket === category).length;
+    const isActive = activeTab === category;
+    return (
+      <button
+        key={category}
+        type="button"
+        onClick={() => setActiveTab(category)}
+        className={`xdj-az-folder-item ${isActive ? "is-active" : ""}`}
+      >
+        <span className="xdj-az-folder-icon">
+          <FolderIcon open={isActive} />
+        </span>
+        <span className="xdj-az-folder-name">{category}</span>
+        <span className="xdj-az-folder-count">{count}</span>
+      </button>
+    );
+  };
+
+  const phaseGroupLabel = (groupId) => {
+    if (groupId === "other") return t("browse.phaseGroupOther");
+    if (groupId === "all") return null;
+    return t(`phases.${groupId}`);
+  };
+
+  const ratingVariant = coupleBrowseUx ? "chips" : "default";
+
   const renderInlinePlayer = (visible) =>
     visible && inlinePlayer ? (
       <div className="xdj-az-inline-player" onClick={(e) => e.stopPropagation()}>
@@ -286,6 +357,24 @@ export default function TrackList({
             />
           )}
           <span className="xdj-az-track-count">{filteredTracks.length} TRACKS</span>
+          {coupleBrowseUx ? (
+            <>
+              <span className="xdj-az-rated-progress">
+                {t("browse.ratedProgress", {
+                  rated: ratedInTab.rated,
+                  total: ratedInTab.total,
+                })}
+              </span>
+              <button
+                type="button"
+                className={`xdj-az-hide-rated-toggle${hideRated ? " is-active" : ""}`}
+                onClick={() => setHideRated((value) => !value)}
+                aria-pressed={hideRated}
+              >
+                {hideRated ? t("browse.showAll") : t("browse.hideRated")}
+              </button>
+            </>
+          ) : null}
           {reorderMode ? (
             <span className="xdj-az-reorder-hint text-[9px] text-xdj-cyan font-lcd tracking-wider">
               {savingReorderGenre === activeTab ? "SAVING..." : "DRAG TO REORDER"}
@@ -298,27 +387,22 @@ export default function TrackList({
         <aside className="xdj-az-folders">
           <div className="xdj-az-folders-label">COLLECTION</div>
           <ul className="xdj-az-folder-list">
-            {categoriesInTracks.map((category) => {
-              const count = catalogMode
-                ? countTracksForGenre(tracks, category)
-                : tracks.filter((t) => t.bucket === category).length;
-              const isActive = activeTab === category;
-              return (
-                <li key={category}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab(category)}
-                    className={`xdj-az-folder-item ${isActive ? "is-active" : ""}`}
-                  >
-                    <span className="xdj-az-folder-icon">
-                      <FolderIcon open={isActive} />
-                    </span>
-                    <span className="xdj-az-folder-name">{category}</span>
-                    <span className="xdj-az-folder-count">{count}</span>
-                  </button>
-                </li>
-              );
-            })}
+            {phaseGroups
+              ? phaseGroups.map((group) => (
+                  <li key={group.id} className="xdj-az-folder-group">
+                    {phaseGroupLabel(group.id) ? (
+                      <div className="xdj-az-folder-group-label">{phaseGroupLabel(group.id)}</div>
+                    ) : null}
+                    <ul className="xdj-az-folder-sublist">
+                      {group.genres.map((category) => (
+                        <li key={category}>{renderFolderButton(category)}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ))
+              : categoriesInTracks.map((category) => (
+                  <li key={category}>{renderFolderButton(category)}</li>
+                ))}
           </ul>
         </aside>
 
@@ -384,8 +468,9 @@ export default function TrackList({
                             <TrackRating
                               rating={getTrackRating(ratings, track.id, versionId)}
                               onRate={(value) => onRateTrack(track.id, value, versionId)}
-                              compact
-                              touchFriendly
+                              compact={!coupleBrowseUx}
+                              touchFriendly={coupleBrowseUx}
+                              variant={ratingVariant}
                             />
                           </div>
                         </div>
@@ -503,6 +588,7 @@ export default function TrackList({
                             onRate={(value) => onRateTrack(track.id, value, versionId)}
                             onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
                             compact
+                            quickChips={coupleBrowseUx}
                           />
                         </div>
 
@@ -539,16 +625,36 @@ export default function TrackList({
       </div>
 
       <div className="xdj-az-mobile-folders">
-        {categoriesInTracks.map((category) => (
-          <button
-            key={category}
-            type="button"
-            onClick={() => setActiveTab(category)}
-            className={`xdj-az-mobile-folder ${activeTab === category ? "is-active" : ""}`}
-          >
-            {category}
-          </button>
-        ))}
+        {phaseGroups
+          ? phaseGroups.map((group) => (
+              <div key={group.id} className="xdj-az-mobile-folder-group">
+                {phaseGroupLabel(group.id) ? (
+                  <div className="xdj-az-mobile-folder-group-label">{phaseGroupLabel(group.id)}</div>
+                ) : null}
+                <div className="xdj-az-mobile-folder-row">
+                  {group.genres.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setActiveTab(category)}
+                      className={`xdj-az-mobile-folder ${activeTab === category ? "is-active" : ""}`}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          : categoriesInTracks.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setActiveTab(category)}
+                className={`xdj-az-mobile-folder ${activeTab === category ? "is-active" : ""}`}
+              >
+                {category}
+              </button>
+            ))}
       </div>
     </div>
   );

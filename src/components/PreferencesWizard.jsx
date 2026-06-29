@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import WizardProgress from "./WizardProgress";
 import WizardStepHero from "./WizardStepHero";
+import WizardSaveStatus from "./WizardSaveStatus";
 import DynamicWizardStep from "./DynamicWizardStep";
 import WizardStepGenres from "./WizardStepGenres";
 import WizardStepEnergy from "./WizardStepEnergy";
@@ -10,6 +11,7 @@ import WizardStepTimeline from "./WizardStepTimeline";
 import WizardStepSummary from "./WizardStepSummary";
 import { validateQuestionsStep } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
+import { getStepAnsweredCount } from "../lib/wizardProgress";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 function clampStep(step, totalSteps) {
@@ -35,6 +37,8 @@ export default function PreferencesWizard({
   onSkip,
   onSaveProgress,
   onSaveAndExit,
+  lastSavedAt = null,
+  isSaving = false,
 }) {
   const { t, dir } = useI18n();
   const steps = useMemo(
@@ -49,6 +53,27 @@ export default function PreferencesWizard({
   }, [clientType, steps.length]);
 
   const currentStepDef = steps[step];
+  const stepAnswered = useMemo(
+    () => getStepAnsweredCount(preferences, currentStepDef, selectedCategories, categoryRatings),
+    [preferences, currentStepDef, selectedCategories, categoryRatings]
+  );
+  const stepProgress = useMemo(
+    () =>
+      steps.map((stepDef, index) => {
+        const counts = getStepAnsweredCount(
+          preferences,
+          stepDef,
+          selectedCategories,
+          categoryRatings
+        );
+        const complete =
+          index < step ||
+          (counts.total > 0 && counts.answered >= counts.total) ||
+          stepDef.stepType === "summary";
+        return { ...counts, complete };
+      }),
+    [steps, preferences, selectedCategories, categoryRatings, step]
+  );
 
   const persistStep = (nextStep) => {
     setStep(nextStep);
@@ -198,12 +223,22 @@ export default function PreferencesWizard({
         currentStep={step}
         totalSteps={steps.length}
         steps={steps}
+        stepProgress={stepProgress}
         onStepSelect={(index) => {
           if (index < step) persistStep(index);
         }}
       />
       <WizardStepHero stepDef={currentStepDef} currentStep={step} totalSteps={steps.length} />
-      <p className="wizard-autosave-hint">{t("wizard.autoSave")}</p>
+      {stepAnswered.total > 0 ? (
+        <p className="wizard-answered-hint">
+          {t("wizard.answeredHint", {
+            answered: stepAnswered.answered,
+            total: stepAnswered.total,
+          })}
+        </p>
+      ) : null}
+      <WizardSaveStatus isSaving={isSaving} lastSavedAt={lastSavedAt} />
+      <p className="wizard-privacy-hint">{t("wizard.privacyNote")}</p>
       <div className={`wizard-scroll wizard-step-panel wizard-step-panel--${stepType}`} key={step}>
         {renderStep()}
       </div>

@@ -1,5 +1,5 @@
 import { execSync, spawnSync } from "child_process";
-import { RUNTIME_DATA_PATHS } from "./runtimeDataPaths.js";
+import { DEPLOY_EXCLUDE_PATHS } from "./runtimeDataPaths.js";
 
 const REMOTE = process.env.DEPLOY_REMOTE || "DjCordApp";
 const BRANCH = process.env.DEPLOY_BRANCH || "main";
@@ -32,9 +32,11 @@ try {
     console.log("No file changes to commit.");
   } else {
     run("git add -A");
-    for (const filePath of RUNTIME_DATA_PATHS) {
+    for (const filePath of DEPLOY_EXCLUDE_PATHS) {
       spawnSync("git", ["reset", "HEAD", "--", filePath], { stdio: "ignore" });
     }
+    // Never commit backup archives even if gitignore is bypassed
+    spawnSync("git", ["reset", "HEAD", "--", "*.tar.gz", "*.tgz"], { stdio: "ignore" });
     const staged = capture("git diff --cached --name-only");
     if (staged) {
       const commit = spawnSync("git", ["commit", "-m", message], { stdio: "inherit" });

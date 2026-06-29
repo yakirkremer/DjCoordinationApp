@@ -15,6 +15,8 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
   const [categoryRatings, setCategoryRatings] = useState({});
   const [preferences, setPreferences] = useState({ ...DEFAULT_PREFERENCES });
   const [ready, setReady] = useState(!clientId);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const stateRef = useRef({
     ratings,
@@ -38,11 +40,13 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
       if (!clientId) return;
       const payload = { ...stateRef.current, ...patch };
 
+      setIsSaving(true);
       clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
-        saveFeedback(payload, clientId).catch((err) =>
-          console.error("Feedback save failed:", err)
-        );
+        saveFeedback(payload, clientId)
+          .then(() => setLastSavedAt(new Date()))
+          .catch((err) => console.error("Feedback save failed:", err))
+          .finally(() => setIsSaving(false));
       }, 250);
     },
     [clientId]
@@ -69,6 +73,7 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
       setSelectedCategories(saved.selectedCategories);
       setCategoryRatings(saved.categoryRatings);
       setPreferences(saved.preferences);
+      setLastSavedAt(new Date());
       setReady(true);
     });
 
@@ -225,6 +230,7 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
         { ...stateRef.current, preferences: nextPreferences },
         clientId
       );
+      setLastSavedAt(new Date());
     },
     [clientId]
   );
@@ -245,5 +251,7 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
     skipWizard,
     reopenWizard,
     saveWizardProgress,
+    lastSavedAt,
+    isSaving,
   };
 }

@@ -4290,3 +4290,277 @@ html[data-theme="minimal-light"] .btn-luxury-primary {
   color: var(--color-xdj-muted);
   margin-bottom: 0.5rem;
 }
+
+/* ── Client couple UX polish ─────────────────────────────── */
+
+.btn-luxury-quiet {
+  border: 1px solid color-mix(in srgb, var(--color-xdj-border) 80%, transparent);
+  background: color-mix(in srgb, var(--color-xdj-surface) 50%, transparent);
+  color: var(--color-xdj-muted);
+}
+
+.btn-luxury-quiet:hover {
+  color: var(--color-xdj-text);
+  border-color: var(--color-xdj-border);
+}
+
+.client-home-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .client-home-cta {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+}
+
+.client-home-cta-primary {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-xdj-cyan) 35%, transparent),
+    0 8px 24px color-mix(in srgb, var(--color-xdj-cyan) 18%, transparent);
+}
+
+.client-home-cta-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.client-progress-card {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-xdj-gold) 25%, var(--color-xdj-border));
+  background: color-mix(in srgb, var(--color-xdj-gold) 6%, #08080a);
+}
+
+.client-progress-card-text {
+  font-size: 0.8rem;
+  color: var(--color-xdj-text);
+  margin: 0 0 0.5rem;
+}
+
+.client-progress-bar {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-xdj-border) 70%, transparent);
+  overflow: hidden;
+}
+
+.client-progress-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-xdj-gold), var(--color-xdj-cyan));
+}
+
+.client-trust-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.client-trust-note {
+  font-size: 0.65rem;
+  color: color-mix(in srgb, var(--color-xdj-muted) 92%, #fff);
+  margin: 0;
+}
+
+.client-breadcrumb {
+  margin-bottom: 0.25rem;
+}
+
+.client-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.client-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.client-breadcrumb-sep {
+  color: var(--color-xdj-muted);
+  font-size: 0.75rem;
+}
+
+.client-breadcrumb-text {
+  font-size: 0.7rem;
+  color: var(--color-xdj-muted);
+  letter-spacing: 0.04em;
+}
+
+.client-breadcrumb-text.is-current {
+  color: var(--color-xdj-cyan);
+  font-weight: 600;
+}
+
+.app-toast {
+  position: fixed;
+  inset-inline: 1rem;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+  z-index: 60;
+  max-width: 24rem;
+  margin-inline: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--color-xdj-cyan) 40%, var(--color-xdj-border));
+  background: color-mix(in srgb, #0a0a0e 92%, var(--color-xdj-cyan));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.app-toast-text {
+  flex: 1;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-xdj-text);
+}
+
+.app-toast-dismiss {
+  border: none;
+  background: transparent;
+  color: var(--color-xdj-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  cursor: pointer;
+}
+
+.wizard-answered-hint {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--color-xdj-gold);
+  margin: 0 0 0.35rem;
+}
+
+.wizard-privacy-hint {
+  text-align: center;
+  font-size: 0.62rem;
+  color: color-mix(in srgb, var(--color-xdj-muted) 90%, #fff);
+  margin: 0 0 0.65rem;
+}
+
+.wizard-autosave-hint.is-saving {
+  color: var(--color-xdj-cyan);
+}
+
+.wizard-stepper-count {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--color-xdj-muted);
+  margin-top: 0.15rem;
+}
+
+.track-rating--chips {
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.track-rating--chips .track-rating-btn {
+  flex: 1;
+  min-height: 2.85rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.track-rating-chip-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.track-rating--chips .track-rating-btn--like.is-active {
+  background: color-mix(in srgb, #22c55e 22%, #0a0a0e);
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.track-rating--chips .track-rating-btn--ok.is-active {
+  background: color-mix(in srgb, var(--color-xdj-gold) 20%, #0a0a0e);
+  border-color: var(--color-xdj-gold);
+  color: #fde68a;
+}
+
+.track-rating--chips .track-rating-btn--dislike.is-active {
+  background: color-mix(in srgb, var(--color-xdj-orange) 20%, #0a0a0e);
+  border-color: var(--color-xdj-orange);
+  color: #fed7aa;
+}
+
+.xdj-az-folder-group-label,
+.xdj-az-mobile-folder-group-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-xdj-cyan);
+  padding: 0.35rem 0.5rem 0.2rem;
+  opacity: 0.92;
+}
+
+.xdj-az-folder-sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.xdj-az-mobile-folder-group {
+  margin-bottom: 0.35rem;
+}
+
+.xdj-az-mobile-folder-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.xdj-az-rated-progress {
+  font-size: 0.58rem;
+  color: var(--color-xdj-muted);
+  white-space: nowrap;
+}
+
+.xdj-az-hide-rated-toggle {
+  font-size: 0.58rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-xdj-border);
+  background: transparent;
+  color: var(--color-xdj-muted);
+  white-space: nowrap;
+}
+
+.xdj-az-hide-rated-toggle.is-active {
+  border-color: var(--color-xdj-cyan);
+  color: var(--color-xdj-cyan);
+}
+
+html:not([data-a11y-strong-focus="true"]) .client-home button:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .wizard-shell button:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .track-rating-btn:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .xdj-az-hide-rated-toggle:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .app-toast-dismiss:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .client-breadcrumb-text:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .a11y-toolbar-toggle:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .a11y-text-size-btn:focus-visible,
+html:not([data-a11y-strong-focus="true"]) .a11y-reset-btn:focus-visible {
+  outline: 2px solid var(--color-xdj-cyan);
+  outline-offset: 2px;
+}
+
+.xdj-hw-transport-key {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}

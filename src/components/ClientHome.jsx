@@ -4,8 +4,20 @@ import CategoryBreakdown from "./CategoryBreakdown";
 import CategoryTrackChoices from "./CategoryTrackChoices";
 import EditableText from "./EditableText";
 import { getCategoryBreakdown, getLikedTracks, getTracksByCategoryRating } from "../lib/feedbackAnalytics";
+import { getWizardCompletionPercent } from "../lib/wizardProgress";
 import { useGenres } from "../hooks/useGenres";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
+
+function formatEventDate(value, locale) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(locale === "he" ? "he-IL" : "en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export default function ClientHome({
   client,
@@ -22,7 +34,7 @@ export default function ClientHome({
   onOpenTutorial,
   onLogout,
 }) {
-  const { dir } = useI18n();
+  const { dir, locale } = useI18n();
   const genres = useGenres();
   const breakdown = getCategoryBreakdown(
     genres,
@@ -45,6 +57,19 @@ export default function ClientHome({
     preferences.eventLocation ||
     selectedCategories.length < genres.length ||
     preferences.wizardStep > 0;
+  const completionPercent = getWizardCompletionPercent(
+    formSchema,
+    client.clientType,
+    preferences,
+    selectedCategories,
+    categoryRatings
+  );
+  const eventDateLabel = formatEventDate(preferences.eventDate, locale);
+  const primaryCtaKey = wizardDone
+    ? "home.editPreferences"
+    : hasProgress
+      ? "home.continueForm"
+      : "home.startForm";
 
   return (
     <div className="client-home flex flex-col gap-4 sm:gap-6 pb-4" dir={dir}>
@@ -57,6 +82,11 @@ export default function ClientHome({
             <h2 className="text-xl font-semibold text-xdj-gold">
               <EditableText k="home.hello" vars={{ name: client.name }} />
             </h2>
+            {eventDateLabel ? (
+              <p className="text-xs text-xdj-cyan mt-1">
+                <EditableText k="home.eventDate" />: {eventDateLabel}
+              </p>
+            ) : null}
             <p className="text-xs text-xdj-muted mt-1">
               {wizardDone ? (
                 <EditableText k="home.doneHint" />
@@ -69,6 +99,24 @@ export default function ClientHome({
             <EditableText k="common.logout" />
           </button>
         </div>
+
+        {hasProgress ? (
+          <div className="client-progress-card mt-4">
+            <p className="client-progress-card-text">
+              {wizardDone ? (
+                <EditableText
+                  k="home.progressSummary"
+                  vars={{ percent: completionPercent, favorites: likedTracks.length }}
+                />
+              ) : (
+                <EditableText k="home.progressSummaryFormOnly" vars={{ percent: completionPercent }} />
+              )}
+            </p>
+            <div className="client-progress-bar" aria-hidden>
+              <span className="client-progress-bar-fill" style={{ width: `${completionPercent}%` }} />
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
           <div className="client-stat-card">
@@ -105,39 +153,48 @@ export default function ClientHome({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 mt-5">
-          <button type="button" onClick={onStartWizard} className="btn-luxury-primary px-5 py-3 rounded-sm text-sm min-h-[44px]">
-            {wizardDone ? (
-              <EditableText k="home.editPreferences" />
-            ) : hasProgress ? (
-              <EditableText k="home.continueForm" />
-            ) : (
-              <EditableText k="home.startForm" />
-            )}
+        <div className="client-home-cta mt-5">
+          <button
+            type="button"
+            onClick={onStartWizard}
+            className="client-home-cta-primary btn-luxury-primary px-6 py-3.5 rounded-sm text-base font-semibold min-h-[48px] w-full sm:w-auto"
+          >
+            <EditableText k={primaryCtaKey} />
           </button>
-          {wizardDone && (
+          <div className="client-home-cta-secondary">
+            {wizardDone ? (
+              <button
+                type="button"
+                onClick={onBrowseMusic}
+                className="btn-luxury-gold px-4 py-2.5 rounded-sm text-sm min-h-[44px]"
+              >
+                <EditableText k="home.browseMusic" />
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={onBrowseMusic}
-              className="btn-luxury-gold px-5 py-3 rounded-sm text-sm min-h-[44px]"
+              onClick={onOpenTutorial}
+              className="btn-luxury-quiet px-4 py-2.5 rounded-sm text-sm min-h-[44px]"
             >
-              <EditableText k="home.browseMusic" />
+              <EditableText k="home.openTutorial" />
             </button>
-          )}
-          <button
-            type="button"
-            onClick={onOpenTutorial}
-            className="btn-luxury px-5 py-3 rounded-sm text-sm min-h-[44px]"
-          >
-            <EditableText k="home.openTutorial" />
-          </button>
-          <button
-            type="button"
-            onClick={onOpenGuide}
-            className="btn-luxury px-5 py-3 rounded-sm text-sm min-h-[44px]"
-          >
-            <EditableText k="home.openGuide" />
-          </button>
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="btn-luxury-quiet px-4 py-2.5 rounded-sm text-sm min-h-[44px]"
+            >
+              <EditableText k="home.openGuide" />
+            </button>
+          </div>
+        </div>
+
+        <div className="client-trust-notes mt-4">
+          <p className="client-trust-note">
+            <EditableText k="home.privacyNote" />
+          </p>
+          <p className="client-trust-note">
+            <EditableText k="home.autoSaveNote" />
+          </p>
         </div>
       </div>
 

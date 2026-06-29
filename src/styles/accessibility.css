@@ -28,7 +28,7 @@
   position: fixed;
   bottom: calc(var(--safe-bottom) + 6.5rem);
   inset-inline-end: calc(var(--safe-right) + 0.5rem);
-  z-index: 95;
+  z-index: 200;
 }
 
 .a11y-toolbar-toggle {
@@ -230,21 +230,21 @@ html[data-a11y-text-size="xlarge"] {
   font-size: 20px;
 }
 
-html[data-a11y-high-contrast="true"] {
-  --color-xdj-text: #ffffff;
-  --color-xdj-muted: #d0d0d8;
-  --color-xdj-border: #8a8a98;
-  --theme-accent: #ffcc44;
-  --theme-accent-secondary: #66ddff;
-  --theme-wave-played: #88ccff;
-  --theme-wave-unplayed: #555566;
-}
-
 html[data-a11y-high-contrast="true"] .chip-xdj,
 html[data-a11y-high-contrast="true"] .btn-luxury,
 html[data-a11y-high-contrast="true"] .btn-luxury-primary,
+html[data-a11y-high-contrast="true"] .btn-luxury-gold,
+html[data-a11y-high-contrast="true"] .btn-luxury-quiet,
+html[data-a11y-high-contrast="true"] .panel-luxury,
+html[data-a11y-high-contrast="true"] .client-stat-card,
 html[data-a11y-high-contrast="true"] button:not(.a11y-switch):not(.theme-swatch) {
   border-width: 2px;
+}
+
+html[data-a11y-high-contrast="true"] .text-xdj-muted,
+html[data-a11y-high-contrast="true"] .client-trust-note,
+html[data-a11y-high-contrast="true"] .wizard-privacy-hint {
+  color: var(--color-xdj-muted) !important;
 }
 
 html[data-a11y-high-contrast="true"] .xdj-az-row.is-playing,
@@ -272,16 +272,28 @@ html[data-a11y-underline-links="true"] a:not(.skip-to-content) {
   text-underline-offset: 0.18em;
 }
 
-html[data-a11y-readable-text="true"] body {
+html[data-a11y-readable-text="true"] body,
+html[data-a11y-readable-text="true"] .app-shell {
   letter-spacing: 0.02em;
   line-height: 1.6;
 }
 
 html[data-a11y-readable-text="true"] p,
+html[data-a11y-readable-text="true"] li,
+html[data-a11y-readable-text="true"] label,
+html[data-a11y-readable-text="true"] button,
+html[data-a11y-readable-text="true"] .btn-luxury,
+html[data-a11y-readable-text="true"] .btn-luxury-primary,
+html[data-a11y-readable-text="true"] .client-home,
+html[data-a11y-readable-text="true"] .wizard-shell,
+html[data-a11y-readable-text="true"] .panel-luxury,
+html[data-a11y-readable-text="true"] .client-stat-label,
+html[data-a11y-readable-text="true"] .client-stat-value,
 html[data-a11y-readable-text="true"] .xdj-az-track-title,
 html[data-a11y-readable-text="true"] .xdj-az-track-artist,
 html[data-a11y-readable-text="true"] .xdj-az-player-title,
-html[data-a11y-readable-text="true"] .xdj-az-player-artist {
+html[data-a11y-readable-text="true"] .xdj-az-player-artist,
+html[data-a11y-readable-text="true"] .a11y-toggle-label {
   line-height: 1.65;
 }
 

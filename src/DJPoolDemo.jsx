@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import TrackList from "./components/TrackList";
 import AdminTable from "./components/AdminTable";
 import AdminGenreOrganizer from "./components/AdminGenreOrganizer";
@@ -22,6 +22,9 @@ import AdminSettings from "./components/AdminSettings";
 import AdminTextEditor from "./components/AdminTextEditor";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
+import TutorialPage from "./components/TutorialPage";
+import ClientBreadcrumb from "./components/ClientBreadcrumb";
+import Toast from "./components/Toast";
 import SiteTextEditPopover from "./components/SiteTextEditPopover";
 import SiteTextEditToggle from "./components/SiteTextEditToggle";
 import SiteTextEditBanner from "./components/SiteTextEditBanner";
@@ -43,6 +46,7 @@ import {
   ensureTrackVersions,
   stripTrackForCatalogSave,
 } from "./lib/trackVersions";
+import { getWizardSteps } from "./lib/wizardProgress";
 
 export default function DJPoolDemo() {
   const { t, dir } = useI18n();
@@ -56,6 +60,8 @@ export default function DJPoolDemo() {
   const [adminTab, setAdminTab] = useState("catalog");
   const [clientScreen, setClientScreen] = useState("home");
   const [guestView, setGuestView] = useState("welcome");
+  const [toastMessage, setToastMessage] = useState("");
+  const resumeHandledRef = useRef(false);
 
   const genres = useGenres();
 
@@ -76,6 +82,8 @@ export default function DJPoolDemo() {
     skipWizard,
     reopenWizard,
     saveWizardProgress,
+    lastSavedAt,
+    isSaving,
   } = useTrackFeedback(activeClient?.id ?? null, genres);
 
   const formSchemaApi = useFormSchema();
@@ -473,8 +481,15 @@ export default function DJPoolDemo() {
 
   const isAdminCatalog = isAdmin && adminTab === "catalog";
   const isAdminEmbeddedPlayer = isAdmin && (adminTab === "catalog" || adminTab === "order");
-  const isBrowseInlinePlayer = isCoupleBrowse && showPlayer;
+  const isBrowseInlinePlayer = false;
   const showFooterPlayer = showPlayer && !isAdminEmbeddedPlayer && !isBrowseInlinePlayer;
+
+  const wizardSteps = useMemo(
+    () => getWizardSteps(formSchema, activeClient?.clientType),
+    [formSchema, activeClient?.clientType]
+  );
+  const wizardStepTitle =
+    clientScreen === "wizard" ? wizardSteps[preferences.wizardStep ?? 0]?.title ?? "" : "";
 
   const catalogTrackForPlayer = currentTrack
     ? tracks.find((t) => t.id === currentTrack.id) ?? null
@@ -580,6 +595,32 @@ export default function DJPoolDemo() {
     if (isAdmin) return;
     setClientScreen((screen) => (screen === "browse" || screen === "wizard" ? screen : "home"));
   }, [appReady, activeClient?.id, isAdmin]);
+
+  useEffect(() => {
+    if (!activeClient?.id) {
+      resumeHandledRef.current = false;
+    }
+  }, [activeClient?.id]);
+
+  useEffect(() => {
+    if (!coupleReady || !activeClient || isAdmin) return;
+    if (resumeHandledRef.current) return;
+    resumeHandledRef.current = true;
+
+    if (!preferences.wizardCompleted && (preferences.wizardStep ?? 0) > 0) {
+      setClientScreen("wizard");
+      setToastMessage(t("toast.resumeWizard"));
+    } else if (preferences.wizardCompleted) {
+      setToastMessage(t("toast.resumeBrowse"));
+    }
+  }, [
+    coupleReady,
+    activeClient,
+    isAdmin,
+    preferences.wizardCompleted,
+    preferences.wizardStep,
+    t,
+  ]);
 
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
@@ -768,6 +809,11 @@ export default function DJPoolDemo() {
           )}
         </div>
       </header>
+      {!isAdmin && activeClient && clientScreen !== "home" ? (
+        <div className="max-w-7xl mx-auto w-full px-2 sm:px-6 pb-2">
+          <ClientBreadcrumb screen={clientScreen} wizardStepTitle={wizardStepTitle} />
+        </div>
+      ) : null}
       </div>
       )}
 
@@ -783,7 +829,17 @@ export default function DJPoolDemo() {
         {catalogStatus === "loading" || !appReady ? (
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING...</p>
         ) : catalogStatus === "error" ? (
-          <p className="font-lcd text-xs text-xdj-orange text-center py-8">{catalogError}</p>
+          <section className="panel-luxury rounded-sm p-8 text-center max-w-md mx-auto space-y-4">
+            <h2 className="text-lg font-semibold text-xdj-gold">{t("errors.catalogLoadTitle")}</h2>
+            <p className="text-sm text-xdj-muted">{t("errors.catalogLoadBody")}</p>
+            <button
+              type="button"
+              className="btn-luxury-primary px-5 py-2.5 rounded-sm text-sm min-h-[44px]"
+              onClick={() => window.location.reload()}
+            >
+              {t("errors.catalogLoadAction")}
+            </button>
+          </section>
         ) : isAdmin ? (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <AdminTabNav activeTab={adminTab} onTabChange={setAdminTab} />
@@ -860,12 +916,21 @@ export default function DJPoolDemo() {
             onSkip={handleWizardSkip}
             onSaveProgress={saveWizardProgress}
             onSaveAndExit={() => setClientScreen("home")}
+            lastSavedAt={lastSavedAt}
+            isSaving={isSaving}
           />
         ) : tracks.length === 0 ? (
-          <div className="text-center py-8 space-y-2">
-            <p className="font-lcd text-xs text-xdj-muted">{t("browse.noTracks")}</p>
-            <p className="text-xs text-xdj-muted">{t("browse.emptyCatalog")}</p>
-          </div>
+          <section className="panel-luxury rounded-sm p-8 text-center max-w-md mx-auto space-y-4">
+            <h2 className="text-lg font-semibold text-xdj-gold">{t("browse.emptyCatalogTitle")}</h2>
+            <p className="text-sm text-xdj-muted">{t("browse.emptyCatalogBody")}</p>
+            <button
+              type="button"
+              className="btn-luxury px-5 py-2.5 rounded-sm text-sm min-h-[44px]"
+              onClick={() => setClientScreen("home")}
+            >
+              {t("browse.emptyCatalogAction")}
+            </button>
+          </section>
         ) : (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <CategorySelector
@@ -892,11 +957,8 @@ export default function DJPoolDemo() {
                 comments={comments}
                 onRateTrack={rateTrack}
                 onCommentChange={setComment}
-                inlinePlayer={
-                  isBrowseInlinePlayer && currentTrack && !currentTrack.isMissing ? (
-                    <GlobalPlayer {...playerProps} embedded />
-                  ) : null
-                }
+                eventPhases={preferences.phases}
+                coupleBrowseUx
               />
             </div>
           </div>
@@ -909,6 +971,7 @@ export default function DJPoolDemo() {
         </div>
       )}
       {isAdmin ? <SiteTextEditPopover /> : null}
+      <Toast message={toastMessage} onDismiss={() => setToastMessage("")} />
     </div>
   );
 }
