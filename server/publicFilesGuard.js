@@ -8,13 +8,13 @@ export function createPublicFilesGuard({ publicRoot, distRoot = null } = {}) {
   return (req, res, next) => {
     const raw = req.url?.split("?")[0] || "";
 
-    if (raw.startsWith("/data/")) {
+    if (raw.startsWith("/data/") && !raw.startsWith("/data/artwork/")) {
       res.statusCode = 403;
       res.end("Forbidden");
       return;
     }
 
-    if (!raw.startsWith("/music/")) {
+    if (!raw.startsWith("/music/") && !raw.startsWith("/data/artwork/")) {
       next();
       return;
     }

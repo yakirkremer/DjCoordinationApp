@@ -36,13 +36,13 @@ async function serveStatic(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = decodeURIComponent(url.pathname);
 
-  if (pathname.startsWith("/data/")) {
+  if (pathname.startsWith("/data/") && !pathname.startsWith("/data/artwork/")) {
     res.statusCode = 403;
     res.end("Forbidden");
     return;
   }
 
-  if (pathname.startsWith("/music/")) {
+  if (pathname.startsWith("/music/") || pathname.startsWith("/data/artwork/")) {
     const filePath = safePathUnderRoot(STORAGE_ROOT, pathname);
     if (!filePath) {
       res.statusCode = 403;
