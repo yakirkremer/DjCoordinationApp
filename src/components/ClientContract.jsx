@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import ContractFieldOverlay from "./ContractFieldOverlay";
 import ContractPdfViewer from "./ContractPdfViewer";
-import { signContract, signContractByLink, getContractTemplateFileUrl } from "../lib/api/contractApi";
+import { signContract, signContractByLink, getContractTemplateFileUrl, downloadSignedContractCopy } from "../lib/api/contractApi";
 import {
   buildTicketDisplayValuesWithProfile,
   getMissingClientProfileFields,
@@ -91,37 +91,58 @@ function SignaturePad({ onChange, label, id }) {
   );
 }
 
-function ContractDocumentBody({ template, values, onChange, onScrollToSignature, fileAccessToken }) {
+function ContractDocumentBody({
+  template,
+  values,
+  onChange,
+  onScrollToSignature,
+  fileAccessToken,
+  readOnly = false,
+}) {
   const docRef = useRef(null);
   const isPdf = template?.sourceType === "pdf";
   const allFields = template.fields ?? [];
   const inputFields = allFields.filter((f) => f.type !== "signature");
   const signatureFields = allFields.filter((f) => f.type === "signature");
 
-  const signatureOverlay = (pageIndex, pageEl) => (
-  <>
-      <ContractFieldOverlay
-        fields={inputFields.filter((f) => (f.page ?? 0) === pageIndex)}
-        mode="client"
-        values={values}
-        onChange={onChange}
-        containerRef={{ current: pageEl }}
-      />
-      <ContractFieldOverlay
-        fields={signatureFields.filter((f) => (f.page ?? 0) === pageIndex)}
-        mode="client-signature-hint"
-        values={values}
-        onScrollToSignature={onScrollToSignature}
-        containerRef={{ current: pageEl }}
-      />
-    </>
-  );
+  const pageOverlay = (pageIndex, pageEl) => {
+    if (readOnly) {
+      return (
+        <ContractFieldOverlay
+          fields={allFields.filter((f) => (f.page ?? 0) === pageIndex)}
+          mode="client"
+          readOnly
+          values={values}
+          containerRef={{ current: pageEl }}
+        />
+      );
+    }
+
+    return (
+      <>
+        <ContractFieldOverlay
+          fields={inputFields.filter((f) => (f.page ?? 0) === pageIndex)}
+          mode="client"
+          values={values}
+          onChange={onChange}
+          containerRef={{ current: pageEl }}
+        />
+        <ContractFieldOverlay
+          fields={signatureFields.filter((f) => (f.page ?? 0) === pageIndex)}
+          mode="client-signature-hint"
+          values={values}
+          onScrollToSignature={onScrollToSignature}
+          containerRef={{ current: pageEl }}
+        />
+      </>
+    );
+  };
 
   if (isPdf) {
     return (
       <div className="contract-doc-frame contract-doc-frame--client contract-doc-frame--pdf">
         <ContractPdfViewer fileUrl={getContractTemplateFileUrl(template.id, fileAccessToken)}>
-          {(pageIndex, pageEl) => signatureOverlay(pageIndex, pageEl)}
+          {(pageIndex, pageEl) => pageOverlay(pageIndex, pageEl)}
         </ContractPdfViewer>
       </div>
     );
@@ -130,20 +151,71 @@ function ContractDocumentBody({ template, values, onChange, onScrollToSignature,
   return (
     <div ref={docRef} className="contract-doc-frame contract-doc-frame--client">
       <div className="contract-doc-content" dangerouslySetInnerHTML={{ __html: template.html }} />
-      <ContractFieldOverlay
-        fields={inputFields.filter((f) => (f.page ?? 0) === 0)}
-        mode="client"
-        values={values}
-        onChange={onChange}
-        containerRef={docRef}
-      />
-      <ContractFieldOverlay
-        fields={signatureFields.filter((f) => (f.page ?? 0) === 0)}
-        mode="client-signature-hint"
-        values={values}
-        onScrollToSignature={onScrollToSignature}
-        containerRef={docRef}
-      />
+      {readOnly ? (
+        <ContractFieldOverlay
+          fields={allFields.filter((f) => (f.page ?? 0) === 0)}
+          mode="client"
+          readOnly
+          values={values}
+          containerRef={docRef}
+        />
+      ) : (
+        <>
+          <ContractFieldOverlay
+            fields={inputFields.filter((f) => (f.page ?? 0) === 0)}
+            mode="client"
+            values={values}
+            onChange={onChange}
+            containerRef={docRef}
+          />
+          <ContractFieldOverlay
+            fields={signatureFields.filter((f) => (f.page ?? 0) === 0)}
+            mode="client-signature-hint"
+            values={values}
+            onScrollToSignature={onScrollToSignature}
+            containerRef={docRef}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function SignedContractDownloads({ ticketId, signToken }) {
+  const [downloading, setDownloading] = useState(null);
+  const [error, setError] = useState("");
+
+  const handleDownload = async (format) => {
+    setError("");
+    setDownloading(format);
+    try {
+      await downloadSignedContractCopy(ticketId, format, signToken);
+    } catch (err) {
+      setError(err.message || "ההורדה נכשלה");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <div className="contract-client-downloads">
+      <button
+        type="button"
+        className="btn-luxury px-4 py-2 text-sm"
+        disabled={downloading === "pdf"}
+        onClick={() => handleDownload("pdf")}
+      >
+        {downloading === "pdf" ? "מוריד..." : "הורד PDF חתום"}
+      </button>
+      <button
+        type="button"
+        className="btn-luxury px-4 py-2 text-sm"
+        disabled={downloading === "html"}
+        onClick={() => handleDownload("html")}
+      >
+        {downloading === "html" ? "מוריד..." : "הורד HTML"}
+      </button>
+      {error ? <p className="text-sm text-red-400 w-full">{error}</p> : null}
     </div>
   );
 }
@@ -184,7 +256,9 @@ export default function ClientContract({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(ticket?.status === "signed");
-  const readOnly = ticket?.status === "signed";
+  const isSigned = ticket?.status === "signed" || done;
+  const viewOnly = isSigned;
+  const readOnly = viewOnly;
 
   useEffect(() => {
     if (!template?.fields) return;
@@ -219,13 +293,16 @@ export default function ClientContract({
     }
     setSubmitting(true);
     try {
+      let signedTicket = null;
       if (signToken) {
-        await signContractByLink(signToken, values);
+        const data = await signContractByLink(signToken, values);
+        signedTicket = data.ticket ?? null;
       } else {
-        await signContract(ticket.id, values);
+        const data = await signContract(ticket.id, values);
+        signedTicket = data.ticket ?? null;
       }
       setDone(true);
-      onSigned?.();
+      onSigned?.(signedTicket);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -253,18 +330,43 @@ export default function ClientContract({
     );
   }
 
-  if (done || readOnly) {
+  if (viewOnly) {
+    const displayValues = buildTicketDisplayValuesWithProfile(
+      template?.fields ?? [],
+      ticket?.values ?? {},
+      clientProfile
+    );
+    const mergedValues = { ...displayValues, ...values };
+
     return (
-      <div className="contract-client-done panel-luxury p-8 text-center max-w-lg mx-auto" dir="rtl">
-        <div className="text-4xl mb-4">✅</div>
-        <h2 className="text-xl font-bold text-xdj-gold mb-2">
-          {readOnly && !done ? "החוזה כבר נחתם" : "החוזה נחתם בהצלחה"}
-        </h2>
-        <p className="text-sm text-xdj-muted mb-6">תודה! החתימה נשמרה במערכת.</p>
+      <div className="contract-client contract-client--view" dir="rtl">
+        <header className="contract-client-header mb-4">
+          <h1 className="text-xl font-bold text-gray-100">{template.name}</h1>
+          <p className="text-sm text-green-300 mt-1">
+            {done && !isSigned ? "החוזה נחתם בהצלחה" : "החוזה נחתם — ניתן לצפות ולהוריד עותק"}
+          </p>
+          {ticket.signedAt ? (
+            <p className="text-xs text-xdj-muted mt-1">
+              נחתם ב־{new Date(ticket.signedAt).toLocaleString("he-IL")}
+            </p>
+          ) : null}
+        </header>
+
+        <ContractDocumentBody
+          template={template}
+          values={mergedValues}
+          readOnly
+          fileAccessToken={signToken || ticket.signToken}
+        />
+
+        <SignedContractDownloads ticketId={ticket.id} signToken={signToken || ticket.signToken} />
+
         {!standalone ? (
-          <button type="button" className="btn-luxury-primary px-6 py-2" onClick={onBack}>
-            חזרה לדף הבית
-          </button>
+          <div className="contract-client-actions mt-4">
+            <button type="button" className="btn-luxury-primary px-6 py-2" onClick={onBack}>
+              חזרה לדף הבית
+            </button>
+          </div>
         ) : null}
       </div>
     );

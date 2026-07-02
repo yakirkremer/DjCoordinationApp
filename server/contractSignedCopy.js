@@ -1,11 +1,17 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { PDFDocument, rgb } from "pdf-lib";
+import { fileURLToPath } from "url";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import { DATA_DIR } from "./storagePaths.js";
 
+const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CONTRACTS_DIR = path.join(DATA_DIR, "contracts");
 const SIGNED_DIR = path.join(CONTRACTS_DIR, "signed");
+const HEBREW_FONT_PATH = path.join(SERVER_DIR, "fonts", "NotoSansHebrew-Regular.ttf");
+
+let hebrewFontBytesPromise = null;
 
 export function generateSignToken() {
   return crypto.randomBytes(24).toString("base64url");
@@ -32,6 +38,13 @@ function fieldBoxToPdfRect(field, pageWidth, pageHeight) {
   return { x, y, w, h };
 }
 
+async function loadHebrewFontBytes() {
+  if (!hebrewFontBytesPromise) {
+    hebrewFontBytesPromise = fs.readFile(HEBREW_FONT_PATH);
+  }
+  return hebrewFontBytesPromise;
+}
+
 async function loadTemplatePdfBytes(templateId) {
   try {
     return await fs.readFile(path.join(CONTRACTS_DIR, `${templateId}.pdf`));
@@ -40,12 +53,27 @@ async function loadTemplatePdfBytes(templateId) {
   }
 }
 
+/** Latin digits/dates stay left-to-right; Hebrew font reorders numbers incorrectly. */
+function containsHebrewScript(text) {
+  return /[\u0590-\u05FF\uFB1D-\uFB4F]/.test(String(text ?? ""));
+}
+
+function pickStampFont(field, text, hebrewFont, latinFont) {
+  if (field.type === "date") return latinFont;
+  const str = String(text ?? "");
+  if (!containsHebrewScript(str)) return latinFont;
+  return hebrewFont;
+}
+
 async function stampPdfCopy(template, values) {
   const pdfBytes = await loadTemplatePdfBytes(template.id);
   if (!pdfBytes) return null;
 
-  const pdfDoc = await PDFDocument.load(pdfBytes);
-  const font = await pdfDoc.embedFont("Helvetica");
+  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  pdfDoc.registerFontkit(fontkit);
+  const fontBytes = await loadHebrewFontBytes();
+  const hebrewFont = await pdfDoc.embedFont(fontBytes);
+  const latinFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fields = template.fields ?? [];
 
   for (const field of fields) {
@@ -75,11 +103,12 @@ async function stampPdfCopy(template, values) {
 
     if (field.type === "checkbox") {
       if (value === true || value === "true" || value === "1") {
+        const markSize = Math.min(h * 0.85, 14);
         page.drawText("X", {
           x: x + w * 0.25,
-          y: y + h * 0.15,
-          size: Math.min(h * 0.85, 14),
-          font,
+          y: y + Math.max(2, (h - markSize) / 2),
+          size: markSize,
+          font: latinFont,
           color: rgb(0.1, 0.1, 0.2),
         });
       }
@@ -87,7 +116,8 @@ async function stampPdfCopy(template, values) {
     }
 
     const text = String(value);
-    const fontSize = Math.min(h * 0.65, 11);
+    const font = pickStampFont(field, text, hebrewFont, latinFont);
+    const fontSize = Math.min(Math.max(h * 0.55, 8), 12);
     page.drawText(text, {
       x: x + 2,
       y: y + Math.max(2, (h - fontSize) / 2),
@@ -98,7 +128,7 @@ async function stampPdfCopy(template, values) {
     });
   }
 
-  return pdfDoc.save();
+  return pdfDoc.save({ useObjectStreams: false });
 }
 
 function escapeHtml(value) {
@@ -147,7 +177,7 @@ function renderSignedHtml(template, ticket, values) {
 </html>`;
 }
 
-/** Saves JSON + HTML (+ PDF when template is PDF). Returns primary download filename. */
+/** Saves JSON + HTML (+ stamped PDF when template is PDF). Returns primary download filename. */
 export async function saveSignedContractCopy(ticket, template, values) {
   await fs.mkdir(SIGNED_DIR, { recursive: true });
   const base = ticket.id;
@@ -172,7 +202,7 @@ export async function saveSignedContractCopy(ticket, template, values) {
     try {
       const stamped = await stampPdfCopy(template, values);
       if (stamped) {
-        await fs.writeFile(path.join(SIGNED_DIR, `${base}.pdf`), stamped);
+        await fs.writeFile(path.join(SIGNED_DIR, `${base}.pdf`), Buffer.from(stamped));
         primary = `${base}.pdf`;
       }
     } catch (err) {
@@ -181,6 +211,20 @@ export async function saveSignedContractCopy(ticket, template, values) {
   }
 
   return primary;
+}
+
+export async function ensureSignedPdfCopy(ticket, template) {
+  if (!ticket || ticket.status !== "signed" || (template?.sourceType || "docx") !== "pdf") {
+    return false;
+  }
+
+  try {
+    await saveSignedContractCopy(ticket, template, ticket.values ?? {});
+    return true;
+  } catch (err) {
+    console.error("Failed to ensure signed PDF copy:", err);
+    return false;
+  }
 }
 
 export async function readSignedCopyFile(ticketId, format = "auto") {
@@ -195,17 +239,18 @@ export async function readSignedCopyFile(ticketId, format = "auto") {
 
   for (const name of candidates) {
     try {
-      const data = await fs.readFile(path.join(SIGNED_DIR, name));
+      const filePath = path.join(SIGNED_DIR, name);
+      const data = await fs.readFile(filePath);
       const ext = name.split(".").pop();
+
+      if (ext === "pdf" && (data.length < 100 || data.slice(0, 5).toString() !== "%PDF-")) {
+        continue;
+      }
+
       return { data, filename: name, ext };
     } catch {
       // try next
     }
   }
   return null;
-}
-
-export function findTicketBySignToken(contracts, signToken) {
-  if (!signToken) return null;
-  return contracts.tickets.find((t) => t.signToken === signToken) ?? null;
 }

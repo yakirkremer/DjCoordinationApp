@@ -31,6 +31,8 @@ export function saveContracts(data) {
   });
 }
 
+import { pickCanonicalTicketForClient } from "../contractTickets";
+
 function attachPublicTemplate(ticket, templates = []) {
   if (!ticket) return null;
   const template = templates.find((t) => t.id === ticket.templateId);
@@ -54,10 +56,18 @@ export async function fetchClientContract(clientId) {
     return { ticket: data.ticket ?? null };
   }
   if (clientId && Array.isArray(data.tickets)) {
-    const ticket = data.tickets.find((t) => t.clientId === clientId) ?? null;
+    const ticket = pickCanonicalTicketForClient(data.tickets, clientId);
     return { ticket: attachPublicTemplate(ticket, data.templates) };
   }
   return { ticket: null };
+}
+
+export function assignContractTicket(clientId, templateId, clientProfile = null) {
+  return request("/tickets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId, templateId, clientProfile }),
+  });
 }
 
 export function updateTicketAdminValues(ticketId, values) {
@@ -103,10 +113,41 @@ export function getContractTemplateFileUrl(templateId, signToken) {
   return `${base}?signToken=${encodeURIComponent(signToken)}`;
 }
 
-export function getSignedCopyDownloadUrl(ticketId, format) {
+export function getSignedCopyDownloadUrl(ticketId, format, signToken) {
+  const params = new URLSearchParams();
+  if (format) params.set("format", format);
+  if (signToken) params.set("signToken", signToken);
+  const query = params.toString();
   const base = `/api/contracts/tickets/${encodeURIComponent(ticketId)}/copy`;
-  if (!format) return base;
-  return `${base}?format=${encodeURIComponent(format)}`;
+  return query ? `${base}?${query}` : base;
+}
+
+export async function downloadSignedContractCopy(ticketId, format = "pdf", signToken) {
+  const res = await fetch(getSignedCopyDownloadUrl(ticketId, format, signToken), {
+    credentials: "include",
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+  if (!res.ok) {
+    const err = contentType.includes("application/json")
+      ? await res.json().catch(() => ({}))
+      : {};
+    throw new Error(err.error || `Download failed (${res.status})`);
+  }
+
+  if (format === "pdf" && !contentType.includes("pdf")) {
+    throw new Error("PDF copy is not available yet");
+  }
+
+  const blob = await res.blob();
+  const ext = format === "html" ? "html" : format === "json" ? "json" : "pdf";
+  const filename = `contract-${ticketId}.${ext}`;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function uploadContractTemplate(file, name) {

@@ -1,8 +1,25 @@
 import React, { useState } from "react";
 import ContractTemplateEditor, { ContractTemplateUploader } from "./ContractTemplateEditor";
 import { buildContractShareUrl } from "../lib/contractTokens";
-import { getSignedCopyDownloadUrl } from "../lib/api/contractApi";
+import { fetchContracts, downloadSignedContractCopy } from "../lib/api/contractApi";
 import AdminSentContractEditor from "./AdminSentContractEditor";
+import ClientContract from "./ClientContract";
+import { pickCanonicalTicketForClient } from "../lib/contractTickets";
+
+function buildAdminViewTicket(ticket, template) {
+  if (!ticket || !template) return null;
+  const base = {
+    id: template.id,
+    name: template.name,
+    sourceType: template.sourceType || "docx",
+    fields: template.fields ?? [],
+  };
+  const publicTemplate =
+    base.sourceType === "pdf"
+      ? { ...base, fileUrl: `/api/contracts/templates/${template.id}/file` }
+      : { ...base, html: template.html };
+  return { ...ticket, template: publicTemplate };
+}
 
 export default function ContractManager({
   contracts,
@@ -16,6 +33,7 @@ export default function ContractManager({
 }) {
   const [selectedId, setSelectedId] = useState(contracts[0]?.id ?? null);
   const [editingTicket, setEditingTicket] = useState(null);
+  const [viewingTicket, setViewingTicket] = useState(null);
   const selected = contracts.find((t) => t.id === selectedId) ?? contracts[0] ?? null;
 
   const getClientName = (clientId) =>
@@ -119,22 +137,45 @@ export default function ContractManager({
                           <button
                             type="button"
                             className="text-xs text-purple-400 hover:text-purple-300 text-right"
-                            onClick={() => {
-                              const url = buildContractShareUrl(ticket.signToken);
-                              navigator.clipboard?.writeText(url);
+                            onClick={async () => {
+                              try {
+                                const data = await fetchContracts();
+                                const fresh = pickCanonicalTicketForClient(
+                                  data.tickets ?? [],
+                                  ticket.clientId
+                                );
+                                const token = fresh?.signToken ?? ticket.signToken;
+                                await navigator.clipboard?.writeText(buildContractShareUrl(token));
+                              } catch {
+                                await navigator.clipboard?.writeText(
+                                  buildContractShareUrl(ticket.signToken)
+                                );
+                              }
                             }}
                           >
                             העתק קישור
                           </button>
                         ) : null}
                         {ticket.status === "signed" ? (
-                          <a
-                            href={getSignedCopyDownloadUrl(ticket.id)}
-                            className="text-xs text-cyan-400 hover:text-cyan-300"
-                            download
-                          >
-                            הורד עותק
-                          </a>
+                          <>
+                            <button
+                              type="button"
+                              className="text-xs text-cyan-400 hover:text-cyan-300 text-right"
+                              onClick={() => {
+                                const tpl = getTemplate?.(ticket.templateId) ?? contracts.find((t) => t.id === ticket.templateId);
+                                setViewingTicket(buildAdminViewTicket(ticket, tpl));
+                              }}
+                            >
+                              צפה בחוזה חתום
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-cyan-400 hover:text-cyan-300 text-right"
+                              onClick={() => downloadSignedContractCopy(ticket.id, "pdf").catch(() => {})}
+                            >
+                              הורד עותק
+                            </button>
+                          </>
                         ) : (
                           <>
                             <button
@@ -170,6 +211,18 @@ export default function ContractManager({
           onClose={() => setEditingTicket(null)}
           onSaved={onTicketAdminSaved}
         />
+      ) : null}
+
+      {viewingTicket ? (
+        <div className="contract-admin-view-overlay" dir="rtl">
+          <div className="contract-admin-view-panel">
+            <ClientContract
+              ticket={viewingTicket}
+              clientName={getClientName(viewingTicket.clientId)}
+              onBack={() => setViewingTicket(null)}
+            />
+          </div>
+        </div>
       ) : null}
     </div>
   );

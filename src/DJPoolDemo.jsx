@@ -55,7 +55,7 @@ import {
 import { getWizardSteps } from "./lib/wizardProgress";
 import useAppRouter from "./hooks/useAppRouter";
 import { adminTabPath, clientScreenPath } from "./lib/appRoutes";
-import { fetchClientContract } from "./lib/api/contractApi";
+import { fetchClientContract, fetchContractByLink } from "./lib/api/contractApi";
 import { emptyFeedback, saveFeedback } from "./lib/trackFeedbackStorage";
 import { DEFAULT_PREFERENCES } from "./lib/preferences";
 import { confirmDeleteAction } from "./lib/confirmDelete";
@@ -179,8 +179,35 @@ export default function DJPoolDemo() {
     };
   }, [activeClient?.id, clientScreen]);
 
+  useEffect(() => {
+    if (!contractLinkToken || !activeClient) return undefined;
+
+    let cancelled = false;
+    Promise.all([
+      fetchContractByLink(contractLinkToken),
+      fetchClientContract(activeClient.id),
+    ])
+      .then(([linkData, clientData]) => {
+        if (cancelled) return;
+        const linkTicket = linkData.ticket;
+        const clientTicket = clientData.ticket;
+        if (
+          linkTicket?.clientId === activeClient.id &&
+          clientTicket?.clientId === activeClient.id
+        ) {
+          setClientContractTicket(clientTicket);
+          replace("/contract");
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contractLinkToken, activeClient, replace]);
+
   const handleCreateClient = useCallback(
-    (name, loginCode, clientType, contractTemplateId, eventDate, eventLocation) => {
+    async (name, loginCode, clientType, contractTemplateId, eventDate, eventLocation) => {
       const result = createClient(name, loginCode, clientType, eventDate, eventLocation);
       if (!result) return null;
 
@@ -204,7 +231,7 @@ export default function DJPoolDemo() {
       ).catch((err) => console.error("Failed to seed client preferences:", err));
 
       if (contractTemplateId) {
-        createTicket(client.id, contractTemplateId, profile);
+        await createTicket(client.id, contractTemplateId, profile);
       }
       return client;
     },
@@ -222,12 +249,31 @@ export default function DJPoolDemo() {
     [clients, deleteClient, deleteClientTickets, t]
   );
 
-  const refreshClientContract = useCallback(() => {
-    if (!activeClient) return;
-    fetchClientContract(activeClient.id)
-      .then((data) => setClientContractTicket(data.ticket ?? null))
-      .catch(() => setClientContractTicket(null));
-  }, [activeClient]);
+  const refreshClientContract = useCallback(
+    (signedTicket) => {
+      if (signedTicket) {
+        setClientContractTicket(signedTicket);
+        return;
+      }
+      if (!activeClient) return;
+      fetchClientContract(activeClient.id)
+        .then((data) => setClientContractTicket(data.ticket ?? null))
+        .catch(() => setClientContractTicket(null));
+    },
+    [activeClient]
+  );
+
+  useEffect(() => {
+    if (!contractsEnabled) return;
+    loadContracts().catch(() => {});
+  }, [adminTab, contractsEnabled, loadContracts]);
+
+  useEffect(() => {
+    if (!contractsEnabled) return;
+    const refreshContracts = () => loadContracts().catch(() => {});
+    window.addEventListener("focus", refreshContracts);
+    return () => window.removeEventListener("focus", refreshContracts);
+  }, [contractsEnabled, loadContracts]);
 
   useEffect(() => {
     if (!showAdminPanel && !activeClient) {
@@ -912,15 +958,19 @@ export default function DJPoolDemo() {
           clients={clients}
           onCreateClient={handleCreateClient}
           onDeleteClient={handleDeleteClient}
-          onAssignContract={(clientId, templateId) => {
+          onAssignContract={async (clientId, templateId) => {
             const client = clients.find((c) => c.id === clientId);
-            createTicket(clientId, templateId, client
-              ? {
-                  clientName: client.name,
-                  eventDate: client.eventDate,
-                  eventLocation: client.eventLocation,
-                }
-              : null);
+            await createTicket(
+              clientId,
+              templateId,
+              client
+                ? {
+                    clientName: client.name,
+                    eventDate: client.eventDate,
+                    eventLocation: client.eventLocation,
+                  }
+                : null
+            );
           }}
           onUpdateStages={updateClientStages}
           onTicketAdminSaved={replaceTicket}

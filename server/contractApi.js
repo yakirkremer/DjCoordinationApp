@@ -9,12 +9,18 @@ import {
   mergeSignedContractValues,
   validateClientContractValues,
   patchAdminTicketValues,
+  buildTicketDisplayValuesWithProfile,
 } from "../src/lib/contractFields.js";
 import {
-  ensureTicketSignToken,
+  dedupeTicketsByClient,
+  pickCanonicalTicketForClient,
   findTicketBySignToken,
+} from "../src/lib/contractTickets.js";
+import {
+  ensureTicketSignToken,
   readSignedCopyFile,
   saveSignedContractCopy,
+  ensureSignedPdfCopy,
 } from "./contractSignedCopy.js";
 
 export const CONTRACTS_FILE = "contracts.json";
@@ -31,14 +37,14 @@ export async function readContracts() {
   const data = await readJsonFile(CONTRACTS_FILE, EMPTY_CONTRACTS);
   return {
     templates: Array.isArray(data.templates) ? data.templates : [],
-    tickets: Array.isArray(data.tickets) ? data.tickets : [],
+    tickets: dedupeTicketsByClient(Array.isArray(data.tickets) ? data.tickets : []),
   };
 }
 
 export async function writeContracts(data) {
   await writeJsonFile(CONTRACTS_FILE, {
     templates: Array.isArray(data.templates) ? data.templates : [],
-    tickets: Array.isArray(data.tickets) ? data.tickets : [],
+    tickets: dedupeTicketsByClient(Array.isArray(data.tickets) ? data.tickets : []),
   });
 }
 
@@ -102,13 +108,13 @@ async function finalizeTicketSign(ticket, template, rawValues, { isClient = true
 async function canAccessTemplateFile(session, templateId, signToken) {
   if (signToken) {
     const contracts = await readContracts();
-    const ticket = findTicketBySignToken(contracts, signToken);
+    const ticket = findTicketBySignToken(contracts.tickets, signToken);
     return ticket?.templateId === templateId;
   }
   if (isAdminSession(session)) return true;
   if (session?.role === "client" && session.clientId) {
     const contracts = await readContracts();
-    const ticket = contracts.tickets.find((t) => t.clientId === session.clientId);
+    const ticket = pickCanonicalTicketForClient(contracts.tickets, session.clientId);
     return ticket?.templateId === templateId;
   }
   return false;
@@ -235,7 +241,7 @@ export async function handleContractsApi(req, res) {
         }
 
         if (session?.role === "client" && session.clientId) {
-          const ticket = contracts.tickets.find((t) => t.clientId === session.clientId);
+          const ticket = pickCanonicalTicketForClient(contracts.tickets, session.clientId);
           if (!ticket) {
             sendJson(res, 200, { ticket: null });
             return true;
@@ -336,7 +342,7 @@ export async function handleContractsApi(req, res) {
       let contracts = await readContracts();
       await ensureAllTicketTokens(contracts);
       contracts = await readContracts();
-      const ticket = findTicketBySignToken(contracts, signToken);
+      const ticket = findTicketBySignToken(contracts.tickets, signToken);
       if (!ticket) {
         sendJson(res, 404, { error: "Contract link not found or expired" });
         return true;
@@ -346,6 +352,72 @@ export async function handleContractsApi(req, res) {
         sendJson(res, 404, { error: "Contract template not found" });
         return true;
       }
+      sendJson(res, 200, { ticket: publicTicket(ticket, template) });
+      return true;
+    }
+
+    const ticketsMatch = subPath === "/tickets";
+    if (ticketsMatch && req.method === "POST") {
+      if (!isAdminSession(session)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return true;
+      }
+
+      let body = "";
+      await new Promise((resolve, reject) => {
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+
+      const { clientId, templateId, clientProfile } = JSON.parse(body || "{}");
+      if (!clientId || !templateId) {
+        sendJson(res, 400, { error: "clientId and templateId are required" });
+        return true;
+      }
+
+      const contracts = await readContracts();
+      const template = contracts.templates.find((t) => t.id === templateId);
+      if (!template) {
+        sendJson(res, 404, { error: "Contract template not found" });
+        return true;
+      }
+
+      let ticket = pickCanonicalTicketForClient(contracts.tickets, clientId);
+      const fields = template.fields ?? [];
+
+      if (ticket) {
+        if (ticket.status === "signed") {
+          sendJson(res, 400, { error: "Client already signed this contract" });
+          return true;
+        }
+        ticket.templateId = templateId;
+        ticket.values = buildTicketDisplayValuesWithProfile(
+          fields,
+          ticket.values ?? {},
+          clientProfile ?? {}
+        );
+        ensureTicketSignToken(ticket);
+      } else {
+        ticket = {
+          id: generateId("ticket"),
+          clientId,
+          templateId,
+          status: "pending",
+          sentAt: new Date().toISOString(),
+          signedAt: null,
+          values: buildTicketDisplayValuesWithProfile(fields, {}, clientProfile ?? {}),
+          signToken: null,
+          signedCopyFile: null,
+        };
+        ensureTicketSignToken(ticket);
+        contracts.tickets.push(ticket);
+      }
+
+      contracts.tickets = dedupeTicketsByClient(contracts.tickets);
+      await writeContracts(contracts);
       sendJson(res, 200, { ticket: publicTicket(ticket, template) });
       return true;
     }
@@ -364,7 +436,7 @@ export async function handleContractsApi(req, res) {
       const { values } = JSON.parse(body || "{}");
       const signToken = decodeURIComponent(linkSignMatch[1]);
       const contracts = await readContracts();
-      const ticket = findTicketBySignToken(contracts, signToken);
+      const ticket = findTicketBySignToken(contracts.tickets, signToken);
 
       if (!ticket) {
         sendJson(res, 404, { error: "Contract link not found" });
@@ -438,13 +510,33 @@ export async function handleContractsApi(req, res) {
 
     const copyMatch = subPath.match(/^\/tickets\/([^/]+)\/copy$/);
     if (copyMatch && req.method === "GET") {
-      if (!isAdminSession(session)) {
-        sendJson(res, 403, { error: "Admin access required" });
+      const ticketId = copyMatch[1];
+      const signToken = url.searchParams.get("signToken")?.trim() || null;
+      const format = url.searchParams.get("format") || "auto";
+      const contracts = await readContracts();
+      const ticket = contracts.tickets.find((t) => t.id === ticketId);
+
+      if (!ticket) {
+        sendJson(res, 404, { error: "Signed copy not found" });
         return true;
       }
 
-      const ticketId = copyMatch[1];
-      const format = url.searchParams.get("format") || "auto";
+      const allowedByAdmin = isAdminSession(session);
+      const allowedByClient =
+        session?.role === "client" && session.clientId === ticket.clientId;
+      const allowedByLink =
+        signToken && findTicketBySignToken(contracts.tickets, signToken)?.id === ticketId;
+
+      if (!allowedByAdmin && !allowedByClient && !allowedByLink) {
+        sendJson(res, 403, { error: "Forbidden" });
+        return true;
+      }
+
+      const template = contracts.templates.find((t) => t.id === ticket.templateId);
+      if ((format === "pdf" || format === "auto") && ticket.status === "signed" && template) {
+        await ensureSignedPdfCopy(ticket, template);
+      }
+
       const file = await readSignedCopyFile(ticketId, format);
       if (!file) {
         sendJson(res, 404, { error: "Signed copy not found" });

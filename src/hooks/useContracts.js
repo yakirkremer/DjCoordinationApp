@@ -2,19 +2,48 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchContracts,
   saveContracts as saveContractsApi,
-  generateTicketId,
+  assignContractTicket as assignContractTicketApi,
 } from "../lib/api/contractApi";
-import { generateSignToken } from "../lib/contractTokens";
-import { patchAdminTicketValues, buildTicketDisplayValuesWithProfile } from "../lib/contractFields";
+import { patchAdminTicketValues } from "../lib/contractFields";
+import { dedupeTicketsByClient, pickCanonicalTicketForClient } from "../lib/contractTickets";
 
 function normalizeTickets(tickets) {
-  return (Array.isArray(tickets) ? tickets : []).map((ticket) =>
-    ticket.signToken ? ticket : { ...ticket, signToken: generateSignToken() }
-  );
+  return dedupeTicketsByClient(Array.isArray(tickets) ? tickets : []);
 }
 
 function isFullContractsDocument(data) {
   return Array.isArray(data?.templates) && Array.isArray(data?.tickets);
+}
+
+function mergeContractsBeforeSave(local, server) {
+  if (!isFullContractsDocument(server)) return local;
+
+  const serverById = new Map(server.tickets.map((ticket) => [ticket.id, ticket]));
+  const mergedTickets = local.tickets.map((localTicket) => {
+    const serverTicket = serverById.get(localTicket.id);
+    if (!serverTicket) return localTicket;
+    if (serverTicket.status === "signed" && localTicket.status !== "signed") {
+      return { ...localTicket, ...serverTicket };
+    }
+    if (
+      serverTicket.signedAt &&
+      (!localTicket.signedAt || serverTicket.signedAt > localTicket.signedAt)
+    ) {
+      return { ...localTicket, ...serverTicket };
+    }
+    return localTicket;
+  });
+
+  for (const serverTicket of server.tickets) {
+    if (!mergedTickets.some((ticket) => ticket.id === serverTicket.id)) {
+      mergedTickets.push(serverTicket);
+    }
+  }
+
+  return {
+    templates: local.templates,
+    tickets: dedupeTicketsByClient(mergedTickets),
+  };
 }
 
 export default function useContracts(enabled = false) {
@@ -22,12 +51,14 @@ export default function useContracts(enabled = false) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
   const saveTimer = useRef(null);
+  const skipNextSave = useRef(false);
 
   const loadContracts = useCallback(async () => {
     const data = await fetchContracts();
     if (!isFullContractsDocument(data)) {
       return data;
     }
+    skipNextSave.current = true;
     setContracts({
       templates: data.templates,
       tickets: normalizeTickets(data.tickets),
@@ -43,13 +74,31 @@ export default function useContracts(enabled = false) {
 
   useEffect(() => {
     if (!loaded || !enabled) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
 
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveContractsApi(contracts).catch((err) => {
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const serverData = await fetchContracts();
+        const payload = isFullContractsDocument(serverData)
+          ? mergeContractsBeforeSave(contracts, serverData)
+          : contracts;
+
+        const ticketsChanged =
+          JSON.stringify(payload.tickets) !== JSON.stringify(contracts.tickets);
+        if (ticketsChanged) {
+          skipNextSave.current = true;
+          setContracts(payload);
+        }
+
+        await saveContractsApi(payload);
+      } catch (err) {
         console.error("Failed to save contracts:", err);
         setError(err.message);
-      });
+      }
     }, 300);
 
     return () => clearTimeout(saveTimer.current);
@@ -69,52 +118,30 @@ export default function useContracts(enabled = false) {
     }));
   }, []);
 
-  const createTicket = useCallback((clientId, templateId, clientProfile = null) => {
+  const createTicket = useCallback(async (clientId, templateId, clientProfile = null) => {
     if (!clientId || !templateId) return null;
 
-    let created = null;
-    let nextState = null;
-    setContracts((prev) => {
-      const existing = prev.tickets.find((t) => t.clientId === clientId);
-      if (existing) {
-        created = existing;
-        return prev;
-      }
+    try {
+      const data = await assignContractTicketApi(clientId, templateId, clientProfile);
+      const ticket = data.ticket;
+      if (!ticket) return null;
 
-      const template = prev.templates.find((t) => t.id === templateId);
-      const fields = template?.fields ?? [];
-      const values = clientProfile
-        ? buildTicketDisplayValuesWithProfile(fields, {}, clientProfile)
-        : {};
-
-      const ticket = {
-        id: generateTicketId(),
-        clientId,
-        templateId,
-        status: "pending",
-        sentAt: new Date().toISOString(),
-        signedAt: null,
-        values,
-        signToken: generateSignToken(),
-      };
-      created = ticket;
-      nextState = {
+      const { template: _template, ...ticketData } = ticket;
+      skipNextSave.current = true;
+      setContracts((prev) => ({
         ...prev,
-        tickets: [...prev.tickets, ticket],
-      };
-      return nextState;
-    });
-
-    if (nextState && loaded) {
-      clearTimeout(saveTimer.current);
-      saveContractsApi(nextState).catch((err) => {
-        console.error("Failed to save contract ticket:", err);
-        setError(err.message);
-      });
+        tickets: dedupeTicketsByClient([
+          ...prev.tickets.filter((t) => t.clientId !== clientId && t.id !== ticketData.id),
+          ticketData,
+        ]),
+      }));
+      return ticket;
+    } catch (err) {
+      console.error("Failed to assign contract ticket:", err);
+      setError(err.message);
+      return null;
     }
-
-    return created;
-  }, [loaded]);
+  }, []);
 
   const deleteClientTickets = useCallback((clientId) => {
     setContracts((prev) => ({
@@ -147,7 +174,7 @@ export default function useContracts(enabled = false) {
   }, []);
 
   const getTicketForClient = useCallback(
-    (clientId) => contracts.tickets.find((t) => t.clientId === clientId) ?? null,
+    (clientId) => pickCanonicalTicketForClient(contracts.tickets, clientId),
     [contracts.tickets]
   );
 

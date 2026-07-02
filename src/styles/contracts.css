@@ -390,6 +390,39 @@
   background: rgba(245, 158, 11, 0.06);
 }
 
+.contract-client-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.contract-admin-view-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.contract-admin-view-panel {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  background: var(--color-xdj-panel, #0c0c0e);
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.contract-client--view .contract-doc-frame {
+  min-height: 200px;
+}
+
 .contract-client-actions {
   display: flex;
   justify-content: flex-end;

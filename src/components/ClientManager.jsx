@@ -3,7 +3,24 @@ import { CLIENT_TYPES } from "../lib/clientTypes";
 import { CLIENT_STAGE_IDS, CLIENT_STAGE_LABELS, getClientStages } from "../lib/clientStages";
 import { buildContractShareUrl } from "../lib/contractTokens";
 import AdminSentContractEditor from "./AdminSentContractEditor";
-import { getSignedCopyDownloadUrl } from "../lib/api/contractApi";
+import ClientContract from "./ClientContract";
+import { fetchContracts, downloadSignedContractCopy } from "../lib/api/contractApi";
+import { pickCanonicalTicketForClient } from "../lib/contractTickets";
+
+function buildAdminViewTicket(ticket, template) {
+  if (!ticket || !template) return null;
+  const base = {
+    id: template.id,
+    name: template.name,
+    sourceType: template.sourceType || "docx",
+    fields: template.fields ?? [],
+  };
+  const publicTemplate =
+    base.sourceType === "pdf"
+      ? { ...base, fileUrl: `/api/contracts/templates/${template.id}/file` }
+      : { ...base, html: template.html };
+  return { ...ticket, template: publicTemplate };
+}
 
 function StageToggles({ client, onUpdateStages }) {
   const stages = getClientStages(client);
@@ -34,6 +51,7 @@ function ClientContractCell({
   contractTemplates,
   onAssignContract,
   onEditTicket,
+  onViewTicket,
   assigningId,
   setAssigningId,
   assignTemplateId,
@@ -41,15 +59,30 @@ function ClientContractCell({
   onAssign,
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
 
-  const copyLink = async (signToken) => {
-    const url = buildContractShareUrl(signToken);
+  const copyLink = async (clientId) => {
+    setCopyError("");
     try {
+      const data = await fetchContracts();
+      const ticket = pickCanonicalTicketForClient(data.tickets ?? [], clientId);
+      if (!ticket?.signToken) {
+        setCopyError("אין קישור לחוזה — שלחו חוזה ללקוח קודם");
+        return;
+      }
+      const url = buildContractShareUrl(ticket.signToken);
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt("העתיקו את הקישור:", url);
+      const data = await fetchContracts().catch(() => null);
+      const ticket = pickCanonicalTicketForClient(data?.tickets ?? [], clientId);
+      if (ticket?.signToken) {
+        const url = buildContractShareUrl(ticket.signToken);
+        window.prompt("העתיקו את הקישור:", url);
+      } else {
+        setCopyError("לא ניתן להעתיק קישור");
+      }
     }
   };
 
@@ -121,12 +154,13 @@ function ClientContractCell({
       {ticket.signToken ? (
         <button
           type="button"
-          onClick={() => copyLink(ticket.signToken)}
+          onClick={() => copyLink(client.id)}
           className="text-[10px] text-purple-400 hover:text-purple-300 text-right"
         >
           {copied ? "הועתק!" : "העתק קישור לחתימה"}
         </button>
       ) : null}
+      {copyError ? <span className="text-[10px] text-red-400">{copyError}</span> : null}
       {!signed && onEditTicket ? (
         <button
           type="button"
@@ -136,14 +170,23 @@ function ClientContractCell({
           ערוך שדות אדמין
         </button>
       ) : null}
+      {signed && onViewTicket ? (
+        <button
+          type="button"
+          onClick={() => onViewTicket(client, ticket)}
+          className="text-[10px] text-cyan-400 hover:text-cyan-300 text-right"
+        >
+          צפה בחוזה חתום
+        </button>
+      ) : null}
       {signed ? (
-        <a
-          href={getSignedCopyDownloadUrl(ticket.id)}
-          className="text-[10px] text-cyan-400 hover:text-cyan-300"
-          download
+        <button
+          type="button"
+          onClick={() => downloadSignedContractCopy(ticket.id, "pdf").catch(() => {})}
+          className="text-[10px] text-cyan-400 hover:text-cyan-300 text-right"
         >
           הורד עותק חתום
-        </a>
+        </button>
       ) : (
         <span className="text-[10px] text-gray-600">
           נשלח {new Date(ticket.sentAt).toLocaleDateString("he-IL")}
@@ -180,6 +223,7 @@ export default function ClientManager({
   const [assigningId, setAssigningId] = useState(null);
   const [assignTemplateId, setAssignTemplateId] = useState({});
   const [editingTicket, setEditingTicket] = useState(null);
+  const [viewingTicket, setViewingTicket] = useState(null);
 
   const handleCreate = (e) => {
     e.preventDefault();
@@ -411,6 +455,10 @@ export default function ClientManager({
                         setAssignTemplateId={setAssignTemplateId}
                         onAssign={() => handleAssignContract(client.id)}
                         onEditTicket={(c, t) => setEditingTicket({ client: c, ticket: t })}
+                        onViewTicket={(c, t) => {
+                          const template = getTemplate?.(t.templateId) ?? null;
+                          setViewingTicket(buildAdminViewTicket(t, template));
+                        }}
                       />
                     </td>
                     <td className="p-4 text-xs text-gray-500">
@@ -443,6 +491,24 @@ export default function ClientManager({
             onTicketAdminSaved?.(savedTicket);
           }}
         />
+      ) : null}
+
+      {viewingTicket ? (
+        <div className="contract-admin-view-overlay" dir="rtl">
+          <div className="contract-admin-view-panel">
+            <ClientContract
+              ticket={viewingTicket}
+              clientName={
+                clients.find((c) => c.id === viewingTicket.clientId)?.name ?? ""
+              }
+              eventDate={clients.find((c) => c.id === viewingTicket.clientId)?.eventDate ?? ""}
+              eventLocation={
+                clients.find((c) => c.id === viewingTicket.clientId)?.eventLocation ?? ""
+              }
+              onBack={() => setViewingTicket(null)}
+            />
+          </div>
+        </div>
       ) : null}
     </div>
   );

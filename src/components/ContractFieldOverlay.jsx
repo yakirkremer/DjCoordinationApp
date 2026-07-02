@@ -41,6 +41,23 @@ function ClientFieldInput({ field, value, onChange, readOnly }) {
   };
 
   if (readOnly) {
+    if (field.type === "signature") {
+      return (
+        <div
+          className={`contract-field-input contract-field-input--readonly contract-field-input--signature`}
+          style={style}
+          title={field.label}
+          aria-label={field.label}
+        >
+          {value ? (
+            <img src={value} alt={field.label} className="contract-signature-preview" />
+          ) : (
+            <span className="contract-field-readonly-text">—</span>
+          )}
+        </div>
+      );
+    }
+
     const display =
       field.type === "checkbox"
         ? value
@@ -230,6 +247,7 @@ export default function ContractFieldOverlay({
   onDeleteField,
   containerRef,
   onScrollToSignature,
+  readOnly = false,
 }) {
   useEffect(() => {
     if (mode !== "admin" || !selectedFieldId || !onDeleteField) return;
@@ -291,6 +309,17 @@ export default function ContractFieldOverlay({
         }
 
         if (mode === "client-signature-hint") {
+          if (readOnly) {
+            const value = values[field.id] ?? normalizeFieldDefault(field);
+            return (
+              <ClientFieldInput
+                key={field.id}
+                field={field}
+                value={value}
+                readOnly
+              />
+            );
+          }
           const style = {
             left: `${field.x}%`,
             top: `${field.y}%`,
@@ -312,7 +341,7 @@ export default function ContractFieldOverlay({
           );
         }
 
-        const readOnly = !isClientEditable(field);
+        const fieldReadOnly = readOnly || !isClientEditable(field);
         const value = values[field.id] ?? normalizeFieldDefault(field);
 
         return (
@@ -321,7 +350,7 @@ export default function ContractFieldOverlay({
             field={field}
             value={value}
             onChange={onChange}
-            readOnly={readOnly}
+            readOnly={fieldReadOnly}
           />
         );
       })}
