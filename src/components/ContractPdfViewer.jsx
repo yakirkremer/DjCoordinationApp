@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-GlobalWorkerOptions.workerSrc = pdfWorker;
+import { ensurePdfWorker } from "../lib/pdfjsSetup";
 
 const RENDER_SCALE = 1.4;
 
@@ -26,7 +23,24 @@ export default function ContractPdfViewer({
 
     (async () => {
       try {
-        const pdf = await getDocument({ url: fileUrl, withCredentials: true }).promise;
+        const res = await fetch(fileUrl, { credentials: "include" });
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!res.ok) {
+          if (contentType.includes("application/json")) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || `Failed to load contract file (${res.status})`);
+          }
+          throw new Error(`Failed to load contract file (${res.status})`);
+        }
+
+        if (!contentType.includes("pdf")) {
+          throw new Error("Contract file not found — re-upload the PDF template");
+        }
+
+        const buffer = await res.arrayBuffer();
+        const { getDocument } = ensurePdfWorker();
+        const pdf = await getDocument({ data: buffer }).promise;
         const rendered = [];
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
@@ -37,7 +51,7 @@ export default function ContractPdfViewer({
           const ctx = canvas.getContext("2d");
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
           rendered.push({
             index: pageNum - 1,
             width: viewport.width,

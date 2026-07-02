@@ -21,6 +21,8 @@ public/data/clients.json
 public/data/feedback.json
 public/data/form-schema.json
 public/data/app-settings.json
+public/data/contracts.json
+public/data/contracts/**
 public/data/artwork/**
 public/music/**
 public/tmp_music/**

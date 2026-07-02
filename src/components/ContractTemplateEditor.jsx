@@ -6,6 +6,7 @@ import {
   uploadContractTemplate,
   getContractTemplateFileUrl,
 } from "../lib/api/contractApi";
+import { FIELD_EDITORS, normalizeFieldDefault } from "../lib/contractFields";
 import ContractFieldOverlay from "./ContractFieldOverlay";
 import ContractPdfViewer from "./ContractPdfViewer";
 
@@ -28,6 +29,8 @@ function placeFieldAtClick({ e, container, placingType, page = 0 }) {
     width: size.width,
     height: size.height,
     required: true,
+    editableBy: placingType === "signature" ? FIELD_EDITORS.client : FIELD_EDITORS.client,
+    defaultValue: placingType === "checkbox" ? false : "",
   };
 }
 
@@ -39,6 +42,7 @@ export default function ContractTemplateEditor({
   const docRef = useRef(null);
   const [placingType, setPlacingType] = useState(null);
   const [selectedFieldId, setSelectedFieldId] = useState(null);
+  const [fillPreview, setFillPreview] = useState(false);
 
   const fields = template?.fields ?? [];
   const isPdf = template?.sourceType === "pdf";
@@ -85,25 +89,38 @@ export default function ContractTemplateEditor({
   }
 
   const overlayProps = {
-    mode: "admin",
+    mode: fillPreview ? "admin-fill" : "admin",
     selectedFieldId,
     onSelectField: setSelectedFieldId,
     onFieldChange: updateField,
     onDeleteField: removeField,
+    values: Object.fromEntries(fields.map((f) => [f.id, normalizeFieldDefault(f)])),
+    onDefaultValueChange: (fieldId, value) => updateField(fieldId, { defaultValue: value }),
   };
 
   return (
     <div className="contract-editor" dir="rtl">
       <div className="contract-editor-toolbar">
         <span className="text-sm text-gray-400">
-          הוספת שדה — בחרו סוג, לחצו על המיקום בחוזה. גררו להזזה, פינה להגדלה, × למחיקה.
+          סמנו שדות על החוזה. «לקוח» = ניתן לעריכה בחתימה · «אדמין» = ערך קבוע שאתם מגדירים.
         </span>
         <div className="contract-editor-tools">
+          <button
+            type="button"
+            className={`contract-tool-btn${fillPreview ? " is-active" : ""}`}
+            onClick={() => {
+              setFillPreview((v) => !v);
+              setPlacingType(null);
+            }}
+          >
+            📝 {fillPreview ? "מצב עריכת מיקום" : "מילוי ערכי ברירת מחדל"}
+          </button>
           {FIELD_TYPES.map((ft) => (
             <button
               key={ft.id}
               type="button"
               className={`contract-tool-btn${placingType === ft.id ? " is-active" : ""}`}
+              disabled={fillPreview}
               onClick={() => setPlacingType(placingType === ft.id ? null : ft.id)}
             >
               <span aria-hidden>{ft.icon}</span> {ft.label}
@@ -172,6 +189,40 @@ export default function ContractTemplateEditor({
               onChange={(e) => updateField(selectedField.id, { required: e.target.checked })}
             />
           </label>
+          {selectedField.type !== "signature" ? (
+            <label className="contract-inspector-row">
+              <span>מי ממלא</span>
+              <select
+                value={selectedField.editableBy ?? FIELD_EDITORS.client}
+                onChange={(e) => updateField(selectedField.id, { editableBy: e.target.value })}
+                className="contract-inspector-input"
+              >
+                <option value={FIELD_EDITORS.client}>לקוח (ניתן לעריכה בחתימה)</option>
+                <option value={FIELD_EDITORS.admin}>אדמין בלבד (ערך קבוע)</option>
+              </select>
+            </label>
+          ) : null}
+          {selectedField.type === "checkbox" ? (
+            <label className="contract-inspector-row">
+              <span>ברירת מחדל</span>
+              <input
+                type="checkbox"
+                checked={Boolean(normalizeFieldDefault(selectedField))}
+                onChange={(e) => updateField(selectedField.id, { defaultValue: e.target.checked })}
+              />
+            </label>
+          ) : selectedField.type !== "signature" ? (
+            <label className="contract-inspector-row">
+              <span>ערך ברירת מחדל</span>
+              <input
+                type={selectedField.type === "date" ? "date" : "text"}
+                value={normalizeFieldDefault(selectedField)}
+                onChange={(e) => updateField(selectedField.id, { defaultValue: e.target.value })}
+                className="contract-inspector-input"
+                placeholder="ריק"
+              />
+            </label>
+          ) : null}
           <div className="contract-inspector-grid">
             <label className="contract-inspector-row">
               <span>X %</span>

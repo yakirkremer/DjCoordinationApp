@@ -29,6 +29,7 @@ const BOOTSTRAP_ROOT = path.join(ROOT, "storage-bootstrap");
 export async function ensureStorageDirs() {
   await fs.mkdir(MUSIC_ROOT, { recursive: true });
   await fs.mkdir(DATA_DIR, { recursive: true });
+  await fs.mkdir(path.join(DATA_DIR, "contracts"), { recursive: true });
 }
 
 async function fileExists(filePath) {

@@ -5,6 +5,10 @@ import { readJsonFile, writeJsonFile, sendJson } from "./dataStore.js";
 import { isAdminSession, isAuthenticatedSession, parseRequestSession } from "./auth.js";
 import { DATA_DIR } from "./storagePaths.js";
 import { docxBufferToHtml } from "./docxToHtml.js";
+import {
+  mergeSignedContractValues,
+  validateClientContractValues,
+} from "../src/lib/contractFields.js";
 
 export const CONTRACTS_FILE = "contracts.json";
 const CONTRACTS_DIR = path.join(DATA_DIR, "contracts");
@@ -245,20 +249,39 @@ export async function handleContractsApi(req, res) {
       }
 
       const sourceType = template.sourceType || "docx";
-      const ext = sourceType === "pdf" ? "pdf" : "docx";
-      const filePath = path.join(CONTRACTS_DIR, `${templateId}.${ext}`);
+      const preferredExt = sourceType === "pdf" ? "pdf" : "docx";
+      const alternateExt = preferredExt === "pdf" ? "docx" : "pdf";
+      let fileData = null;
+      let ext = preferredExt;
+
+      for (const tryExt of [preferredExt, alternateExt]) {
+        const tryPath = path.join(CONTRACTS_DIR, `${templateId}.${tryExt}`);
+        try {
+          fileData = await fs.readFile(tryPath);
+          ext = tryExt;
+          break;
+        } catch {
+          // try next extension
+        }
+      }
+
+      if (!fileData) {
+        sendJson(res, 404, {
+          error: "Contract file not found — re-upload the PDF or DOCX template",
+        });
+        return true;
+      }
 
       try {
-        const data = await fs.readFile(filePath);
         res.statusCode = 200;
         res.setHeader(
           "Content-Type",
           ext === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         );
         res.setHeader("Cache-Control", "private, max-age=3600");
-        res.end(data);
-      } catch {
-        sendJson(res, 404, { error: "File not found" });
+        res.end(fileData);
+      } catch (err) {
+        sendJson(res, 500, { error: err.message || "Failed to read contract file" });
       }
       return true;
     }
@@ -305,22 +328,16 @@ export async function handleContractsApi(req, res) {
         return true;
       }
 
-      for (const field of template.fields ?? []) {
-        if (field.required !== false) {
-          const val = values?.[field.id];
-          if (field.type === "checkbox") {
-            if (!val) {
-              sendJson(res, 400, { error: `Field "${field.label}" is required` });
-              return true;
-            }
-          } else if (!val || !String(val).trim()) {
-            sendJson(res, 400, { error: `Field "${field.label}" is required` });
-            return true;
-          }
+      const mergedValues = mergeSignedContractValues(template.fields ?? [], values ?? {});
+      if (!isAdminSession(session)) {
+        const validationError = validateClientContractValues(template.fields ?? [], values ?? {});
+        if (validationError) {
+          sendJson(res, 400, { error: validationError });
+          return true;
         }
       }
 
-      ticket.values = values ?? {};
+      ticket.values = mergedValues;
       ticket.status = "signed";
       ticket.signedAt = new Date().toISOString();
       await writeContracts(contracts);

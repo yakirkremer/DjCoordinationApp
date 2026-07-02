@@ -158,6 +158,62 @@
   max-width: 100%;
 }
 
+.contract-field-marker.is-admin-field {
+  border-color: #d97706;
+  background: rgba(217, 119, 6, 0.12);
+  color: #92400e;
+}
+
+.contract-field-badge {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.2;
+  z-index: 2;
+}
+
+.contract-field-badge.is-admin {
+  background: #d97706;
+  color: #fff;
+}
+
+.contract-field-badge.is-client {
+  background: #9333ea;
+  color: #fff;
+}
+
+.contract-field-marker-preview {
+  display: block;
+  font-size: 9px;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.contract-field-input--readonly {
+  background: rgba(243, 244, 246, 0.95);
+  border: 1px solid #d1d5db;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  padding: 2px 6px;
+  cursor: default;
+}
+
+.contract-field-readonly-text {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
 .contract-field-input {
   border: 1px solid #9333ea;
   background: rgba(255, 255, 255, 0.92);

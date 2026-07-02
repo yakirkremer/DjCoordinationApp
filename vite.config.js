@@ -7,13 +7,16 @@ import { createDropboxImportMiddleware, refreshDropboxToken } from "./server/dro
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
 import { createBackupApiMiddleware } from "./server/backupApi.js";
 import { createAuthApiMiddleware } from "./server/authApi.js";
+import { createContractApiMiddleware } from "./server/contractApi.js";
 import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { publicFilesGuardPlugin } from "./server/publicFilesGuard.js";
+import { initStorage } from "./server/storagePaths.js";
 
 function dataApiPlugin() {
   const attach = (server) => {
     server.middlewares.use(createAuthApiMiddleware());
+    server.middlewares.use(createContractApiMiddleware());
     server.middlewares.use(createDataApiMiddleware());
     server.middlewares.use(createUploadMusicMiddleware());
     server.middlewares.use(createArtworkApiMiddleware());
@@ -21,8 +24,14 @@ function dataApiPlugin() {
   };
   return {
     name: "data-api",
-    configureServer: attach,
-    configurePreviewServer: attach,
+    async configureServer(server) {
+      await initStorage();
+      attach(server);
+    },
+    async configurePreviewServer(server) {
+      await initStorage();
+      attach(server);
+    },
   };
 }
 
@@ -56,6 +65,9 @@ export default defineConfig(({ mode }) => {
       dataApiPlugin(),
       dropboxImportPlugin(env),
     ],
+    optimizeDeps: {
+      exclude: ["pdfjs-dist"],
+    },
     appType: "spa",
   };
 });

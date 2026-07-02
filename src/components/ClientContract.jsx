@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import ContractFieldOverlay from "./ContractFieldOverlay";
 import ContractPdfViewer from "./ContractPdfViewer";
 import { signContract, getContractTemplateFileUrl } from "../lib/api/contractApi";
+import { buildInitialContractValues, isClientEditable } from "../lib/contractFields";
 
 function SignaturePad({ onChange, label }) {
   const canvasRef = useRef(null);
@@ -121,17 +122,23 @@ function ContractDocumentBody({ template, values, onChange }) {
 }
 
 export default function ClientContract({ ticket, onSigned, onBack }) {
-  const [values, setValues] = useState(ticket?.values ?? {});
+  const template = ticket?.template;
+  const [values, setValues] = useState(() => {
+    const fromTicket = ticket?.values ?? {};
+    const defaults = buildInitialContractValues(template?.fields ?? []);
+    return { ...defaults, ...fromTicket };
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(ticket?.status === "signed");
 
-  const template = ticket?.template;
   const signatureField = template?.fields?.find((f) => f.type === "signature");
 
   const handleChange = useCallback((fieldId, value) => {
+    const field = template?.fields?.find((f) => f.id === fieldId);
+    if (field && !isClientEditable(field)) return;
     setValues((prev) => ({ ...prev, [fieldId]: value }));
-  }, []);
+  }, [template?.fields]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -176,7 +183,7 @@ export default function ClientContract({ ticket, onSigned, onBack }) {
     <form className="contract-client" onSubmit={handleSubmit} dir="rtl">
       <header className="contract-client-header mb-4">
         <h1 className="text-xl font-bold text-gray-100">{template.name}</h1>
-        <p className="text-sm text-gray-400 mt-1">אנא מלאו את השדות וחתמו בתחתית.</p>
+        <p className="text-sm text-gray-400 mt-1">מלאו את השדות המסומנים ללקוח וחתמו בתחתית. שדות אדמין מוצגים לקריאה בלבד.</p>
       </header>
 
       <ContractDocumentBody template={template} values={values} onChange={handleChange} />

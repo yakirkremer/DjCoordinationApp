@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from "react";
+import { FIELD_EDITORS, isClientEditable, normalizeFieldDefault } from "../lib/contractFields";
 
 const TYPE_LABELS = {
   text: "טקסט",
@@ -9,6 +10,81 @@ const TYPE_LABELS = {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function FieldBadge({ field }) {
+  const isAdmin = field.editableBy === FIELD_EDITORS.admin;
+  return (
+    <span className={`contract-field-badge${isAdmin ? " is-admin" : " is-client"}`}>
+      {isAdmin ? "אדמין" : "לקוח"}
+    </span>
+  );
+}
+
+function ClientFieldInput({ field, value, onChange, readOnly }) {
+  const style = {
+    left: `${field.x}%`,
+    top: `${field.y}%`,
+    width: `${field.width}%`,
+    height: `${field.height}%`,
+  };
+
+  if (readOnly) {
+    const display =
+      field.type === "checkbox"
+        ? value
+          ? "☑"
+          : "☐"
+        : String(value ?? normalizeFieldDefault(field) ?? "");
+
+    return (
+      <div
+        className={`contract-field-input contract-field-input--readonly contract-field-input--${field.type}`}
+        style={style}
+        title={field.label}
+        aria-label={field.label}
+      >
+        <span className="contract-field-readonly-text">{display || "—"}</span>
+      </div>
+    );
+  }
+
+  if (field.type === "checkbox") {
+    return (
+      <label key={field.id} className="contract-field-input contract-field-input--checkbox" style={style}>
+        <input
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(e) => onChange?.(field.id, e.target.checked)}
+          aria-label={field.label}
+        />
+      </label>
+    );
+  }
+
+  if (field.type === "signature") {
+    return (
+      <div className="contract-field-input contract-field-input--signature" style={style}>
+        {value ? (
+          <img src={value} alt={field.label} className="contract-signature-preview" />
+        ) : (
+          <span className="contract-field-placeholder">{field.label}</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <input
+      type={field.type === "date" ? "date" : "text"}
+      value={value ?? ""}
+      onChange={(e) => onChange?.(field.id, e.target.value)}
+      placeholder={field.label}
+      className={`contract-field-input contract-field-input--${field.type}`}
+      style={style}
+      aria-label={field.label}
+    />
+  );
 }
 
 function AdminFieldMarker({
@@ -68,11 +144,21 @@ function AdminFieldMarker({
     height: `${field.height}%`,
   };
 
+  const preview = normalizeFieldDefault(field);
+  const previewText =
+    field.type === "checkbox"
+      ? preview
+        ? "☑"
+        : ""
+      : preview
+        ? String(preview)
+        : "";
+
   return (
     <div
       className={`contract-field-marker contract-field-marker--${field.type}${
-        selected ? " is-selected" : ""
-      }`}
+        field.editableBy === FIELD_EDITORS.admin ? " is-admin-field" : ""
+      }${selected ? " is-selected" : ""}`}
       style={style}
       onPointerDown={(e) => {
         if (e.target.closest(".contract-field-resize-handle, .contract-field-delete-btn")) return;
@@ -89,7 +175,9 @@ function AdminFieldMarker({
         }
       }}
     >
+      <FieldBadge field={field} />
       <span className="contract-field-marker-label">{field.label || TYPE_LABELS[field.type]}</span>
+      {previewText ? <span className="contract-field-marker-preview">{previewText}</span> : null}
       {selected ? (
         <>
           <button
@@ -120,6 +208,7 @@ export default function ContractFieldOverlay({
   mode = "admin",
   values = {},
   onChange,
+  onDefaultValueChange,
   selectedFieldId,
   onSelectField,
   onFieldChange,
@@ -145,12 +234,17 @@ export default function ContractFieldOverlay({
   return (
     <div className="contract-field-layer" aria-hidden={mode === "admin"}>
       {fields.map((field) => {
-        const style = {
-          left: `${field.x}%`,
-          top: `${field.y}%`,
-          width: `${field.width}%`,
-          height: `${field.height}%`,
-        };
+        if (mode === "admin-fill") {
+          return (
+            <ClientFieldInput
+              key={field.id}
+              field={field}
+              value={values[field.id]}
+              onChange={onDefaultValueChange}
+              readOnly={false}
+            />
+          );
+        }
 
         if (mode === "admin") {
           return (
@@ -166,41 +260,16 @@ export default function ContractFieldOverlay({
           );
         }
 
-        if (field.type === "checkbox") {
-          return (
-            <label key={field.id} className="contract-field-input contract-field-input--checkbox" style={style}>
-              <input
-                type="checkbox"
-                checked={Boolean(values[field.id])}
-                onChange={(e) => onChange?.(field.id, e.target.checked)}
-                aria-label={field.label}
-              />
-            </label>
-          );
-        }
-
-        if (field.type === "signature") {
-          return (
-            <div key={field.id} className="contract-field-input contract-field-input--signature" style={style}>
-              {values[field.id] ? (
-                <img src={values[field.id]} alt={field.label} className="contract-signature-preview" />
-              ) : (
-                <span className="contract-field-placeholder">{field.label}</span>
-              )}
-            </div>
-          );
-        }
+        const readOnly = !isClientEditable(field);
+        const value = values[field.id] ?? normalizeFieldDefault(field);
 
         return (
-          <input
+          <ClientFieldInput
             key={field.id}
-            type={field.type === "date" ? "date" : "text"}
-            value={values[field.id] ?? ""}
-            onChange={(e) => onChange?.(field.id, e.target.value)}
-            placeholder={field.label}
-            className={`contract-field-input contract-field-input--${field.type}`}
-            style={style}
-            aria-label={field.label}
+            field={field}
+            value={value}
+            onChange={onChange}
+            readOnly={readOnly}
           />
         );
       })}
