@@ -1,7 +1,7 @@
 import { execSync, spawnSync } from "child_process";
 import { DEPLOY_EXCLUDE_PATHS } from "./runtimeDataPaths.js";
 
-const REMOTE = process.env.DEPLOY_REMOTE || "DjCordApp";
+const REMOTE = process.env.DEPLOY_REMOTE || "origin";
 const BRANCH = process.env.DEPLOY_BRANCH || "main";
 const SKIP_BUILD = process.env.SKIP_BUILD === "1";
 
