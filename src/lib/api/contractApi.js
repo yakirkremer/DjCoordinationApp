@@ -43,6 +43,10 @@ export function signContract(ticketId, values) {
   });
 }
 
+export function getContractTemplateFileUrl(templateId) {
+  return `/api/contracts/templates/${encodeURIComponent(templateId)}/file`;
+}
+
 export async function uploadContractTemplate(file, name) {
   const form = new FormData();
   form.append("file", file);

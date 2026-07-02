@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import ContractFieldOverlay from "./ContractFieldOverlay";
-import { signContract } from "../lib/api/contractApi";
+import ContractPdfViewer from "./ContractPdfViewer";
+import { signContract, getContractTemplateFileUrl } from "../lib/api/contractApi";
 
 function SignaturePad({ onChange, label }) {
   const canvasRef = useRef(null);
@@ -82,6 +83,43 @@ function SignaturePad({ onChange, label }) {
   );
 }
 
+function ContractDocumentBody({ template, values, onChange }) {
+  const docRef = useRef(null);
+  const isPdf = template?.sourceType === "pdf";
+  const inputFields = (template.fields ?? []).filter((f) => f.type !== "signature");
+
+  if (isPdf) {
+    return (
+      <div className="contract-doc-frame contract-doc-frame--client contract-doc-frame--pdf">
+        <ContractPdfViewer fileUrl={getContractTemplateFileUrl(template.id)}>
+          {(pageIndex, pageEl) => (
+            <ContractFieldOverlay
+              fields={inputFields.filter((f) => (f.page ?? 0) === pageIndex)}
+              mode="client"
+              values={values}
+              onChange={onChange}
+              containerRef={{ current: pageEl }}
+            />
+          )}
+        </ContractPdfViewer>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={docRef} className="contract-doc-frame contract-doc-frame--client">
+      <div className="contract-doc-content" dangerouslySetInnerHTML={{ __html: template.html }} />
+      <ContractFieldOverlay
+        fields={inputFields.filter((f) => (f.page ?? 0) === 0)}
+        mode="client"
+        values={values}
+        onChange={onChange}
+        containerRef={docRef}
+      />
+    </div>
+  );
+}
+
 export default function ClientContract({ ticket, onSigned, onBack }) {
   const [values, setValues] = useState(ticket?.values ?? {});
   const [submitting, setSubmitting] = useState(false);
@@ -141,18 +179,7 @@ export default function ClientContract({ ticket, onSigned, onBack }) {
         <p className="text-sm text-gray-400 mt-1">אנא מלאו את השדות וחתמו בתחתית.</p>
       </header>
 
-      <div className="contract-doc-frame contract-doc-frame--client">
-        <div
-          className="contract-doc-content"
-          dangerouslySetInnerHTML={{ __html: template.html }}
-        />
-        <ContractFieldOverlay
-          fields={(template.fields ?? []).filter((f) => f.type !== "signature")}
-          mode="client"
-          values={values}
-          onChange={handleChange}
-        />
-      </div>
+      <ContractDocumentBody template={template} values={values} onChange={handleChange} />
 
       {signatureField ? (
         <div className="contract-signature-section">
