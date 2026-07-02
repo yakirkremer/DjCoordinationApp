@@ -4,6 +4,18 @@ import {
   saveContracts as saveContractsApi,
   generateTicketId,
 } from "../lib/api/contractApi";
+import { generateSignToken } from "../lib/contractTokens";
+import { patchAdminTicketValues, buildTicketDisplayValuesWithProfile } from "../lib/contractFields";
+
+function normalizeTickets(tickets) {
+  return (Array.isArray(tickets) ? tickets : []).map((ticket) =>
+    ticket.signToken ? ticket : { ...ticket, signToken: generateSignToken() }
+  );
+}
+
+function isFullContractsDocument(data) {
+  return Array.isArray(data?.templates) && Array.isArray(data?.tickets);
+}
 
 export default function useContracts(enabled = false) {
   const [contracts, setContracts] = useState({ templates: [], tickets: [] });
@@ -13,9 +25,12 @@ export default function useContracts(enabled = false) {
 
   const loadContracts = useCallback(async () => {
     const data = await fetchContracts();
+    if (!isFullContractsDocument(data)) {
+      return data;
+    }
     setContracts({
-      templates: Array.isArray(data.templates) ? data.templates : [],
-      tickets: Array.isArray(data.tickets) ? data.tickets : [],
+      templates: data.templates,
+      tickets: normalizeTickets(data.tickets),
     });
     setLoaded(true);
     return data;
@@ -54,16 +69,23 @@ export default function useContracts(enabled = false) {
     }));
   }, []);
 
-  const createTicket = useCallback((clientId, templateId) => {
+  const createTicket = useCallback((clientId, templateId, clientProfile = null) => {
     if (!clientId || !templateId) return null;
 
     let created = null;
+    let nextState = null;
     setContracts((prev) => {
       const existing = prev.tickets.find((t) => t.clientId === clientId);
       if (existing) {
         created = existing;
         return prev;
       }
+
+      const template = prev.templates.find((t) => t.id === templateId);
+      const fields = template?.fields ?? [];
+      const values = clientProfile
+        ? buildTicketDisplayValuesWithProfile(fields, {}, clientProfile)
+        : {};
 
       const ticket = {
         id: generateTicketId(),
@@ -72,22 +94,55 @@ export default function useContracts(enabled = false) {
         status: "pending",
         sentAt: new Date().toISOString(),
         signedAt: null,
-        values: {},
+        values,
+        signToken: generateSignToken(),
       };
       created = ticket;
-      return {
+      nextState = {
         ...prev,
         tickets: [...prev.tickets, ticket],
       };
+      return nextState;
     });
 
+    if (nextState && loaded) {
+      clearTimeout(saveTimer.current);
+      saveContractsApi(nextState).catch((err) => {
+        console.error("Failed to save contract ticket:", err);
+        setError(err.message);
+      });
+    }
+
     return created;
-  }, []);
+  }, [loaded]);
 
   const deleteClientTickets = useCallback((clientId) => {
     setContracts((prev) => ({
       ...prev,
       tickets: prev.tickets.filter((t) => t.clientId !== clientId),
+    }));
+  }, []);
+
+  const updateTicketAdminValues = useCallback((ticketId, adminPatch) => {
+    setContracts((prev) => ({
+      ...prev,
+      tickets: prev.tickets.map((t) => {
+        if (t.id !== ticketId) return t;
+        const template = prev.templates.find((tpl) => tpl.id === t.templateId);
+        return {
+          ...t,
+          values: patchAdminTicketValues(template?.fields ?? [], t.values ?? {}, adminPatch),
+        };
+      }),
+    }));
+  }, []);
+
+  const replaceTicket = useCallback((ticket) => {
+    if (!ticket?.id) return;
+    const { template: _template, ...ticketData } = ticket;
+    setContracts((prev) => ({
+      ...prev,
+      tickets: prev.tickets.map((t) => (t.id === ticketData.id ? { ...t, ...ticketData } : t)),
     }));
   }, []);
 
@@ -110,6 +165,8 @@ export default function useContracts(enabled = false) {
     deleteTemplate,
     createTicket,
     deleteClientTickets,
+    updateTicketAdminValues,
+    replaceTicket,
     getTicketForClient,
     getTemplate,
     setContracts,

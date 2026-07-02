@@ -186,6 +186,17 @@
   color: #fff;
 }
 
+.contract-field-marker.is-both-field {
+  border-color: #0891b2;
+  background: rgba(8, 145, 178, 0.12);
+  color: #0e7490;
+}
+
+.contract-field-badge.is-both {
+  background: #0891b2;
+  color: #fff;
+}
+
 .contract-field-marker-preview {
   display: block;
   font-size: 9px;
@@ -374,6 +385,11 @@
   padding-bottom: 2rem;
 }
 
+.contract-client-profile-alert {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.06);
+}
+
 .contract-client-actions {
   display: flex;
   justify-content: flex-end;
@@ -387,6 +403,45 @@
   border-radius: 8px;
   border: 1px solid var(--color-xdj-border);
   background: var(--color-xdj-panel);
+}
+
+.contract-signature-section--prominent {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.08);
+  scroll-margin-top: 5rem;
+}
+
+.contract-field-signature-hint {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  border: 2px dashed #f59e0b;
+  background: rgba(245, 158, 11, 0.2);
+  color: #92400e;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px;
+}
+
+.contract-field-signature-hint.is-signed {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  color: #166534;
+}
+
+.contract-client-actions--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: linear-gradient(to top, var(--color-xdj-bg, #030712) 70%, transparent);
+  padding-top: 1rem;
+  margin-top: 1rem;
 }
 
 .signature-pad-canvas {
@@ -405,6 +460,127 @@
   border-color: rgba(245, 158, 11, 0.35);
 }
 
+.client-dash-contract-alert--signed {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.client-dash-contract-alert--waiting {
+  border-color: rgba(107, 114, 128, 0.35);
+}
+
 .contract-create-options {
   margin-top: 0.5rem;
+}
+
+.client-stage-toggles {
+  min-width: 7rem;
+}
+
+.client-stage-toggle {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid #374151;
+  background: #111827;
+  color: #6b7280;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.client-stage-toggle.is-on {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.2);
+  color: #c4b5fd;
+}
+
+.client-stage-toggle:hover {
+  border-color: #6b7280;
+  color: #d1d5db;
+}
+
+.admin-sent-contract-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.admin-sent-contract-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.admin-sent-contract-panel {
+  position: relative;
+  z-index: 1;
+  width: min(960px, 100%);
+  max-height: min(92vh, 900px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+}
+
+.admin-sent-contract-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-xdj-border);
+}
+
+.admin-sent-contract-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 0 1.25rem 1.25rem;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.admin-sent-contract-fields-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.admin-sent-contract-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.admin-sent-contract-field-label {
+  color: #d1d5db;
+  font-weight: 600;
+}
+
+.admin-sent-contract-field-input {
+  background: #030712;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  color: #f3f4f6;
+  font-size: 0.85rem;
+}
+
+.admin-sent-contract-preview {
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.admin-sent-contract-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-xdj-border);
 }

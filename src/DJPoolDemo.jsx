@@ -9,6 +9,7 @@ import WelcomePage from "./components/WelcomePage";
 import ClientHome from "./components/ClientHome";
 import ClientManager from "./components/ClientManager";
 import ContractManager from "./components/ContractManager";
+import ContractLinkPage from "./components/ContractLinkPage";
 import ClientContract from "./components/ClientContract";
 import AdminTabNav from "./components/AdminTabNav";
 import AdminDashboard from "./components/AdminDashboard";
@@ -55,6 +56,10 @@ import { getWizardSteps } from "./lib/wizardProgress";
 import useAppRouter from "./hooks/useAppRouter";
 import { adminTabPath, clientScreenPath } from "./lib/appRoutes";
 import { fetchClientContract } from "./lib/api/contractApi";
+import { emptyFeedback, saveFeedback } from "./lib/trackFeedbackStorage";
+import { DEFAULT_PREFERENCES } from "./lib/preferences";
+import { confirmDeleteAction } from "./lib/confirmDelete";
+import { CLIENT_SCREEN_STAGE, getClientStages } from "./lib/clientStages";
 
 export default function DJPoolDemo() {
   const { t, dir } = useI18n();
@@ -63,6 +68,7 @@ export default function DJPoolDemo() {
   const adminTab = route.adminTab ?? "catalog";
   const clientScreen = route.clientScreen ?? "home";
   const guestView = route.guestView ?? "welcome";
+  const contractLinkToken = route.contractLinkToken ?? null;
   const [tracks, setTracks] = useState([]);
   const [catalogStatus, setCatalogStatus] = useState("idle");
   const [catalogError, setCatalogError] = useState(null);
@@ -84,16 +90,19 @@ export default function DJPoolDemo() {
 
   const genres = useGenres();
 
-  const { clients, activeClient, createClient, deleteClient, login, logout, ready: clientsReady, bootstrapAdmin } = useClients();
+  const { clients, activeClient, createClient, updateClientStages, deleteClient, login, logout, ready: clientsReady, bootstrapAdmin } = useClients();
   const contractsEnabled =
-    (showAdminPanel && (adminTab === "clients" || adminTab === "contracts")) || Boolean(activeClient);
+    showAdminPanel && (adminTab === "clients" || adminTab === "contracts");
   const {
     contracts: contractsData,
+    loaded: contractsLoaded,
     updateTemplate,
     deleteTemplate,
     createTicket,
     deleteClientTickets,
     getTicketForClient,
+    replaceTicket,
+    getTemplate,
     loadContracts,
   } = useContracts(contractsEnabled);
   const [clientContractTicket, setClientContractTicket] = useState(null);
@@ -138,6 +147,8 @@ export default function DJPoolDemo() {
   const appReady = clientsReady && formReady && catalogOk;
   const coupleReady = !activeClient || feedbackReady;
 
+  const clientStages = useMemo(() => getClientStages(activeClient), [activeClient]);
+
   const resolveTrackUrl = useCallback((track) => resolveTrackAudioUrl(track), []);
 
   const canPreload =
@@ -152,42 +163,68 @@ export default function DJPoolDemo() {
     }
 
     let cancelled = false;
-    fetchClientContract()
-      .then((data) => {
-        if (!cancelled) setClientContractTicket(data.ticket ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setClientContractTicket(null);
-      });
+    const loadTicket = () =>
+      fetchClientContract(activeClient.id)
+        .then((data) => {
+          if (!cancelled) setClientContractTicket(data.ticket ?? null);
+        })
+        .catch(() => {
+          if (!cancelled) setClientContractTicket(null);
+        });
+
+    loadTicket();
 
     return () => {
       cancelled = true;
     };
-  }, [activeClient?.id]);
+  }, [activeClient?.id, clientScreen]);
 
   const handleCreateClient = useCallback(
-    (name, loginCode, clientType, contractTemplateId) => {
-      const result = createClient(name, loginCode, clientType, contractTemplateId);
+    (name, loginCode, clientType, contractTemplateId, eventDate, eventLocation) => {
+      const result = createClient(name, loginCode, clientType, eventDate, eventLocation);
       if (!result) return null;
+
+      const { client } = result;
+      const profile = {
+        clientName: client.name,
+        eventDate: client.eventDate,
+        eventLocation: client.eventLocation,
+      };
+
+      saveFeedback(
+        {
+          ...emptyFeedback(),
+          preferences: {
+            ...DEFAULT_PREFERENCES,
+            eventDate: client.eventDate,
+            eventLocation: client.eventLocation,
+          },
+        },
+        client.id
+      ).catch((err) => console.error("Failed to seed client preferences:", err));
+
       if (contractTemplateId) {
-        createTicket(result.client.id, contractTemplateId);
+        createTicket(client.id, contractTemplateId, profile);
       }
-      return result.client;
+      return client;
     },
     [createClient, createTicket]
   );
 
   const handleDeleteClient = useCallback(
     (id) => {
+      const client = clients.find((c) => c.id === id);
+      const name = client?.name ?? id;
+      if (!confirmDeleteAction(t("admin.deleteClientConfirm", { name }))) return;
       deleteClient(id);
       deleteClientTickets(id);
     },
-    [deleteClient, deleteClientTickets]
+    [clients, deleteClient, deleteClientTickets, t]
   );
 
   const refreshClientContract = useCallback(() => {
     if (!activeClient) return;
-    fetchClientContract()
+    fetchClientContract(activeClient.id)
       .then((data) => setClientContractTicket(data.ticket ?? null))
       .catch(() => setClientContractTicket(null));
   }, [activeClient]);
@@ -427,7 +464,7 @@ export default function DJPoolDemo() {
   const handleDeleteTrack = async (id) => {
     const track = tracks.find((t) => t.id === id);
     const label = track ? `${track.title} — ${track.artist}` : t("admin.thisTrack");
-    const confirmed = window.confirm(t("admin.deleteConfirm", { label }));
+    const confirmed = confirmDeleteAction(t("admin.deleteConfirm", { label }));
     if (!confirmed) return;
 
     try {
@@ -703,14 +740,17 @@ export default function DJPoolDemo() {
   }, [skipWizard, replace]);
 
   const handleStartWizard = useCallback(() => {
+    if (!clientStages.form) return;
     navigate("/wizard");
-  }, [navigate]);
+  }, [navigate, clientStages.form]);
 
   const goClientScreen = useCallback(
     (screen) => {
+      const requiredStage = CLIENT_SCREEN_STAGE[screen];
+      if (requiredStage && !clientStages[requiredStage]) return;
       navigate(clientScreenPath(screen));
     },
-    [navigate]
+    [navigate, clientStages]
   );
 
   const goAdminTab = useCallback(
@@ -725,11 +765,11 @@ export default function DJPoolDemo() {
     if (resumeHandledRef.current) return;
     resumeHandledRef.current = true;
 
-    if (!preferences.wizardCompleted && (preferences.wizardStep ?? 0) > 0) {
+    if (!preferences.wizardCompleted && (preferences.wizardStep ?? 0) > 0 && clientStages.form) {
       setToastMessage(t("toast.resumeWizard"));
-    } else if (preferences.wizardCompleted) {
+    } else if (preferences.wizardCompleted && clientStages.catalog) {
       setToastMessage(t("toast.resumeBrowse"));
-    } else if (Object.keys(ratings).length > 0) {
+    } else if (Object.keys(ratings).length > 0 && clientStages.catalog) {
       setToastMessage(t("toast.resumeBrowse"));
     }
   }, [
@@ -739,6 +779,7 @@ export default function DJPoolDemo() {
     preferences.wizardCompleted,
     preferences.wizardStep,
     ratings,
+    clientStages,
     t,
   ]);
 
@@ -747,6 +788,14 @@ export default function DJPoolDemo() {
       resumeHandledRef.current = false;
     }
   }, [activeClient?.id]);
+
+  useEffect(() => {
+    if (!activeClient || isAdminRoute) return;
+    const requiredStage = CLIENT_SCREEN_STAGE[clientScreen];
+    if (requiredStage && !clientStages[requiredStage]) {
+      replace("/home");
+    }
+  }, [activeClient, clientScreen, clientStages, isAdminRoute, replace]);
 
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
@@ -855,22 +904,43 @@ export default function DJPoolDemo() {
       );
     }
     if (adminTab === "clients") {
+      if (!contractsLoaded) {
+        return <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING CONTRACTS...</p>;
+      }
       return (
         <ClientManager
           clients={clients}
           onCreateClient={handleCreateClient}
           onDeleteClient={handleDeleteClient}
+          onAssignContract={(clientId, templateId) => {
+            const client = clients.find((c) => c.id === clientId);
+            createTicket(clientId, templateId, client
+              ? {
+                  clientName: client.name,
+                  eventDate: client.eventDate,
+                  eventLocation: client.eventLocation,
+                }
+              : null);
+          }}
+          onUpdateStages={updateClientStages}
+          onTicketAdminSaved={replaceTicket}
           contractTemplates={contractsData.templates}
           getTicketForClient={getTicketForClient}
+          getTemplate={getTemplate}
         />
       );
     }
     if (adminTab === "contracts") {
+      if (!contractsLoaded) {
+        return <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING CONTRACTS...</p>;
+      }
       return (
         <ContractManager
           contracts={contractsData.templates}
           tickets={contractsData.tickets}
           clients={clients}
+          getTemplate={getTemplate}
+          onTicketAdminSaved={replaceTicket}
           onReload={loadContracts}
           onUpdateTemplate={updateTemplate}
           onDeleteTemplate={deleteTemplate}
@@ -945,6 +1015,21 @@ export default function DJPoolDemo() {
         <div className="flex flex-wrap gap-2 items-center justify-center">
           <AppearanceSwitcher />
           <LanguageSwitcher />
+          {!showAdminPanel && activeClient && clientStages.contract && clientContractTicket && (
+            <button
+              type="button"
+              onClick={() => goClientScreen("contract")}
+              className={
+                clientContractTicket.status === "pending"
+                  ? "btn-luxury-primary px-4 py-2 rounded-sm text-xs"
+                  : "btn-luxury px-4 py-2 rounded-sm text-xs"
+              }
+            >
+              {clientContractTicket.status === "pending"
+                ? t("home.contractSignAction")
+                : t("home.contractViewAction")}
+            </button>
+          )}
           {!showAdminPanel && activeClient && clientScreen !== "home" && (
             <button
               onClick={() => goClientScreen("home")}
@@ -984,6 +1069,7 @@ export default function DJPoolDemo() {
           showAdminSessionLoading ||
           (activeClient &&
             (clientScreen === "home" || clientScreen === "guide" || clientScreen === "tutorial")) ||
+          guestView === "contractLink" ||
           guestView === "guide" ||
           guestView === "tutorial"
             ? "overflow-hidden"
@@ -1014,7 +1100,9 @@ export default function DJPoolDemo() {
             <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
           </div>
         ) : !activeClient ? (
-          guestView === "guide" ? (
+          guestView === "contractLink" && contractLinkToken ? (
+            <ContractLinkPage signToken={contractLinkToken} />
+          ) : guestView === "guide" ? (
             <div className="flex-1 min-h-0 overflow-y-auto">
               <DropsAndGenresGuide onBack={() => replace("/")} />
             </div>
@@ -1047,6 +1135,7 @@ export default function DJPoolDemo() {
               comments={comments}
               tracks={tracks}
               contractTicket={clientContractTicket}
+              stages={clientStages}
               onStartWizard={handleStartWizard}
               onBrowseMusic={() => goClientScreen("browse")}
               onOpenGuide={() => goClientScreen("guide")}
@@ -1059,6 +1148,12 @@ export default function DJPoolDemo() {
           <div className="flex-1 min-h-0 overflow-y-auto">
             <ClientContract
               ticket={clientContractTicket}
+              clientName={activeClient.name}
+              eventDate={preferences.eventDate || activeClient.eventDate}
+              eventLocation={preferences.eventLocation || activeClient.eventLocation}
+              onFillEventDetails={
+                clientStages.form ? () => goClientScreen("wizard") : undefined
+              }
               onSigned={refreshClientContract}
               onBack={() => goClientScreen("home")}
             />
@@ -1094,7 +1189,7 @@ export default function DJPoolDemo() {
             onSkip={handleWizardSkip}
             onSaveProgress={saveWizardProgress}
             onSaveAndExit={() => goClientScreen("home")}
-            onBrowseMusic={() => goClientScreen("browse")}
+            onBrowseMusic={clientStages.catalog ? () => goClientScreen("browse") : undefined}
             lastSavedAt={lastSavedAt}
             isSaving={isSaving}
           />

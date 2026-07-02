@@ -44,6 +44,16 @@ export function parseAppPath(pathname) {
     return { area: "dropbox" };
   }
 
+  const contractLinkMatch = path.match(/^\/c\/([^/]+)$/);
+  if (contractLinkMatch) {
+    return {
+      area: "client",
+      guestView: "contractLink",
+      contractLinkToken: decodeURIComponent(contractLinkMatch[1]),
+      requiresClient: false,
+    };
+  }
+
   if (path === "/admin" || path.startsWith("/admin/")) {
     const segment = path === "/admin" ? "catalog" : path.slice("/admin/".length).split("/")[0];
     const adminTab = ADMIN_TAB_IDS.includes(segment) ? segment : "catalog";

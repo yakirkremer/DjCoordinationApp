@@ -74,11 +74,12 @@ export function verifySessionToken(token) {
 }
 
 export function parseRequestSession(req) {
+  const verified = verifySessionToken(parseCookies(req)[COOKIE_NAME]);
+  if (verified) return verified;
   if (!isAuthEnforced()) {
     return { role: "admin", bypass: true };
   }
-  const token = parseCookies(req)[COOKIE_NAME];
-  return verifySessionToken(token);
+  return null;
 }
 
 /** Real cookie session only — used by /api/auth/session (never dev-bypass). */
@@ -117,7 +118,7 @@ export function createSessionToken(role, clientId = null) {
 }
 
 export function isAdminSession(session) {
-  if (!isAuthEnforced()) return true;
+  if (!isAuthEnforced() && session?.bypass) return true;
   return session?.role === "admin";
 }
 

@@ -8,7 +8,14 @@ import { docxBufferToHtml } from "./docxToHtml.js";
 import {
   mergeSignedContractValues,
   validateClientContractValues,
+  patchAdminTicketValues,
 } from "../src/lib/contractFields.js";
+import {
+  ensureTicketSignToken,
+  findTicketBySignToken,
+  readSignedCopyFile,
+  saveSignedContractCopy,
+} from "./contractSignedCopy.js";
 
 export const CONTRACTS_FILE = "contracts.json";
 const CONTRACTS_DIR = path.join(DATA_DIR, "contracts");
@@ -58,11 +65,46 @@ function publicTicket(ticket, template) {
     sentAt: ticket.sentAt,
     signedAt: ticket.signedAt ?? null,
     values: ticket.values ?? {},
+    signToken: ticket.signToken ?? null,
+    signedCopyFile: ticket.signedCopyFile ?? null,
     template: publicTemplate(template),
   };
 }
 
-async function canAccessTemplateFile(session, templateId) {
+async function ensureAllTicketTokens(contracts) {
+  let changed = false;
+  for (const ticket of contracts.tickets) {
+    if (!ticket.signToken) {
+      ensureTicketSignToken(ticket);
+      changed = true;
+    }
+  }
+  if (changed) await writeContracts(contracts);
+  return contracts;
+}
+
+async function finalizeTicketSign(ticket, template, rawValues, { isClient = true } = {}) {
+  const mergedValues = mergeSignedContractValues(template.fields ?? [], rawValues ?? {}, ticket.values ?? {});
+  if (isClient) {
+    const validationError = validateClientContractValues(template.fields ?? [], rawValues ?? {}, ticket.values ?? {});
+    if (validationError) {
+      return { error: validationError, status: 400 };
+    }
+  }
+
+  ticket.values = mergedValues;
+  ticket.status = "signed";
+  ticket.signedAt = new Date().toISOString();
+  ticket.signedCopyFile = await saveSignedContractCopy(ticket, template, mergedValues);
+  return { ticket, mergedValues };
+}
+
+async function canAccessTemplateFile(session, templateId, signToken) {
+  if (signToken) {
+    const contracts = await readContracts();
+    const ticket = findTicketBySignToken(contracts, signToken);
+    return ticket?.templateId === templateId;
+  }
   if (isAdminSession(session)) return true;
   if (session?.role === "client" && session.clientId) {
     const contracts = await readContracts();
@@ -187,6 +229,7 @@ export async function handleContractsApi(req, res) {
         const contracts = await readContracts();
 
         if (isAdminSession(session)) {
+          await ensureAllTicketTokens(contracts);
           sendJson(res, 200, contracts);
           return true;
         }
@@ -230,13 +273,14 @@ export async function handleContractsApi(req, res) {
 
     const fileMatch = subPath.match(/^\/templates\/([^/]+)\/file$/);
     if (fileMatch && req.method === "GET") {
-      if (!isAuthenticatedSession(session)) {
+      const templateId = fileMatch[1];
+      const signToken = url.searchParams.get("signToken")?.trim() || null;
+      if (!signToken && !isAuthenticatedSession(session)) {
         sendJson(res, 401, { error: "Login required" });
         return true;
       }
 
-      const templateId = fileMatch[1];
-      if (!(await canAccessTemplateFile(session, templateId))) {
+      if (!(await canAccessTemplateFile(session, templateId, signToken))) {
         sendJson(res, 403, { error: "Forbidden" });
         return true;
       }
@@ -286,6 +330,139 @@ export async function handleContractsApi(req, res) {
       return true;
     }
 
+    const linkMatch = subPath.match(/^\/link\/([^/]+)$/);
+    if (linkMatch && req.method === "GET") {
+      const signToken = decodeURIComponent(linkMatch[1]);
+      let contracts = await readContracts();
+      await ensureAllTicketTokens(contracts);
+      contracts = await readContracts();
+      const ticket = findTicketBySignToken(contracts, signToken);
+      if (!ticket) {
+        sendJson(res, 404, { error: "Contract link not found or expired" });
+        return true;
+      }
+      const template = contracts.templates.find((t) => t.id === ticket.templateId);
+      if (!template) {
+        sendJson(res, 404, { error: "Contract template not found" });
+        return true;
+      }
+      sendJson(res, 200, { ticket: publicTicket(ticket, template) });
+      return true;
+    }
+
+    const linkSignMatch = subPath.match(/^\/link\/([^/]+)\/sign$/);
+    if (linkSignMatch && req.method === "PUT") {
+      let body = "";
+      await new Promise((resolve, reject) => {
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+
+      const { values } = JSON.parse(body || "{}");
+      const signToken = decodeURIComponent(linkSignMatch[1]);
+      const contracts = await readContracts();
+      const ticket = findTicketBySignToken(contracts, signToken);
+
+      if (!ticket) {
+        sendJson(res, 404, { error: "Contract link not found" });
+        return true;
+      }
+
+      if (ticket.status === "signed") {
+        sendJson(res, 400, { error: "Contract already signed" });
+        return true;
+      }
+
+      const template = contracts.templates.find((t) => t.id === ticket.templateId);
+      if (!template) {
+        sendJson(res, 404, { error: "Contract template not found" });
+        return true;
+      }
+
+      const result = await finalizeTicketSign(ticket, template, values, { isClient: true });
+      if (result.error) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
+      }
+
+      await writeContracts(contracts);
+      sendJson(res, 200, { ok: true, ticket: publicTicket(ticket, template) });
+      return true;
+    }
+
+    const ticketValuesMatch = subPath.match(/^\/tickets\/([^/]+)\/values$/);
+    if (ticketValuesMatch && req.method === "PUT") {
+      if (!isAdminSession(session)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return true;
+      }
+
+      let body = "";
+      await new Promise((resolve, reject) => {
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+
+      const { values: adminPatch } = JSON.parse(body || "{}");
+      const ticketId = ticketValuesMatch[1];
+      const contracts = await readContracts();
+      const ticket = contracts.tickets.find((t) => t.id === ticketId);
+
+      if (!ticket) {
+        sendJson(res, 404, { error: "Contract ticket not found" });
+        return true;
+      }
+
+      if (ticket.status === "signed") {
+        sendJson(res, 400, { error: "Cannot edit a signed contract" });
+        return true;
+      }
+
+      const template = contracts.templates.find((t) => t.id === ticket.templateId);
+      if (!template) {
+        sendJson(res, 404, { error: "Contract template not found" });
+        return true;
+      }
+
+      ticket.values = patchAdminTicketValues(template.fields ?? [], ticket.values ?? {}, adminPatch ?? {});
+      await writeContracts(contracts);
+      sendJson(res, 200, { ok: true, ticket: publicTicket(ticket, template) });
+      return true;
+    }
+
+    const copyMatch = subPath.match(/^\/tickets\/([^/]+)\/copy$/);
+    if (copyMatch && req.method === "GET") {
+      if (!isAdminSession(session)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return true;
+      }
+
+      const ticketId = copyMatch[1];
+      const format = url.searchParams.get("format") || "auto";
+      const file = await readSignedCopyFile(ticketId, format);
+      if (!file) {
+        sendJson(res, 404, { error: "Signed copy not found" });
+        return true;
+      }
+
+      const types = {
+        pdf: "application/pdf",
+        html: "text/html; charset=utf-8",
+        json: "application/json",
+      };
+      res.statusCode = 200;
+      res.setHeader("Content-Type", types[file.ext] || "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+      res.end(file.data);
+      return true;
+    }
+
     const signMatch = subPath.match(/^\/tickets\/([^/]+)\/sign$/);
     if (signMatch && req.method === "PUT") {
       if (!isAuthenticatedSession(session)) {
@@ -328,18 +505,14 @@ export async function handleContractsApi(req, res) {
         return true;
       }
 
-      const mergedValues = mergeSignedContractValues(template.fields ?? [], values ?? {});
-      if (!isAdminSession(session)) {
-        const validationError = validateClientContractValues(template.fields ?? [], values ?? {});
-        if (validationError) {
-          sendJson(res, 400, { error: validationError });
-          return true;
-        }
+      const result = await finalizeTicketSign(ticket, template, values, {
+        isClient: !isAdminSession(session),
+      });
+      if (result.error) {
+        sendJson(res, result.status, { error: result.error });
+        return true;
       }
 
-      ticket.values = mergedValues;
-      ticket.status = "signed";
-      ticket.signedAt = new Date().toISOString();
       await writeContracts(contracts);
 
       sendJson(res, 200, { ok: true, ticket: publicTicket(ticket, template) });

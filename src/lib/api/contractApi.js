@@ -31,8 +31,41 @@ export function saveContracts(data) {
   });
 }
 
-export function fetchClientContract() {
-  return request("");
+function attachPublicTemplate(ticket, templates = []) {
+  if (!ticket) return null;
+  const template = templates.find((t) => t.id === ticket.templateId);
+  if (!template) return { ...ticket, template: null };
+  const base = {
+    id: template.id,
+    name: template.name,
+    sourceType: template.sourceType || "docx",
+    fields: template.fields ?? [],
+  };
+  const publicTemplate =
+    base.sourceType === "pdf"
+      ? { ...base, fileUrl: `/api/contracts/templates/${template.id}/file` }
+      : { ...base, html: template.html };
+  return { ...ticket, template: publicTemplate };
+}
+
+export async function fetchClientContract(clientId) {
+  const data = await request("");
+  if (data.ticket !== undefined) {
+    return { ticket: data.ticket ?? null };
+  }
+  if (clientId && Array.isArray(data.tickets)) {
+    const ticket = data.tickets.find((t) => t.clientId === clientId) ?? null;
+    return { ticket: attachPublicTemplate(ticket, data.templates) };
+  }
+  return { ticket: null };
+}
+
+export function updateTicketAdminValues(ticketId, values) {
+  return request(`/tickets/${encodeURIComponent(ticketId)}/values`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values }),
+  });
 }
 
 export function signContract(ticketId, values) {
@@ -43,8 +76,37 @@ export function signContract(ticketId, values) {
   });
 }
 
-export function getContractTemplateFileUrl(templateId) {
-  return `/api/contracts/templates/${encodeURIComponent(templateId)}/file`;
+export function fetchContractByLink(signToken) {
+  return fetch(`/api/contracts/link/${encodeURIComponent(signToken)}`)
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+      return data;
+    });
+}
+
+export function signContractByLink(signToken, values) {
+  return fetch(`/api/contracts/link/${encodeURIComponent(signToken)}/sign`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values }),
+  }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  });
+}
+
+export function getContractTemplateFileUrl(templateId, signToken) {
+  const base = `/api/contracts/templates/${encodeURIComponent(templateId)}/file`;
+  if (!signToken) return base;
+  return `${base}?signToken=${encodeURIComponent(signToken)}`;
+}
+
+export function getSignedCopyDownloadUrl(ticketId, format) {
+  const base = `/api/contracts/tickets/${encodeURIComponent(ticketId)}/copy`;
+  if (!format) return base;
+  return `${base}?format=${encodeURIComponent(format)}`;
 }
 
 export async function uploadContractTemplate(file, name) {

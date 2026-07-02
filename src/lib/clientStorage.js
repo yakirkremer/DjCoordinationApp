@@ -1,11 +1,17 @@
 import { normalizeClientType } from "./clientTypes";
+import { DEFAULT_CLIENT_STAGES, getClientStages } from "./clientStages";
 
 export function normalizeClient(client) {
   return {
     ...client,
     clientType: normalizeClientType(client.clientType),
+    stages: getClientStages(client),
+    eventDate: String(client.eventDate ?? "").trim(),
+    eventLocation: String(client.eventLocation ?? "").trim(),
   };
 }
+
+export { DEFAULT_CLIENT_STAGES };
 
 export function generateClientId() {
   return `client_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;

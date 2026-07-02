@@ -1,10 +1,16 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import ContractFieldOverlay from "./ContractFieldOverlay";
 import ContractPdfViewer from "./ContractPdfViewer";
-import { signContract, getContractTemplateFileUrl } from "../lib/api/contractApi";
-import { buildInitialContractValues, isClientEditable } from "../lib/contractFields";
+import { signContract, signContractByLink, getContractTemplateFileUrl } from "../lib/api/contractApi";
+import {
+  buildTicketDisplayValuesWithProfile,
+  getMissingClientProfileFields,
+  isClientEditable,
+  CLIENT_PROFILE_PREFILL_KEYS,
+} from "../lib/contractFields";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
-function SignaturePad({ onChange, label }) {
+function SignaturePad({ onChange, label, id }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
 
@@ -62,8 +68,9 @@ function SignaturePad({ onChange, label }) {
   }, []);
 
   return (
-    <div className="signature-pad" dir="rtl">
-      <p className="text-sm text-gray-300 mb-2">{label}</p>
+    <div className="signature-pad" dir="rtl" id={id}>
+      <p className="text-sm font-bold text-amber-200 mb-2">{label}</p>
+      <p className="text-xs text-xdj-muted mb-2">חתמו בתיבה למטה עם העכבר או האצבע</p>
       <canvas
         ref={canvasRef}
         width={400}
@@ -84,24 +91,37 @@ function SignaturePad({ onChange, label }) {
   );
 }
 
-function ContractDocumentBody({ template, values, onChange }) {
+function ContractDocumentBody({ template, values, onChange, onScrollToSignature, fileAccessToken }) {
   const docRef = useRef(null);
   const isPdf = template?.sourceType === "pdf";
-  const inputFields = (template.fields ?? []).filter((f) => f.type !== "signature");
+  const allFields = template.fields ?? [];
+  const inputFields = allFields.filter((f) => f.type !== "signature");
+  const signatureFields = allFields.filter((f) => f.type === "signature");
+
+  const signatureOverlay = (pageIndex, pageEl) => (
+  <>
+      <ContractFieldOverlay
+        fields={inputFields.filter((f) => (f.page ?? 0) === pageIndex)}
+        mode="client"
+        values={values}
+        onChange={onChange}
+        containerRef={{ current: pageEl }}
+      />
+      <ContractFieldOverlay
+        fields={signatureFields.filter((f) => (f.page ?? 0) === pageIndex)}
+        mode="client-signature-hint"
+        values={values}
+        onScrollToSignature={onScrollToSignature}
+        containerRef={{ current: pageEl }}
+      />
+    </>
+  );
 
   if (isPdf) {
     return (
       <div className="contract-doc-frame contract-doc-frame--client contract-doc-frame--pdf">
-        <ContractPdfViewer fileUrl={getContractTemplateFileUrl(template.id)}>
-          {(pageIndex, pageEl) => (
-            <ContractFieldOverlay
-              fields={inputFields.filter((f) => (f.page ?? 0) === pageIndex)}
-              mode="client"
-              values={values}
-              onChange={onChange}
-              containerRef={{ current: pageEl }}
-            />
-          )}
+        <ContractPdfViewer fileUrl={getContractTemplateFileUrl(template.id, fileAccessToken)}>
+          {(pageIndex, pageEl) => signatureOverlay(pageIndex, pageEl)}
         </ContractPdfViewer>
       </div>
     );
@@ -117,35 +137,93 @@ function ContractDocumentBody({ template, values, onChange }) {
         onChange={onChange}
         containerRef={docRef}
       />
+      <ContractFieldOverlay
+        fields={signatureFields.filter((f) => (f.page ?? 0) === 0)}
+        mode="client-signature-hint"
+        values={values}
+        onScrollToSignature={onScrollToSignature}
+        containerRef={docRef}
+      />
     </div>
   );
 }
 
-export default function ClientContract({ ticket, onSigned, onBack }) {
+export default function ClientContract({
+  ticket,
+  onSigned,
+  onBack,
+  signToken,
+  standalone = false,
+  clientName = "",
+  eventDate = "",
+  eventLocation = "",
+  onFillEventDetails,
+}) {
+  const { t } = useI18n();
   const template = ticket?.template;
-  const [values, setValues] = useState(() => {
-    const fromTicket = ticket?.values ?? {};
-    const defaults = buildInitialContractValues(template?.fields ?? []);
-    return { ...defaults, ...fromTicket };
-  });
+  const signatureRef = useRef(null);
+  const clientProfile = useMemo(
+    () => ({ clientName, eventDate, eventLocation }),
+    [clientName, eventDate, eventLocation]
+  );
+  const missingProfileFields = useMemo(
+    () => getMissingClientProfileFields(clientProfile),
+    [clientProfile]
+  );
+  const missingProfileLabels = useMemo(() => {
+    const labels = {
+      [CLIENT_PROFILE_PREFILL_KEYS.clientName]: t("home.contractProfileMissingName"),
+      [CLIENT_PROFILE_PREFILL_KEYS.eventDate]: t("home.contractProfileMissingDate"),
+      [CLIENT_PROFILE_PREFILL_KEYS.eventLocation]: t("home.contractProfileMissingLocation"),
+    };
+    return missingProfileFields.map((key) => labels[key]).filter(Boolean);
+  }, [missingProfileFields, t]);
+  const [values, setValues] = useState(() =>
+    buildTicketDisplayValuesWithProfile(template?.fields ?? [], ticket?.values ?? {}, clientProfile)
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(ticket?.status === "signed");
+  const readOnly = ticket?.status === "signed";
+
+  useEffect(() => {
+    if (!template?.fields) return;
+    setValues(buildTicketDisplayValuesWithProfile(template.fields, ticket?.values ?? {}, clientProfile));
+  }, [ticket?.id, template?.id, clientProfile, template?.fields, ticket?.values]);
 
   const signatureField = template?.fields?.find((f) => f.type === "signature");
 
+  const scrollToSignature = useCallback(() => {
+    signatureRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
   const handleChange = useCallback((fieldId, value) => {
+    if (readOnly) return;
     const field = template?.fields?.find((f) => f.id === fieldId);
     if (field && !isClientEditable(field)) return;
     setValues((prev) => ({ ...prev, [fieldId]: value }));
-  }, [template?.fields]);
+  }, [template?.fields, readOnly]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     setError("");
+    if (missingProfileFields.length > 0) {
+      setError(t("home.contractProfileMissingSubmit"));
+      return;
+    }
+    if (signatureField && !values[signatureField.id]) {
+      setError("נדרשת חתימה לפני השליחה");
+      scrollToSignature();
+      return;
+    }
     setSubmitting(true);
     try {
-      await signContract(ticket.id, values);
+      if (signToken) {
+        await signContractByLink(signToken, values);
+      } else {
+        await signContract(ticket.id, values);
+      }
       setDone(true);
       onSigned?.();
     } catch (err) {
@@ -158,23 +236,36 @@ export default function ClientContract({ ticket, onSigned, onBack }) {
   if (!ticket || !template) {
     return (
       <div className="contract-client-empty panel-luxury p-8 text-center" dir="rtl">
-        <p className="text-gray-400">אין חוזה ממתין לחתימה.</p>
-        <button type="button" className="btn-luxury mt-4 px-4 py-2" onClick={onBack}>
-          חזרה לדף הבית
-        </button>
+        <p className="text-gray-400">
+          {standalone ? "הקישור לחוזה לא תקין או שפג תוקפו." : "אין חוזה ממתין לחתימה."}
+        </p>
+        {!standalone ? (
+          <>
+            <p className="text-xs text-xdj-muted mt-2 max-w-md mx-auto">
+              האדמין צריך לשלוח חוזה ללקוח בלשונית «לקוחות» (שלח חוזה) או ליצור לקוח עם תיבת «שלח חוזה לחתימה».
+            </p>
+            <button type="button" className="btn-luxury mt-4 px-4 py-2" onClick={onBack}>
+              חזרה לדף הבית
+            </button>
+          </>
+        ) : null}
       </div>
     );
   }
 
-  if (done) {
+  if (done || readOnly) {
     return (
       <div className="contract-client-done panel-luxury p-8 text-center max-w-lg mx-auto" dir="rtl">
         <div className="text-4xl mb-4">✅</div>
-        <h2 className="text-xl font-bold text-xdj-gold mb-2">החוזה נחתם בהצלחה</h2>
+        <h2 className="text-xl font-bold text-xdj-gold mb-2">
+          {readOnly && !done ? "החוזה כבר נחתם" : "החוזה נחתם בהצלחה"}
+        </h2>
         <p className="text-sm text-xdj-muted mb-6">תודה! החתימה נשמרה במערכת.</p>
-        <button type="button" className="btn-luxury-primary px-6 py-2" onClick={onBack}>
-          חזרה לדף הבית
-        </button>
+        {!standalone ? (
+          <button type="button" className="btn-luxury-primary px-6 py-2" onClick={onBack}>
+            חזרה לדף הבית
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -183,26 +274,64 @@ export default function ClientContract({ ticket, onSigned, onBack }) {
     <form className="contract-client" onSubmit={handleSubmit} dir="rtl">
       <header className="contract-client-header mb-4">
         <h1 className="text-xl font-bold text-gray-100">{template.name}</h1>
-        <p className="text-sm text-gray-400 mt-1">מלאו את השדות המסומנים ללקוח וחתמו בתחתית. שדות אדמין מוצגים לקריאה בלבד.</p>
+        {missingProfileFields.length > 0 ? (
+          <section className="contract-client-profile-alert panel-luxury mt-3 p-4">
+            <p className="text-sm font-bold text-amber-300">{t("home.contractProfileMissingTitle")}</p>
+            <p className="text-xs text-xdj-muted mt-1">{t("home.contractProfileMissingDesc")}</p>
+            {missingProfileLabels.length > 0 ? (
+              <ul className="text-xs text-amber-100/90 mt-2 list-disc list-inside">
+                {missingProfileLabels.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            ) : null}
+            {onFillEventDetails ? (
+              <button
+                type="button"
+                className="btn-luxury-primary px-4 py-2 text-sm mt-3"
+                onClick={onFillEventDetails}
+              >
+                {t("home.contractProfileFillAction")}
+              </button>
+            ) : null}
+          </section>
+        ) : (
+          <p className="text-sm text-gray-400 mt-1">{t("home.contractProfilePrefilledDesc")}</p>
+        )}
       </header>
 
-      <ContractDocumentBody template={template} values={values} onChange={handleChange} />
+      <ContractDocumentBody
+        template={template}
+        values={values}
+        onChange={handleChange}
+        onScrollToSignature={scrollToSignature}
+        fileAccessToken={signToken}
+      />
 
-      {signatureField ? (
-        <div className="contract-signature-section">
+      <div ref={signatureRef} className="contract-signature-section contract-signature-section--prominent">
+        {signatureField ? (
           <SignaturePad
+            id="contract-signature-pad"
             label={signatureField.label || "חתימה דיגיטלית"}
             onChange={(dataUrl) => handleChange(signatureField.id, dataUrl)}
           />
-        </div>
-      ) : null}
+        ) : (
+          <p className="text-sm text-amber-300">
+            לא הוגדר שדה חתימה בתבנית — הוסיפו שדה «חתימה» בעורך החוזה באדמין.
+          </p>
+        )}
+      </div>
 
       {error ? <p className="text-sm text-red-400 mt-3">{error}</p> : null}
 
-      <div className="contract-client-actions">
-        <button type="button" className="btn-luxury px-5 py-2" onClick={onBack}>
-          ביטול
-        </button>
+      <div className="contract-client-actions contract-client-actions--sticky">
+        {!standalone ? (
+          <button type="button" className="btn-luxury px-5 py-2" onClick={onBack}>
+            ביטול
+          </button>
+        ) : (
+          <span />
+        )}
         <button type="submit" className="btn-luxury-primary px-6 py-2" disabled={submitting}>
           {submitting ? "שולח..." : "חתום ושלח"}
         </button>

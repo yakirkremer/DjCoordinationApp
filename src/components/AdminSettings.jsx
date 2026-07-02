@@ -18,6 +18,7 @@ import {
   normalizeDropTypeColors,
 } from "../lib/dropTypeColors";
 import { downloadBackupArchive } from "../lib/api/backupApi";
+import { confirmDeleteAction } from "../lib/confirmDelete";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
 function initGenreRows(genres) {
@@ -82,6 +83,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
       setError(t("admin.genreInUse", { genre: label }));
       return;
     }
+    if (!confirmDeleteAction(t("admin.removeGenreConfirm", { name: label }))) return;
     setError("");
     setDraft((d) => ({
       ...d,
@@ -107,6 +109,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
   };
 
   const handleRemoveDropType = (drop) => {
+    if (!confirmDeleteAction(t("admin.removeDropTypeConfirm", { name: drop }))) return;
     setDraft((d) => {
       const dropTypes = normalizeDropTypes(d.dropTypes.filter((item) => item !== drop));
       const dropTypeColors = { ...d.dropTypeColors };

@@ -7,6 +7,8 @@ import {
   getContractTemplateFileUrl,
 } from "../lib/api/contractApi";
 import { FIELD_EDITORS, normalizeFieldDefault } from "../lib/contractFields";
+import { confirmDeleteAction } from "../lib/confirmDelete";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 import ContractFieldOverlay from "./ContractFieldOverlay";
 import ContractPdfViewer from "./ContractPdfViewer";
 
@@ -39,6 +41,7 @@ export default function ContractTemplateEditor({
   onUpdate,
   onDelete,
 }) {
+  const { t } = useI18n();
   const docRef = useRef(null);
   const [placingType, setPlacingType] = useState(null);
   const [selectedFieldId, setSelectedFieldId] = useState(null);
@@ -74,6 +77,9 @@ export default function ContractTemplateEditor({
   };
 
   const removeField = (fieldId) => {
+    const field = fields.find((f) => f.id === fieldId);
+    const label = field?.label || fieldId;
+    if (!confirmDeleteAction(t("admin.deleteFieldConfirm", { label }))) return;
     onUpdate(template.id, { fields: fields.filter((f) => f.id !== fieldId) });
     if (selectedFieldId === fieldId) setSelectedFieldId(null);
   };
@@ -102,7 +108,7 @@ export default function ContractTemplateEditor({
     <div className="contract-editor" dir="rtl">
       <div className="contract-editor-toolbar">
         <span className="text-sm text-gray-400">
-          סמנו שדות על החוזה. «לקוח» = ניתן לעריכה בחתימה · «אדמין» = ערך קבוע שאתם מגדירים.
+          סמנו שדות על החוזה. «לקוח» = מילוי בחתימה · «אדמין» = רק אתם · «שניהם» = אתם ממלאים מראש והלקוח יכול לערוך.
         </span>
         <div className="contract-editor-tools">
           <button
@@ -198,6 +204,7 @@ export default function ContractTemplateEditor({
                 className="contract-inspector-input"
               >
                 <option value={FIELD_EDITORS.client}>לקוח (ניתן לעריכה בחתימה)</option>
+                <option value={FIELD_EDITORS.both}>אדמין + לקוח (מילוי מראש ועריכה בחתימה)</option>
                 <option value={FIELD_EDITORS.admin}>אדמין בלבד (ערך קבוע)</option>
               </select>
             </label>
@@ -308,7 +315,9 @@ export default function ContractTemplateEditor({
           type="button"
           className="text-sm text-red-400 hover:text-red-300"
           onClick={() => {
-            if (window.confirm(`למחוק את התבנית "${template.name}"?`)) onDelete(template.id);
+            if (confirmDeleteAction(t("admin.deleteTemplateConfirm", { name: template.name }))) {
+              onDelete(template.id);
+            }
           }}
         >
           מחק תבנית

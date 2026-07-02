@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect } from "react";
-import { FIELD_EDITORS, isClientEditable, normalizeFieldDefault } from "../lib/contractFields";
+import {
+  FIELD_EDITORS,
+  isAdminEditable,
+  isClientEditable,
+  normalizeFieldEditor,
+  normalizeFieldDefault,
+} from "../lib/contractFields";
 
 const TYPE_LABELS = {
   text: "טקסט",
@@ -13,12 +19,17 @@ function clamp(value, min, max) {
 }
 
 function FieldBadge({ field }) {
-  const isAdmin = field.editableBy === FIELD_EDITORS.admin;
-  return (
-    <span className={`contract-field-badge${isAdmin ? " is-admin" : " is-client"}`}>
-      {isAdmin ? "אדמין" : "לקוח"}
-    </span>
-  );
+  const editor = normalizeFieldEditor(field);
+  const badgeClass =
+    editor === FIELD_EDITORS.admin
+      ? " is-admin"
+      : editor === FIELD_EDITORS.both
+        ? " is-both"
+        : " is-client";
+  const label =
+    editor === FIELD_EDITORS.admin ? "אדמין" : editor === FIELD_EDITORS.both ? "שניהם" : "לקוח";
+
+  return <span className={`contract-field-badge${badgeClass}`}>{label}</span>;
 }
 
 function ClientFieldInput({ field, value, onChange, readOnly }) {
@@ -157,7 +168,11 @@ function AdminFieldMarker({
   return (
     <div
       className={`contract-field-marker contract-field-marker--${field.type}${
-        field.editableBy === FIELD_EDITORS.admin ? " is-admin-field" : ""
+        normalizeFieldEditor(field) === FIELD_EDITORS.admin
+          ? " is-admin-field"
+          : normalizeFieldEditor(field) === FIELD_EDITORS.both
+            ? " is-both-field"
+            : ""
       }${selected ? " is-selected" : ""}`}
       style={style}
       onPointerDown={(e) => {
@@ -214,6 +229,7 @@ export default function ContractFieldOverlay({
   onFieldChange,
   onDeleteField,
   containerRef,
+  onScrollToSignature,
 }) {
   useEffect(() => {
     if (mode !== "admin" || !selectedFieldId || !onDeleteField) return;
@@ -246,6 +262,20 @@ export default function ContractFieldOverlay({
           );
         }
 
+        if (mode === "admin-ticket") {
+          const readOnly = !isAdminEditable(field);
+          const value = values[field.id] ?? normalizeFieldDefault(field);
+          return (
+            <ClientFieldInput
+              key={field.id}
+              field={field}
+              value={value}
+              onChange={onChange}
+              readOnly={readOnly}
+            />
+          );
+        }
+
         if (mode === "admin") {
           return (
             <AdminFieldMarker
@@ -257,6 +287,28 @@ export default function ContractFieldOverlay({
               onDelete={onDeleteField}
               containerRef={containerRef}
             />
+          );
+        }
+
+        if (mode === "client-signature-hint") {
+          const style = {
+            left: `${field.x}%`,
+            top: `${field.y}%`,
+            width: `${field.width}%`,
+            height: `${field.height}%`,
+          };
+          const signed = Boolean(values[field.id]);
+          return (
+            <button
+              key={field.id}
+              type="button"
+              className={`contract-field-signature-hint${signed ? " is-signed" : ""}`}
+              style={style}
+              onClick={() => onScrollToSignature?.()}
+              title={field.label}
+            >
+              {signed ? "✓ חתום" : "✍️ לחצו לחתום"}
+            </button>
           );
         }
 

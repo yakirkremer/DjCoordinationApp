@@ -5,6 +5,8 @@ import {
   normalizeTimelineItem,
   sortTimelineItems,
 } from "../lib/weddingTimeline";
+import { confirmDeleteAction } from "../lib/confirmDelete";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 function TimelineRow({ item, onChange, onDelete, canDelete }) {
   return (
@@ -53,6 +55,7 @@ export default function WizardStepTimeline({
   description = "עדכנו את לוח הזמנים והוסיפו אבני דרך.",
   hideHeader = false,
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (preferences.weddingTimeline?.length) return;
     const seeded = mergeWeddingTimeline([], templateItems);
@@ -88,6 +91,9 @@ export default function WizardStepTimeline({
   };
 
   const deleteItem = (id) => {
+    const item = (preferences.weddingTimeline ?? []).find((x) => x.id === id);
+    const label = item?.label || item?.time || id;
+    if (!confirmDeleteAction(t("admin.deleteTimelineItemConfirm", { label }))) return;
     onUpdatePreferences({
       weddingTimeline: (preferences.weddingTimeline ?? []).filter((item) => item.id !== id),
     });

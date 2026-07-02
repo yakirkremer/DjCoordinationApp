@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { QUESTION_TYPES, canDeleteStep } from "../lib/defaultFormSchema";
 import { AUDIENCE_OPTIONS } from "../lib/formFilter";
+import { confirmDeleteAction } from "../lib/confirmDelete";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
 import FormTimelineEditor from "./FormTimelineEditor";
 
 function QuestionEditor({ question, stepId, onUpdate, onDelete, canDelete }) {
@@ -111,6 +113,7 @@ export default function FormBuilder({
   updateTimelineItem,
   deleteTimelineItem,
 }) {
+  const { t } = useI18n();
   const [activeStepId, setActiveStepId] = useState(schema.steps[0]?.id ?? "");
 
   const activeStep = schema.steps.find((s) => s.id === activeStepId) ?? schema.steps[0];
@@ -120,12 +123,14 @@ export default function FormBuilder({
     const step = schema.steps.find((s) => s.id === stepId);
     const q = step?.questions.find((x) => x.id === questionId);
     if (q?.fieldKey && !q.fieldKey.startsWith("custom.")) return;
+    const label = q?.label || questionId;
+    if (!confirmDeleteAction(t("admin.deleteQuestionConfirm", { label }))) return;
     deleteQuestion(stepId, questionId);
   };
 
   const handleDeleteActiveStep = () => {
     if (!activeStep || !canDeleteStep(activeStep)) return;
-    if (!window.confirm(`למחוק את השלב "${activeStep.title}"?`)) return;
+    if (!confirmDeleteAction(t("admin.deleteFormStepConfirm", { title: activeStep.title }))) return;
 
     const idx = schema.steps.findIndex((s) => s.id === activeStep.id);
     const remaining = schema.steps.filter((s) => s.id !== activeStep.id);
@@ -292,7 +297,12 @@ export default function FormBuilder({
               items={activeStep.timelineItems ?? []}
               onAdd={() => addTimelineItem(activeStep.id)}
               onUpdate={(itemId, patch) => updateTimelineItem(activeStep.id, itemId, patch)}
-              onDelete={(itemId) => deleteTimelineItem(activeStep.id, itemId)}
+              onDelete={(itemId) => {
+                const item = activeStep.timeline?.find((x) => x.id === itemId);
+                const label = item?.label || item?.time || itemId;
+                if (!confirmDeleteAction(t("admin.deleteTimelineItemConfirm", { label }))) return;
+                deleteTimelineItem(activeStep.id, itemId);
+              }}
             />
           )}
 

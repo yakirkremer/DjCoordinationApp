@@ -3,7 +3,9 @@ import {
   generateClientId,
   generateLoginCode,
   normalizeClient,
+  DEFAULT_CLIENT_STAGES,
 } from "../lib/clientStorage";
+import { getClientStages } from "../lib/clientStages";
 import { DEFAULT_CLIENT_TYPE, normalizeClientType } from "../lib/clientTypes";
 import {
   fetchClients,
@@ -67,9 +69,11 @@ export default function useClients() {
   }, [clients, clientsLoaded]);
 
   const createClient = useCallback(
-    (name, loginCode, clientType = DEFAULT_CLIENT_TYPE, contractTemplateId = null) => {
+    (name, loginCode, clientType = DEFAULT_CLIENT_TYPE, eventDate = "", eventLocation = "") => {
       const trimmedName = name.trim();
-      if (!trimmedName) return null;
+      const trimmedDate = String(eventDate ?? "").trim();
+      const trimmedLocation = String(eventLocation ?? "").trim();
+      if (!trimmedName || !trimmedDate || !trimmedLocation) return null;
 
       const code = (loginCode?.trim() || generateLoginCode()).toUpperCase();
       const exists = clients.some((c) => c.loginCode === code);
@@ -80,14 +84,27 @@ export default function useClients() {
         name: trimmedName,
         loginCode: code,
         clientType: normalizeClientType(clientType),
+        eventDate: trimmedDate,
+        eventLocation: trimmedLocation,
+        stages: { ...DEFAULT_CLIENT_STAGES },
         createdAt: new Date().toISOString(),
       };
 
       setClients((prev) => [...prev, client]);
-      return { client, contractTemplateId };
+      return { client };
     },
     [clients]
   );
+
+  const updateClientStages = useCallback((clientId, patch) => {
+    const mergeStages = (client) => ({
+      ...client,
+      stages: { ...getClientStages(client), ...patch },
+    });
+
+    setClients((prev) => prev.map((c) => (c.id === clientId ? mergeStages(c) : c)));
+    setActiveClient((prev) => (prev?.id === clientId ? mergeStages(prev) : prev));
+  }, []);
 
   const deleteClient = useCallback(
     (id) => {
@@ -131,6 +148,7 @@ export default function useClients() {
     error,
     clientsLoaded,
     createClient,
+    updateClientStages,
     deleteClient,
     login,
     logout,

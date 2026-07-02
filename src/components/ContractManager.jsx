@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import ContractTemplateEditor, { ContractTemplateUploader } from "./ContractTemplateEditor";
+import { buildContractShareUrl } from "../lib/contractTokens";
+import { getSignedCopyDownloadUrl } from "../lib/api/contractApi";
+import AdminSentContractEditor from "./AdminSentContractEditor";
 
 export default function ContractManager({
   contracts,
@@ -8,8 +11,11 @@ export default function ContractManager({
   onDeleteTemplate,
   tickets,
   clients,
+  getTemplate,
+  onTicketAdminSaved,
 }) {
   const [selectedId, setSelectedId] = useState(contracts[0]?.id ?? null);
+  const [editingTicket, setEditingTicket] = useState(null);
   const selected = contracts.find((t) => t.id === selectedId) ?? contracts[0] ?? null;
 
   const getClientName = (clientId) =>
@@ -71,12 +77,13 @@ export default function ContractManager({
               <th className="p-4">סטטוס</th>
               <th className="p-4">נשלח</th>
               <th className="p-4">נחתם</th>
+              <th className="p-4">קישור / עותק</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
             {tickets.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-gray-500 text-sm">
+                <td colSpan={6} className="p-6 text-center text-gray-500 text-sm">
                   אין חוזים. צרו לקוח חדש ובחרו תבנית חוזה.
                 </td>
               </tr>
@@ -106,6 +113,42 @@ export default function ContractManager({
                         ? new Date(ticket.signedAt).toLocaleDateString("he-IL")
                         : "—"}
                     </td>
+                    <td className="p-4">
+                      <div className="flex flex-col gap-1">
+                        {ticket.signToken ? (
+                          <button
+                            type="button"
+                            className="text-xs text-purple-400 hover:text-purple-300 text-right"
+                            onClick={() => {
+                              const url = buildContractShareUrl(ticket.signToken);
+                              navigator.clipboard?.writeText(url);
+                            }}
+                          >
+                            העתק קישור
+                          </button>
+                        ) : null}
+                        {ticket.status === "signed" ? (
+                          <a
+                            href={getSignedCopyDownloadUrl(ticket.id)}
+                            className="text-xs text-cyan-400 hover:text-cyan-300"
+                            download
+                          >
+                            הורד עותק
+                          </a>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="text-xs text-amber-400 hover:text-amber-300 text-right"
+                              onClick={() => setEditingTicket(ticket)}
+                            >
+                              ערוך שדות אדמין
+                            </button>
+                            <span className="text-xs text-gray-600">—</span>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 );
               })
@@ -118,6 +161,16 @@ export default function ContractManager({
           </p>
         )}
       </section>
+
+      {editingTicket ? (
+        <AdminSentContractEditor
+          clientName={getClientName(editingTicket.clientId)}
+          ticket={editingTicket}
+          template={getTemplate?.(editingTicket.templateId) ?? null}
+          onClose={() => setEditingTicket(null)}
+          onSaved={onTicketAdminSaved}
+        />
+      ) : null}
     </div>
   );
 }

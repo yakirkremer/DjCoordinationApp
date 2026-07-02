@@ -6,6 +6,7 @@ import EditableText from "./EditableText";
 import { getCategoryBreakdown, getLikedTracks, getTracksByCategoryRating } from "../lib/feedbackAnalytics";
 import { getWizardCompletionPercent } from "../lib/wizardProgress";
 import { useGenres } from "../hooks/useGenres";
+import { getClientStages } from "../lib/clientStages";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 function formatEventDate(value, locale) {
@@ -69,9 +70,11 @@ export default function ClientHome({
   onOpenContract,
   onLogout,
   contractTicket,
+  stages,
 }) {
   const { dir, t, locale } = useI18n();
   const genres = useGenres();
+  const stageFlags = stages ?? getClientStages(client);
   const breakdown = getCategoryBreakdown(genres, selectedCategories, categoryRatings);
   const likedTracks = getLikedTracks(tracks, ratings, comments);
   const categoryTrackGroups = getTracksByCategoryRating(
@@ -102,7 +105,12 @@ export default function ClientHome({
     : hasProgress
       ? "home.continueForm"
       : "home.startForm";
-  const pendingContract = contractTicket?.status === "pending";
+  const showContract = stageFlags.contract;
+  const hasContract = Boolean(contractTicket);
+  const pendingContract = showContract && contractTicket?.status === "pending";
+  const signedContract = showContract && contractTicket?.status === "signed";
+  const showForm = stageFlags.form;
+  const showCatalog = stageFlags.catalog;
 
   return (
     <div className="client-dash" dir={dir}>
@@ -145,9 +153,37 @@ export default function ClientHome({
             </button>
           </div>
         </section>
+      ) : signedContract ? (
+        <section className="client-dash-contract-alert client-dash-contract-alert--signed panel-luxury mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-green-300">
+                <EditableText k="home.contractSignedTitle" />
+              </p>
+              <p className="text-xs text-xdj-muted mt-1">
+                <EditableText k="home.contractSignedDesc" />
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenContract}
+              className="btn-luxury px-5 py-2 text-sm shrink-0"
+            >
+              <EditableText k="home.contractViewAction" />
+            </button>
+          </div>
+        </section>
+      ) : showContract && !hasContract ? (
+        <section className="client-dash-contract-alert client-dash-contract-alert--waiting panel-luxury mb-4">
+          <p className="text-sm text-xdj-muted">
+            <EditableText k="home.contractNotSentDesc" />
+          </p>
+        </section>
       ) : null}
 
       <section className="client-dash-status panel-luxury">
+        {showForm ? (
+          <>
         <div className="client-dash-status-main">
           <ProgressRing percent={completionPercent} label={t("home.progressComplete")} />
           <div className="client-dash-status-copy">
@@ -206,6 +242,12 @@ export default function ClientHome({
             </span>
           </div>
         </div>
+          </>
+        ) : (
+          <p className="text-sm text-xdj-muted p-2">
+            שלב הטופס סגור כרגע. ה-DJ יפתח אותו כשיהיה מוכן.
+          </p>
+        )}
       </section>
 
       <section className="client-dash-section" aria-labelledby="client-dash-actions-heading">
@@ -213,28 +255,32 @@ export default function ClientHome({
           <EditableText k="home.quickActions" />
         </h2>
         <div className="client-dash-action-grid">
-          <ActionCard
-            variant="primary"
-            title={t(primaryCtaKey)}
-            description={t("home.actionPreferencesDesc")}
-            onClick={onStartWizard}
-            icon="📋"
-          />
-          {pendingContract ? (
+          {showForm ? (
             <ActionCard
               variant="primary"
-              title={t("home.actionContractTitle")}
-              description={t("home.actionContractDesc")}
+              title={t(primaryCtaKey)}
+              description={t("home.actionPreferencesDesc")}
+              onClick={onStartWizard}
+              icon="📋"
+            />
+          ) : null}
+          {hasContract && showContract ? (
+            <ActionCard
+              variant={pendingContract ? "primary" : "default"}
+              title={t(pendingContract ? "home.actionContractTitle" : "home.actionContractViewTitle")}
+              description={t(pendingContract ? "home.actionContractDesc" : "home.actionContractViewDesc")}
               onClick={onOpenContract}
               icon="📝"
             />
           ) : null}
-          <ActionCard
-            title={t("home.actionBrowseTitle")}
-            description={t("home.actionBrowseDesc")}
-            onClick={onBrowseMusic}
-            icon="🎵"
-          />
+          {showCatalog ? (
+            <ActionCard
+              title={t("home.actionBrowseTitle")}
+              description={t("home.actionBrowseDesc")}
+              onClick={onBrowseMusic}
+              icon="🎵"
+            />
+          ) : null}
           <ActionCard
             title={t("home.actionTutorialTitle")}
             description={t("home.actionTutorialDesc")}
@@ -259,7 +305,7 @@ export default function ClientHome({
         </p>
       </footer>
 
-      {hasProgress ? (
+      {showForm && hasProgress ? (
         <section className="client-dash-section" aria-labelledby="client-dash-overview-heading">
           <h2 id="client-dash-overview-heading" className="client-dash-section-title">
             <EditableText k="home.overviewTitle" />
@@ -274,13 +320,13 @@ export default function ClientHome({
             <CategoryTrackChoices groups={categoryTrackGroups} categoryRatings={categoryRatings} />
           </div>
         </section>
-      ) : (
+      ) : showForm ? (
         <section className="client-dash-empty panel-luxury">
           <p>
             <EditableText k="home.emptyHint" />
           </p>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

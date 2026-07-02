@@ -9,6 +9,7 @@ import TrackVersionPicker, { getTrackWithVersion } from "./TrackVersionPicker";
 import { ensureTrackVersions, getVersionLabel } from "../lib/trackVersions";
 import { getTrackSourceSummary } from "../lib/trackSource";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
+import { confirmDeleteAction } from "../lib/confirmDelete";
 import { updateTrack, deleteTrackVersion, reorderTrackVersions } from "../lib/api/uploadTrack";
 
 export default function AdminTrackVersions({
@@ -77,7 +78,7 @@ export default function AdminTrackVersions({
   };
 
   const handleDeleteVersion = async (versionId) => {
-    if (!window.confirm(t("admin.deleteVersionConfirm"))) return;
+    if (!confirmDeleteAction(t("admin.deleteVersionConfirm"))) return;
     try {
       const saved = await deleteTrackVersion(track.id, versionId);
       onTrackSaved?.(saved);
