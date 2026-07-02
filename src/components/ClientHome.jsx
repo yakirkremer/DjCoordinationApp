@@ -66,7 +66,9 @@ export default function ClientHome({
   onBrowseMusic,
   onOpenGuide,
   onOpenTutorial,
+  onOpenContract,
   onLogout,
+  contractTicket,
 }) {
   const { dir, t, locale } = useI18n();
   const genres = useGenres();
@@ -100,6 +102,7 @@ export default function ClientHome({
     : hasProgress
       ? "home.continueForm"
       : "home.startForm";
+  const pendingContract = contractTicket?.status === "pending";
 
   return (
     <div className="client-dash" dir={dir}>
@@ -121,6 +124,28 @@ export default function ClientHome({
           <EditableText k="common.logout" />
         </button>
       </header>
+
+      {pendingContract ? (
+        <section className="client-dash-contract-alert panel-luxury mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-amber-300">
+                <EditableText k="home.contractPendingTitle" />
+              </p>
+              <p className="text-xs text-xdj-muted mt-1">
+                <EditableText k="home.contractPendingDesc" />
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenContract}
+              className="btn-luxury-primary px-5 py-2 text-sm shrink-0"
+            >
+              <EditableText k="home.contractSignAction" />
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="client-dash-status panel-luxury">
         <div className="client-dash-status-main">
@@ -195,6 +220,15 @@ export default function ClientHome({
             onClick={onStartWizard}
             icon="📋"
           />
+          {pendingContract ? (
+            <ActionCard
+              variant="primary"
+              title={t("home.actionContractTitle")}
+              description={t("home.actionContractDesc")}
+              onClick={onOpenContract}
+              icon="📝"
+            />
+          ) : null}
           <ActionCard
             title={t("home.actionBrowseTitle")}
             description={t("home.actionBrowseDesc")}

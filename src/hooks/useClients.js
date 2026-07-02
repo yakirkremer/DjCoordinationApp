@@ -67,7 +67,7 @@ export default function useClients() {
   }, [clients, clientsLoaded]);
 
   const createClient = useCallback(
-    (name, loginCode, clientType = DEFAULT_CLIENT_TYPE) => {
+    (name, loginCode, clientType = DEFAULT_CLIENT_TYPE, contractTemplateId = null) => {
       const trimmedName = name.trim();
       if (!trimmedName) return null;
 
@@ -84,7 +84,7 @@ export default function useClients() {
       };
 
       setClients((prev) => [...prev, client]);
-      return client;
+      return { client, contractTemplateId };
     },
     [clients]
   );

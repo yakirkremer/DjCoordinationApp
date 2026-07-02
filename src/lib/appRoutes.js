@@ -3,6 +3,7 @@ export const ADMIN_TAB_IDS = [
   "organize",
   "order",
   "clients",
+  "contracts",
   "form",
   "copy",
   "analytics",
@@ -14,6 +15,7 @@ const CLIENT_PATHS = {
   "/home": { guestView: "welcome", clientScreen: "home", requiresClient: true },
   "/browse": { guestView: "welcome", clientScreen: "browse", requiresClient: true },
   "/wizard": { guestView: "welcome", clientScreen: "wizard", requiresClient: true },
+  "/contract": { guestView: "welcome", clientScreen: "contract", requiresClient: true },
   "/guide": { guestView: "guide", clientScreen: "guide", requiresClient: false },
   "/tutorial": { guestView: "tutorial", clientScreen: "tutorial", requiresClient: false },
 };

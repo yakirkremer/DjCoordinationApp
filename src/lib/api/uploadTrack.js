@@ -45,6 +45,32 @@ export async function addTrackVersion({ trackId, file, drop }) {
   return data.track;
 }
 
+export async function listMusicFiles({ bucket, search } = {}) {
+  const params = new URLSearchParams();
+  if (bucket) params.set("bucket", bucket);
+  if (search?.trim()) params.set("search", search.trim());
+
+  const query = params.toString();
+  const res = await fetch(`/api/music/files${query ? `?${query}` : ""}`, {
+    credentials: "include",
+  });
+
+  const data = await parseApiJson(res, "List files failed");
+  return data.files;
+}
+
+export async function relinkTrackToFile({ trackId, versionId, bucket, filename }) {
+  const res = await fetch("/api/music/relink", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trackId, versionId, bucket, filename }),
+  });
+
+  const data = await parseApiJson(res, "Relink failed");
+  return data.track;
+}
+
 export async function reloadTrackFile({ trackId, versionId, file, bucket, filename }) {
   const form = new FormData();
   form.append("file", file);

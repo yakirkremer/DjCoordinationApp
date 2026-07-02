@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import WaveSurfer from "wavesurfer.js";
 import TrackArtwork from "./TrackArtwork";
 import TrackReloadButton from "./TrackReloadButton";
+import TrackRelinkButton from "./TrackRelinkButton";
 import TrackVersionPicker from "./TrackVersionPicker";
 import DropTypeBadge from "./DropTypeBadge";
 import { normalizePreviewCue, isWithinPreviewCue, MIN_PREVIEW_LENGTH, computeLinkedCue } from "../lib/previewCue";
@@ -457,7 +458,17 @@ export default function GlobalPlayer({
         </div>
         <div className="xdj-az-player-deck-right">
           {isAdmin && onTrackReloaded && currentTrack && (loadError || currentTrack.isMissing) ? (
-            <TrackReloadButton
+            <>
+              <TrackRelinkButton
+                track={currentTrack}
+                versionId={activeVersionId || currentTrack.activeVersionId}
+                onReloaded={(updated) => {
+                  setLoadError(null);
+                  onTrackReloaded(updated);
+                }}
+                compact
+              />
+              <TrackReloadButton
               track={currentTrack}
               versionId={activeVersionId || currentTrack.activeVersionId}
               onReloaded={(updated) => {
@@ -467,6 +478,7 @@ export default function GlobalPlayer({
               compact
               label="טען קובץ"
             />
+            </>
           ) : loadError ? (
             <span className="text-xs text-xdj-orange" title={loadError}>
               STREAM ERR

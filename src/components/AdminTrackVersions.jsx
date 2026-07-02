@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import TrackReloadButton from "./TrackReloadButton";
+import TrackRelinkButton from "./TrackRelinkButton";
 import TrackAddVersionForm from "./TrackAddVersionForm";
 import DropTypeSelect from "./DropTypeSelect";
 import DropTypeBadge from "./DropTypeBadge";
@@ -252,6 +253,14 @@ export default function AdminTrackVersions({
                       {source.statusLabel}
                     </span>
                     <div className="flex gap-2">
+                      {version.isMissing ? (
+                        <TrackRelinkButton
+                          track={track}
+                          versionId={version.id}
+                          onReloaded={onTrackReloaded}
+                          compact
+                        />
+                      ) : null}
                       <TrackReloadButton
                         track={track}
                         versionId={version.id}

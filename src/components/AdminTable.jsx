@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useGenres } from "../hooks/useGenres";
 import TrackReloadButton from "./TrackReloadButton";
+import TrackRelinkButton from "./TrackRelinkButton";
 import TrackVersionPicker from "./TrackVersionPicker";
 import AdminTrackVersions from "./AdminTrackVersions";
 import DropTypeSelect from "./DropTypeSelect";
@@ -516,13 +517,23 @@ export default function AdminTable({
                         </>
                       ) : null}
                       {onTrackReloaded ? (
-                        <TrackReloadButton
-                          track={track}
-                          versionId={activeVersionId}
-                          onReloaded={onTrackReloaded}
-                          compact
-                          label={needsReload ? t("admin.reload") : t("admin.replace")}
-                        />
+                        <>
+                          {needsReload ? (
+                            <TrackRelinkButton
+                              track={track}
+                              versionId={activeVersionId}
+                              onReloaded={onTrackReloaded}
+                              compact
+                            />
+                          ) : null}
+                          <TrackReloadButton
+                            track={track}
+                            versionId={activeVersionId}
+                            onReloaded={onTrackReloaded}
+                            compact
+                            label={needsReload ? t("admin.reload") : t("admin.replace")}
+                          />
+                        </>
                       ) : null}
                       <button
                         type="button"

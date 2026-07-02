@@ -5,6 +5,7 @@ const SCREEN_KEYS = {
   home: "breadcrumb.home",
   wizard: "breadcrumb.preferences",
   browse: "breadcrumb.browse",
+  contract: "breadcrumb.contract",
   guide: "breadcrumb.guide",
   tutorial: "breadcrumb.tutorial",
 };

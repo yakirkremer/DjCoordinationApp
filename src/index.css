@@ -4,6 +4,7 @@
 @import "./styles/design-variants.css";
 @import "./styles/browser-row-size.css";
 @import "./styles/accessibility.css";
+@import "./styles/contracts.css";
 
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

@@ -1,5 +1,6 @@
 import { createServer } from "http";
-import { readFile } from "fs/promises";
+import { createReadStream } from "fs";
+import { readFile, stat } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createDataApiMiddleware } from "./server/dataStore.js";
@@ -9,6 +10,7 @@ import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
 import { createBackupApiMiddleware } from "./server/backupApi.js";
 import { createAuthApiMiddleware } from "./server/authApi.js";
+import { createContractApiMiddleware } from "./server/contractApi.js";
 import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
 import { assertProductionSecrets } from "./server/auth.js";
 import { safePathUnderRoot } from "./server/pathSafety.js";
@@ -50,13 +52,58 @@ async function serveStatic(req, res) {
       return;
     }
     try {
-      const data = await readFile(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      res.setHeader("Content-Type", MIME[ext] || "application/octet-stream");
-      if (ext === ".mp3") {
-        res.setHeader("Cache-Control", "private, max-age=3600");
-        res.setHeader("Accept-Ranges", "bytes");
+      const fileStat = await stat(filePath);
+      if (!fileStat.isFile()) {
+        res.statusCode = 404;
+        res.end("Not found");
+        return;
       }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = MIME[ext] || "application/octet-stream";
+
+      const setFileHeaders = () => {
+        res.setHeader("Content-Type", contentType);
+        if (ext === ".mp3") {
+          res.setHeader("Cache-Control", "private, max-age=3600");
+          res.setHeader("Accept-Ranges", "bytes");
+        }
+      };
+
+      if (req.method === "HEAD") {
+        res.statusCode = 200;
+        setFileHeaders();
+        if (ext === ".mp3") {
+          res.setHeader("Content-Length", fileStat.size);
+        }
+        res.end();
+        return;
+      }
+
+      if (req.method === "GET" && ext === ".mp3" && req.headers.range) {
+        const total = fileStat.size;
+        const match = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range);
+        if (match) {
+          let start = match[1] ? parseInt(match[1], 10) : 0;
+          let end = match[2] ? parseInt(match[2], 10) : total - 1;
+          if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= total) {
+            res.statusCode = 416;
+            res.setHeader("Content-Range", `bytes */${total}`);
+            res.end();
+            return;
+          }
+          end = Math.min(end, total - 1);
+          res.statusCode = 206;
+          setFileHeaders();
+          res.setHeader("Content-Length", end - start + 1);
+          res.setHeader("Content-Range", `bytes ${start}-${end}/${total}`);
+          createReadStream(filePath, { start, end }).pipe(res);
+          return;
+        }
+      }
+
+      const data = await readFile(filePath);
+      setFileHeaders();
       res.end(data);
       return;
     } catch {
@@ -99,6 +146,7 @@ const dropboxImport = createDropboxImportMiddleware();
 const artworkApi = createArtworkApiMiddleware();
 const backupApi = createBackupApiMiddleware();
 const authApi = createAuthApiMiddleware();
+const contractApi = createContractApiMiddleware();
 const mediaAuth = createMediaAuthMiddleware();
 const apiNotFound = createApiNotFoundMiddleware();
 
@@ -113,6 +161,7 @@ const server = createServer((req, res) => {
   }
 
   authApi(req, res, () => {
+    contractApi(req, res, () => {
     dataApi(req, res, () => {
       uploadMusic(req, res, () => {
         dropboxImport(req, res, () => {
@@ -127,6 +176,7 @@ const server = createServer((req, res) => {
           });
         });
       });
+    });
     });
   });
 });

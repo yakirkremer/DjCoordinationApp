@@ -1,12 +1,31 @@
 import { parseMultipart, readRequestBody } from "./parseMultipart.js";
 import { sendJson } from "./dataStore.js";
-import { isAdminSession, parseRequestSession } from "./auth.js";
-import { saveTrackToCatalog, reloadTrackFile, deleteTrackFromCatalog, updateTrackInCatalog, addVersionToTrack, deleteVersionFromCatalog } from "./catalogMusic.js";
+import { isAdminSession, isAuthenticatedSession, parseRequestSession } from "./auth.js";
+import {
+  saveTrackToCatalog,
+  reloadTrackFile,
+  relinkTrackVersion,
+  listMusicFiles,
+  verifyCatalogOnDisk,
+  deleteTrackFromCatalog,
+  updateTrackInCatalog,
+  addVersionToTrack,
+  deleteVersionFromCatalog,
+} from "./catalogMusic.js";
 
 function requireAdmin(req, res) {
   const session = parseRequestSession(req);
   if (!isAdminSession(session)) {
     sendJson(res, 403, { error: "Admin access required" });
+    return false;
+  }
+  return true;
+}
+
+function requireAuthenticated(req, res) {
+  const session = parseRequestSession(req);
+  if (!isAuthenticatedSession(session)) {
+    sendJson(res, 401, { error: "Login required" });
     return false;
   }
   return true;
@@ -234,9 +253,83 @@ export async function handleMusicDelete(req, res) {
   }
 }
 
+export async function handleMusicVerify(req, res) {
+  try {
+    const tracks = await verifyCatalogOnDisk();
+    sendJson(res, 200, { tracks });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Verify failed" });
+  }
+}
+
+export async function handleMusicListFiles(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  const bucket = url.searchParams.get("bucket") || undefined;
+  const search = url.searchParams.get("search") || undefined;
+
+  try {
+    const files = await listMusicFiles({ bucket, search });
+    sendJson(res, 200, { files });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "List files failed" });
+  }
+}
+
+export async function handleMusicRelink(req, res) {
+  let body;
+  try {
+    const raw = await readRequestBody(req, 4096);
+    body = JSON.parse(raw.toString("utf8"));
+  } catch {
+    sendJson(res, 400, { error: "Invalid request body" });
+    return;
+  }
+
+  if (!body.trackId || !body.bucket || !body.filename) {
+    sendJson(res, 400, { error: "Missing track id, bucket, or filename" });
+    return;
+  }
+
+  try {
+    const track = await relinkTrackVersion({
+      trackId: body.trackId,
+      versionId: body.versionId || null,
+      bucket: body.bucket,
+      filename: body.filename,
+    });
+    sendJson(res, 200, { track });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Relink failed" });
+  }
+}
+
 export function createUploadMusicMiddleware() {
   return (req, res, next) => {
     const url = new URL(req.url, "http://localhost");
+    if (req.method === "POST" && url.pathname === "/api/music/verify") {
+      if (!requireAuthenticated(req, res)) return;
+      handleMusicVerify(req, res).catch((err) => {
+        console.error("Verify failed:", err);
+        sendJson(res, 500, { error: err.message || "Verify failed" });
+      });
+      return;
+    }
+    if (req.method === "GET" && url.pathname === "/api/music/files") {
+      if (!requireAdmin(req, res)) return;
+      handleMusicListFiles(req, res).catch((err) => {
+        console.error("List files failed:", err);
+        sendJson(res, 500, { error: err.message || "List files failed" });
+      });
+      return;
+    }
+    if (req.method === "POST" && url.pathname === "/api/music/relink") {
+      if (!requireAdmin(req, res)) return;
+      handleMusicRelink(req, res).catch((err) => {
+        console.error("Relink failed:", err);
+        sendJson(res, 500, { error: err.message || "Relink failed" });
+      });
+      return;
+    }
     if (req.method === "POST" && url.pathname === "/api/music/upload") {
       if (!requireAdmin(req, res)) return;
       handleMusicUpload(req, res).catch((err) => {

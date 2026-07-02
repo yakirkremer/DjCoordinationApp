@@ -419,6 +419,117 @@ export async function deleteVersionFromCatalog(trackId, versionId) {
   return catalogTrackResponse(await setVersionMissingFlags(track));
 }
 
+export async function listMusicFiles({ bucket, search } = {}) {
+  const catalog = await readJsonFile(DATA_FILES.catalog, []);
+  const linkedMap = new Map();
+
+  for (const rawTrack of catalog) {
+    const track = ensureTrackVersions(rawTrack);
+    if (!track.bucket) continue;
+    for (const version of track.versions) {
+      if (!version.filename) continue;
+      const key = `${track.bucket}\0${version.filename}`;
+      if (!linkedMap.has(key)) linkedMap.set(key, []);
+      linkedMap.get(key).push({
+        trackId: track.id,
+        versionId: version.id,
+        title: track.title,
+        drop: version.drop,
+      });
+    }
+  }
+
+  const genres = bucket ? [bucket] : getCachedGenres();
+  const validGenres = new Set(getCachedGenres());
+  const searchLower = search?.trim().toLowerCase() || "";
+  const files = [];
+
+  for (const genre of genres) {
+    if (!validGenres.has(genre)) continue;
+    const analyzedDir = path.join(MUSIC_ROOT, genre, "analyzed");
+    let entries;
+    try {
+      entries = await fs.readdir(analyzedDir);
+    } catch {
+      continue;
+    }
+
+    for (const name of entries) {
+      if (!name.toLowerCase().endsWith(".mp3")) continue;
+      if (searchLower && !name.toLowerCase().includes(searchLower)) continue;
+
+      const filePath = path.join(analyzedDir, name);
+      if (!filePath.startsWith(MUSIC_ROOT)) continue;
+
+      let sizeBytes = 0;
+      try {
+        sizeBytes = (await fs.stat(filePath)).size;
+      } catch {
+        continue;
+      }
+
+      const key = `${genre}\0${name}`;
+      files.push({
+        bucket: genre,
+        filename: name,
+        sizeBytes,
+        linkedVersions: linkedMap.get(key) || [],
+      });
+    }
+  }
+
+  files.sort((a, b) => {
+    const bucketCmp = a.bucket.localeCompare(b.bucket);
+    return bucketCmp !== 0 ? bucketCmp : a.filename.localeCompare(b.filename);
+  });
+
+  return files;
+}
+
+export async function relinkTrackVersion({ trackId, versionId, bucket, filename }) {
+  await assertValidBucket(bucket);
+
+  let safeName;
+  try {
+    safeName = sanitizeCatalogFilename(filename);
+  } catch (err) {
+    throw new Error(err.message);
+  }
+
+  const filePath = path.join(MUSIC_ROOT, bucket, "analyzed", safeName);
+  if (!filePath.startsWith(MUSIC_ROOT)) throw new Error("Invalid path");
+  if (!(await fileExists(filePath))) throw new Error("File not found on server");
+
+  const catalog = await readJsonFile(DATA_FILES.catalog, []);
+  const idx = catalog.findIndex((t) => t.id === trackId);
+  if (idx === -1) throw new Error("Track not found");
+
+  let track = ensureTrackVersions(catalog[idx]);
+  const version = versionId
+    ? track.versions.find((v) => v.id === versionId)
+    : track.versions.find((v) => v.id === track.defaultVersionId) || track.versions[0];
+
+  if (!version) throw new Error("Version not found");
+
+  const versions = track.versions.map((v) =>
+    v.id === version.id ? { ...v, filename: safeName } : v
+  );
+
+  track = { ...track, bucket, versions };
+  catalog[idx] = track;
+  await writeJsonFile(DATA_FILES.catalog, catalog);
+
+  return catalogTrackResponse(await setVersionMissingFlags(track));
+}
+
+export async function verifyCatalogOnDisk() {
+  const catalog = await readJsonFile(DATA_FILES.catalog, []);
+  const verified = await Promise.all(
+    catalog.map((track) => setVersionMissingFlags(ensureTrackVersions(track)))
+  );
+  return verified.map(catalogTrackResponse);
+}
+
 export async function deleteTrackFromCatalog(trackId) {
   const catalog = await readJsonFile(DATA_FILES.catalog, []);
   const idx = catalog.findIndex((t) => t.id === trackId);

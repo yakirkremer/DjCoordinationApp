@@ -79,8 +79,29 @@ export async function verifyCatalogTrack(track) {
   return applyActiveVersion({ ...base, versions }, base.activeVersionId);
 }
 
-export async function verifyTracks(tracks) {
-  return Promise.all(tracks.map((track) => verifyCatalogTrack(track)));
+export async function verifyTracksOnServer() {
+  const res = await fetch("/api/music/verify", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson ? await res.json().catch(() => ({})) : {};
+  if (!res.ok) {
+    throw new Error(data.error || `Verify failed (${res.status})`);
+  }
+  if (!isJson) {
+    throw new Error("API returned non-JSON response — is the backend running?");
+  }
+  return data.tracks || [];
+}
+
+/** @deprecated Prefer verifyTracksOnServer — HTTP probes are unreliable under load */
+export async function verifyTracks(_tracks) {
+  return verifyTracksOnServer();
 }
 
 function pickPreloadTracks(tracks, { aroundTrackId = null, limit = 8 } = {}) {
