@@ -165,7 +165,7 @@ function resolveFieldSyncKey(field, legacyFieldIdToKey = {}) {
   const explicit = getFieldSyncFromExplicit(field);
   if (explicit) return explicit;
   if (legacyFieldIdToKey[field.id]) return legacyFieldIdToKey[field.id];
-  return inferFieldPrefillKey(field);
+  return null;
 }
 
 /** Apply per-field syncFrom mappings (and legacy template.detailSync) to ticket values. */
@@ -232,17 +232,10 @@ export function buildTicketDisplayValues(fields = [], ticketValues = {}) {
 export function buildTicketDisplayValuesWithProfile(
   fields = [],
   ticketValues = {},
-  profile = {},
-  detailSync = {}
+  _profile = {},
+  _detailSync = {}
 ) {
-  const clientDetails = {
-    clientName: profile.clientName ?? "",
-    eventDate: profile.eventDate ?? "",
-    eventLocation: profile.eventLocation ?? "",
-  };
-  return buildTicketValuesWithClientDetails(fields, ticketValues, clientDetails, detailSync, {
-    onlyEmpty: true,
-  });
+  return buildTicketDisplayValues(fields, ticketValues);
 }
 
 /** Merge client sign submission with template defaults and pre-filled ticket values (admin fields). */

@@ -409,6 +409,80 @@
   margin-top: 1.25rem;
 }
 
+.contract-mobile-fields {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.contract-mobile-fields-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-xdj-text);
+}
+
+.contract-mobile-fields-desc {
+  font-size: 0.85rem;
+  color: var(--color-xdj-muted);
+}
+
+.contract-mobile-fields-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.contract-mobile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.contract-mobile-field--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.contract-mobile-field-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-xdj-text);
+}
+
+.contract-mobile-field-required {
+  color: #f59e0b;
+}
+
+.contract-mobile-field-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+  line-height: 1.35;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-xdj-border);
+  background: var(--color-xdj-screen, #fff);
+  color: var(--color-xdj-text, #111);
+  min-height: 44px;
+}
+
+.contract-mobile-field-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #9333ea;
+}
+
+.contract-client--mobile-form .contract-doc-frame--preview {
+  margin-top: 0.25rem;
+}
+
+.contract-client--mobile-form .contract-field-input {
+  pointer-events: none;
+}
+
 .contract-admin-view-overlay {
   position: fixed;
   inset: 0;

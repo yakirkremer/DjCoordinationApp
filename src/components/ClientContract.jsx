@@ -1,14 +1,17 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import ContractFieldOverlay from "./ContractFieldOverlay";
+import ContractMobileFieldForm from "./ContractMobileFieldForm";
 import ContractPdfViewer from "./ContractPdfViewer";
 import { signContract, signContractByLink, getContractTemplateFileUrl, downloadSignedContractCopy } from "../lib/api/contractApi";
 import {
-  buildTicketDisplayValuesWithProfile,
+  buildTicketDisplayValues,
+  extractAdminFieldPatch,
   getMissingClientProfileFields,
   isClientEditable,
   CLIENT_PROFILE_PREFILL_KEYS,
 } from "../lib/contractFields";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
+import { useMobileLayout } from "../hooks/useMobileLayout";
 
 function SignaturePad({ onChange, label, id }) {
   const canvasRef = useRef(null);
@@ -98,23 +101,44 @@ function ContractDocumentBody({
   onScrollToSignature,
   fileAccessToken,
   readOnly = false,
+  overlayReadOnly = false,
 }) {
   const docRef = useRef(null);
   const isPdf = template?.sourceType === "pdf";
   const allFields = template.fields ?? [];
   const inputFields = allFields.filter((f) => f.type !== "signature");
   const signatureFields = allFields.filter((f) => f.type === "signature");
+  const inputOverlayReadOnly = readOnly || overlayReadOnly;
 
   const pageOverlay = (pageIndex, pageEl) => {
-    if (readOnly) {
+    if (inputOverlayReadOnly) {
       return (
-        <ContractFieldOverlay
-          fields={allFields.filter((f) => (f.page ?? 0) === pageIndex)}
-          mode="client"
-          readOnly
-          values={values}
-          containerRef={{ current: pageEl }}
-        />
+        <>
+          <ContractFieldOverlay
+            fields={inputFields.filter((f) => (f.page ?? 0) === pageIndex)}
+            mode="client"
+            readOnly
+            values={values}
+            containerRef={{ current: pageEl }}
+          />
+          {!readOnly ? (
+            <ContractFieldOverlay
+              fields={signatureFields.filter((f) => (f.page ?? 0) === pageIndex)}
+              mode="client-signature-hint"
+              values={values}
+              onScrollToSignature={onScrollToSignature}
+              containerRef={{ current: pageEl }}
+            />
+          ) : (
+            <ContractFieldOverlay
+              fields={signatureFields.filter((f) => (f.page ?? 0) === pageIndex)}
+              mode="client"
+              readOnly
+              values={values}
+              containerRef={{ current: pageEl }}
+            />
+          )}
+        </>
       );
     }
 
@@ -140,7 +164,11 @@ function ContractDocumentBody({
 
   if (isPdf) {
     return (
-      <div className="contract-doc-frame contract-doc-frame--client contract-doc-frame--pdf">
+      <div
+        className={`contract-doc-frame contract-doc-frame--client contract-doc-frame--pdf${
+          overlayReadOnly ? " contract-doc-frame--preview" : ""
+        }`}
+      >
         <ContractPdfViewer
           fileUrl={getContractTemplateFileUrl(template.id, fileAccessToken)}
           fitToWidth
@@ -152,16 +180,40 @@ function ContractDocumentBody({
   }
 
   return (
-    <div ref={docRef} className="contract-doc-frame contract-doc-frame--client">
+    <div
+      ref={docRef}
+      className={`contract-doc-frame contract-doc-frame--client${
+        overlayReadOnly ? " contract-doc-frame--preview" : ""
+      }`}
+    >
       <div className="contract-doc-content" dangerouslySetInnerHTML={{ __html: template.html }} />
-      {readOnly ? (
-        <ContractFieldOverlay
-          fields={allFields.filter((f) => (f.page ?? 0) === 0)}
-          mode="client"
-          readOnly
-          values={values}
-          containerRef={docRef}
-        />
+      {inputOverlayReadOnly ? (
+        <>
+          <ContractFieldOverlay
+            fields={inputFields.filter((f) => (f.page ?? 0) === 0)}
+            mode="client"
+            readOnly
+            values={values}
+            containerRef={docRef}
+          />
+          {!readOnly ? (
+            <ContractFieldOverlay
+              fields={signatureFields.filter((f) => (f.page ?? 0) === 0)}
+              mode="client-signature-hint"
+              values={values}
+              onScrollToSignature={onScrollToSignature}
+              containerRef={docRef}
+            />
+          ) : (
+            <ContractFieldOverlay
+              fields={signatureFields.filter((f) => (f.page ?? 0) === 0)}
+              mode="client"
+              readOnly
+              values={values}
+              containerRef={docRef}
+            />
+          )}
+        </>
       ) : (
         <>
           <ContractFieldOverlay
@@ -235,6 +287,7 @@ export default function ClientContract({
   onFillEventDetails,
 }) {
   const { t } = useI18n();
+  const isMobile = useMobileLayout();
   const template = ticket?.template;
   const signatureRef = useRef(null);
   const clientProfile = useMemo(
@@ -254,11 +307,7 @@ export default function ClientContract({
     return missingProfileFields.map((key) => labels[key]).filter(Boolean);
   }, [missingProfileFields, t]);
   const [values, setValues] = useState(() =>
-    buildTicketDisplayValuesWithProfile(
-      template?.fields ?? [],
-      ticket?.values ?? {},
-      clientProfile
-    )
+    buildTicketDisplayValues(template?.fields ?? [], ticket?.values ?? {})
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -278,18 +327,12 @@ export default function ClientContract({
 
   useEffect(() => {
     if (!template?.fields?.length || !ticket?.id) return;
-    const hydrateKey = `${ticket.id}|${template.id}|${ticketValuesKey}|${clientName}|${eventDate}|${eventLocation}`;
+    const hydrateKey = `${ticket.id}|${template.id}|${ticketValuesKey}`;
     if (lastHydratedKeyRef.current === hydrateKey) return;
     if (userEditedRef.current) return;
     lastHydratedKeyRef.current = hydrateKey;
-    setValues(
-      buildTicketDisplayValuesWithProfile(
-        template.fields,
-        ticket?.values ?? {},
-        clientProfile
-      )
-    );
-  }, [ticket?.id, template?.id, ticketValuesKey, clientName, eventDate, eventLocation, clientProfile, template?.fields, ticket?.values]);
+    setValues(buildTicketDisplayValues(template.fields, ticket?.values ?? {}));
+  }, [ticket?.id, template?.id, ticketValuesKey, template?.fields, ticket?.values]);
 
   const signatureField = template?.fields?.find((f) => f.type === "signature");
 
@@ -358,10 +401,9 @@ export default function ClientContract({
   }
 
   if (viewOnly) {
-    const displayValues = buildTicketDisplayValuesWithProfile(
+    const displayValues = buildTicketDisplayValues(
       template?.fields ?? [],
-      ticket?.values ?? {},
-      clientProfile
+      ticket?.values ?? {}
     );
     const mergedValues = { ...displayValues, ...values };
 
@@ -400,7 +442,11 @@ export default function ClientContract({
   }
 
   return (
-    <form className="contract-client" onSubmit={handleSubmit} dir="rtl">
+    <form
+      className={`contract-client${isMobile ? " contract-client--mobile-form" : ""}`}
+      onSubmit={handleSubmit}
+      dir="rtl"
+    >
       <header className="contract-client-header mb-4">
         <h1 className="text-xl font-bold text-gray-100">{template.name}</h1>
         {missingProfileFields.length > 0 ? (
@@ -425,9 +471,19 @@ export default function ClientContract({
             ) : null}
           </section>
         ) : (
-          <p className="text-sm text-gray-400 mt-1">{t("home.contractProfilePrefilledDesc")}</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {isMobile ? t("home.contractMobileFieldsDesc") : t("home.contractProfilePrefilledDesc")}
+          </p>
         )}
       </header>
+
+      {isMobile ? (
+        <ContractMobileFieldForm
+          fields={template.fields ?? []}
+          values={values}
+          onChange={handleChange}
+        />
+      ) : null}
 
       <ContractDocumentBody
         template={template}
@@ -435,6 +491,7 @@ export default function ClientContract({
         onChange={handleChange}
         onScrollToSignature={scrollToSignature}
         fileAccessToken={signToken}
+        overlayReadOnly={isMobile}
       />
 
       <div ref={signatureRef} className="contract-signature-section contract-signature-section--prominent">

@@ -134,6 +134,8 @@ const he = {
     contractProfileFillAction: "מלאו פרטי אירוע",
     contractProfilePrefilledDesc:
       "שם, תאריך ומיקום מולאו אוטומטית מהפרטים שלכם. בדקו את השדות על החוזה וחתמו למטה.",
+    contractMobileFieldsTitle: "מילוי פרטים",
+    contractMobileFieldsDesc: "הפרטים יופיעו אוטומטית על החוזה למטה",
     contractProfileMissingSubmit: "מלאו תאריך ומיקום האירוע לפני החתימה",
     actionContractTitle: "חתימה על חוזה",
     actionContractDesc: "קראו, מלאו וחתמו על החוזה",
@@ -762,6 +764,8 @@ const en = {
     contractProfileFillAction: "Fill event details",
     contractProfilePrefilledDesc:
       "Name, date, and location were filled from your profile. Review the fields on the contract and sign below.",
+    contractMobileFieldsTitle: "Fill in details",
+    contractMobileFieldsDesc: "Values appear on the contract below as you type",
     contractProfileMissingSubmit: "Fill in your event date and location before signing",
     actionContractTitle: "Sign contract",
     actionContractDesc: "Read, fill in, and sign your contract",

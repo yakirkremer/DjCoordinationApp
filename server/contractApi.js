@@ -55,6 +55,17 @@ async function loadClientDetailsForSync(clientId, clientProfile = {}) {
   return buildClientDetailsSnapshot(client, preferences);
 }
 
+/** Same logic as admin «סנכרן לחוזה» — explicit syncFrom fields only. */
+function syncTicketValuesFromClient(fields, currentValues, clientDetails, template) {
+  return buildTicketValuesWithClientDetails(
+    fields,
+    currentValues ?? {},
+    clientDetails,
+    template?.detailSync ?? {},
+    { onlyEmpty: false }
+  );
+}
+
 export async function readContracts() {
   const data = await readJsonFile(CONTRACTS_FILE, EMPTY_CONTRACTS);
   return {
@@ -428,12 +439,11 @@ export async function handleContractsApi(req, res) {
           return true;
         }
         ticket.templateId = templateId;
-        ticket.values = buildTicketValuesWithClientDetails(
+        ticket.values = syncTicketValuesFromClient(
           fields,
           ticket.values ?? {},
           clientDetails,
-          {},
-          { onlyEmpty: false }
+          template
         );
         ensureTicketSignToken(ticket);
       } else {
@@ -444,9 +454,7 @@ export async function handleContractsApi(req, res) {
           status: "pending",
           sentAt: new Date().toISOString(),
           signedAt: null,
-          values: buildTicketValuesWithClientDetails(fields, {}, clientDetails, {}, {
-            onlyEmpty: false,
-          }),
+          values: syncTicketValuesFromClient(fields, {}, clientDetails, template),
           signToken: null,
           signedCopyFile: null,
         };
@@ -563,12 +571,11 @@ export async function handleContractsApi(req, res) {
 
       const clientDetails = await loadClientDetailsForSync(ticket.clientId, {});
       const fields = template.fields ?? [];
-      ticket.values = buildTicketValuesWithClientDetails(
+      ticket.values = syncTicketValuesFromClient(
         fields,
         ticket.values ?? {},
         clientDetails,
-        template.detailSync ?? {},
-        { onlyEmpty: false }
+        template
       );
 
       await writeContracts(contracts);
