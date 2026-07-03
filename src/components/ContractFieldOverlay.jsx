@@ -9,6 +9,7 @@ import {
 } from "../lib/contractFields";
 import {
   contractDateToIsoInput,
+  formatContractDateDisplay,
   normalizeContractDateValue,
 } from "../lib/contractDateFormat";
 
@@ -38,43 +39,57 @@ function FieldBadge({ field }) {
 }
 
 function ContractDateFieldInput({ field, value, onChange, style, className }) {
-  const [draft, setDraft] = useState(() => contractDateToIsoInput(value));
+  const [draft, setDraft] = useState(() => formatContractDateDisplay(value));
   const focusedRef = React.useRef(false);
+  const isoValue = contractDateToIsoInput(value);
 
   useEffect(() => {
     if (focusedRef.current) return;
-    setDraft(contractDateToIsoInput(value));
+    setDraft(formatContractDateDisplay(value));
   }, [value]);
 
-  const commit = (iso) => {
-    const normalized = iso ? normalizeContractDateValue(iso) : "";
+  const commitDisplay = (text) => {
+    const normalized = text ? normalizeContractDateValue(text) : "";
     onChange?.(field.id, normalized);
     if (!focusedRef.current) {
-      setDraft(contractDateToIsoInput(normalized));
+      setDraft(formatContractDateDisplay(normalized));
     }
   };
 
+  const handleNativeChange = (iso) => {
+    const normalized = iso ? normalizeContractDateValue(iso) : "";
+    onChange?.(field.id, normalized);
+    setDraft(formatContractDateDisplay(normalized));
+  };
+
   return (
-    <input
-      type="date"
-      value={draft}
-      onFocus={() => {
-        focusedRef.current = true;
-      }}
-      onBlur={() => {
-        focusedRef.current = false;
-        commit(draft);
-      }}
-      onChange={(e) => {
-        const next = e.target.value;
-        setDraft(next);
-        if (next) commit(next);
-      }}
-      placeholder={field.label}
-      className={className}
-      style={style}
-      aria-label={field.label}
-    />
+    <div className="contract-date-field" style={style}>
+      <input
+        type="text"
+        value={draft}
+        onFocus={() => {
+          focusedRef.current = true;
+        }}
+        onBlur={() => {
+          focusedRef.current = false;
+          commitDisplay(draft);
+        }}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="DD/MM/YYYY"
+        inputMode="numeric"
+        className={`${className} contract-date-field-text`}
+        aria-label={field.label}
+        autoComplete="off"
+      />
+      <input
+        type="date"
+        className="contract-date-field-native"
+        value={isoValue}
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => handleNativeChange(e.target.value)}
+      />
+    </div>
   );
 }
 

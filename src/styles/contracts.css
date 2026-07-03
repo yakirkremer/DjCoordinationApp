@@ -247,6 +247,20 @@
   accent-color: #9333ea;
 }
 
+.contract-date-field {
+  box-sizing: border-box;
+}
+
+.contract-date-field-text {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.contract-date-field-native {
+  display: none;
+}
+
 .contract-field-input--signature {
   display: flex;
   align-items: center;
@@ -861,18 +875,32 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .contract-client .contract-field-input--date {
-    font-size: max(1em, 16px);
-    line-height: 1.2;
-    min-height: 2.25em;
-    overflow: visible;
+  .contract-client .contract-date-field {
+    overflow: hidden;
+  }
+
+  .contract-client .contract-date-field-text {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .contract-client .contract-date-field-native {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 2;
     touch-action: manipulation;
     -webkit-appearance: none;
     appearance: none;
-  }
-
-  .contract-client .contract-field-input--date:focus {
-    position: relative;
-    z-index: 20;
   }
 }
