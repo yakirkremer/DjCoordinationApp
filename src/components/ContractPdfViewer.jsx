@@ -9,6 +9,7 @@ export default function ContractPdfViewer({
   placingType = null,
   onPageClick,
   children,
+  fitToWidth = false,
 }) {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,8 +107,14 @@ export default function ContractPdfViewer({
         <div
           key={page.index}
           ref={bindPageRef(page.index)}
-          className={`contract-pdf-page${placingType ? " is-placing" : ""}`}
-          style={{ width: page.width, height: page.height }}
+          className={`contract-pdf-page${placingType ? " is-placing" : ""}${
+            fitToWidth ? " contract-pdf-page--fit" : ""
+          }`}
+          style={
+            fitToWidth
+              ? { aspectRatio: `${page.width} / ${page.height}` }
+              : { width: page.width, height: page.height }
+          }
           onClick={(e) => {
             if (!placingType || !onPageClick) return;
             if (e.target.closest(".contract-field-marker")) return;
@@ -119,8 +126,7 @@ export default function ContractPdfViewer({
             src={page.dataUrl}
             alt={`עמוד ${page.index + 1}`}
             className="contract-pdf-page-img"
-            width={page.width}
-            height={page.height}
+            {...(fitToWidth ? {} : { width: page.width, height: page.height })}
             draggable={false}
           />
           {overlayReady ? children?.(page.index, pageContainersRef.current[page.index]) : null}

@@ -1263,7 +1263,7 @@ export default function DJPoolDemo() {
             />
           </div>
         ) : clientScreen === "contract" ? (
-          <div className="contract-client-scroll flex-1 min-h-0 overflow-y-auto">
+          <div className="contract-client-scroll flex flex-col flex-1 min-h-0 overflow-y-auto px-1 sm:px-0">
             <ErrorBoundary
               label="contract"
               resetKeys={[clientContractTicket?.id, clientScreen]}

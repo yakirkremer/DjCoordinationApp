@@ -41,6 +41,7 @@ function FieldBadge({ field }) {
 function ContractDateFieldInput({ field, value, onChange, style, className }) {
   const [draft, setDraft] = useState(() => formatContractDateDisplay(value));
   const focusedRef = React.useRef(false);
+  const nativeRef = React.useRef(null);
   const isoValue = contractDateToIsoInput(value);
 
   useEffect(() => {
@@ -62,11 +63,26 @@ function ContractDateFieldInput({ field, value, onChange, style, className }) {
     setDraft(formatContractDateDisplay(normalized));
   };
 
+  const openNativePicker = () => {
+    const el = nativeRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker();
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    el.focus({ preventScroll: true });
+  };
+
   return (
-    <div className="contract-date-field" style={style}>
+    <>
       <input
         type="text"
         value={draft}
+        style={style}
         onFocus={() => {
           focusedRef.current = true;
         }}
@@ -75,13 +91,19 @@ function ContractDateFieldInput({ field, value, onChange, style, className }) {
           commitDisplay(draft);
         }}
         onChange={(e) => setDraft(e.target.value)}
+        onClick={() => {
+          if (window.matchMedia("(pointer: coarse)").matches) {
+            openNativePicker();
+          }
+        }}
         placeholder="DD/MM/YYYY"
         inputMode="numeric"
-        className={`${className} contract-date-field-text`}
+        className={className}
         aria-label={field.label}
         autoComplete="off"
       />
       <input
+        ref={nativeRef}
         type="date"
         className="contract-date-field-native"
         value={isoValue}
@@ -89,7 +111,7 @@ function ContractDateFieldInput({ field, value, onChange, style, className }) {
         aria-hidden="true"
         onChange={(e) => handleNativeChange(e.target.value)}
       />
-    </div>
+    </>
   );
 }
 

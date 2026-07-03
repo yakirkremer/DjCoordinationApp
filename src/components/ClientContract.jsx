@@ -141,7 +141,10 @@ function ContractDocumentBody({
   if (isPdf) {
     return (
       <div className="contract-doc-frame contract-doc-frame--client contract-doc-frame--pdf">
-        <ContractPdfViewer fileUrl={getContractTemplateFileUrl(template.id, fileAccessToken)}>
+        <ContractPdfViewer
+          fileUrl={getContractTemplateFileUrl(template.id, fileAccessToken)}
+          fitToWidth
+        >
           {(pageIndex, pageEl) => pageOverlay(pageIndex, pageEl)}
         </ContractPdfViewer>
       </div>

@@ -247,18 +247,16 @@
   accent-color: #9333ea;
 }
 
-.contract-date-field {
-  box-sizing: border-box;
-}
-
-.contract-date-field-text {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-}
-
 .contract-date-field-native {
-  display: none;
+  position: fixed;
+  left: -100vw;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  border: 0;
 }
 
 .contract-field-input--signature {
@@ -784,6 +782,7 @@
   padding: 0.08em 0.28em;
   overflow: hidden;
   box-sizing: border-box;
+  touch-action: pan-y;
 }
 
 .contract-client .contract-field-readonly-text,
@@ -826,15 +825,33 @@
   padding: 0.08em 0.28em;
 }
 
-/* Client signing — mobile: one page scroll, no clipped inner box */
+/* Client signing — single outer scroll on mobile (no nested PDF scroll traps) */
 .contract-client-scroll {
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+}
+
+.contract-pdf-page--fit {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+.contract-pdf-page--fit .contract-pdf-page-img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 @media (max-width: 767px) {
+  .contract-client-scroll {
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
+  }
+
   .contract-client {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 
   .contract-client .contract-doc-frame,
@@ -854,12 +871,20 @@
   }
 
   .contract-client .contract-doc-frame--pdf {
-    padding: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    max-height: none;
+    touch-action: pan-y;
   }
 
-  .contract-client .contract-pdf-page {
+  .contract-client .contract-pdf-pages {
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .contract-client .contract-pdf-page,
+  .contract-client .contract-pdf-page--fit {
     width: 100% !important;
     max-width: 100%;
     height: auto !important;
@@ -871,36 +896,11 @@
     display: block;
   }
 
+  .contract-signature-section--prominent {
+    scroll-margin-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+
   .contract-client-actions--sticky {
     padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .contract-client .contract-date-field {
-    overflow: hidden;
-  }
-
-  .contract-client .contract-date-field-text {
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    pointer-events: none;
-  }
-
-  .contract-client .contract-date-field-native {
-    display: block;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    opacity: 0;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    z-index: 2;
-    touch-action: manipulation;
-    -webkit-appearance: none;
-    appearance: none;
   }
 }
