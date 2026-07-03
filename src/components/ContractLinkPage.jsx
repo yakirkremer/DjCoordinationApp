@@ -46,7 +46,7 @@ export default function ContractLinkPage({ signToken }) {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto max-w-4xl mx-auto w-full py-4">
+    <div className="contract-client-scroll flex-1 min-h-0 overflow-y-auto max-w-4xl mx-auto w-full py-4">
       <ClientContract ticket={ticket} signToken={signToken} standalone />
     </div>
   );

@@ -1173,7 +1173,10 @@ export default function DJPoolDemo() {
           showAdminGate ||
           showAdminSessionLoading ||
           (activeClient &&
-            (clientScreen === "home" || clientScreen === "guide" || clientScreen === "tutorial")) ||
+            (clientScreen === "home" ||
+              clientScreen === "guide" ||
+              clientScreen === "tutorial" ||
+              clientScreen === "contract")) ||
           guestView === "contractLink" ||
           guestView === "guide" ||
           guestView === "tutorial"
@@ -1260,7 +1263,7 @@ export default function DJPoolDemo() {
             />
           </div>
         ) : clientScreen === "contract" ? (
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="contract-client-scroll flex-1 min-h-0 overflow-y-auto">
             <ErrorBoundary
               label="contract"
               resetKeys={[clientContractTicket?.id, clientScreen]}

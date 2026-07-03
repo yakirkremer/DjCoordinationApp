@@ -748,3 +748,48 @@
   color: var(--color-xdj-text);
   word-break: break-word;
 }
+
+/* Client signing — mobile: one page scroll, no clipped inner box */
+.contract-client-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 767px) {
+  .contract-client {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .contract-client .contract-doc-frame,
+  .contract-client--view .contract-doc-frame {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .contract-client .contract-doc-content {
+    padding: 1rem 1.25rem;
+    min-height: 0;
+  }
+
+  .contract-client .contract-doc-frame--pdf {
+    padding: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .contract-client .contract-pdf-page {
+    width: 100% !important;
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  .contract-client .contract-pdf-page-img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .contract-client-actions--sticky {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
