@@ -5,7 +5,12 @@ import {
   isClientEditable,
   normalizeFieldEditor,
   normalizeFieldDefault,
+  formatContractFieldDisplayValue,
 } from "../lib/contractFields";
+import {
+  contractDateToIsoInput,
+  normalizeContractDateValue,
+} from "../lib/contractDateFormat";
 
 const TYPE_LABELS = {
   text: "טקסט",
@@ -63,7 +68,7 @@ function ClientFieldInput({ field, value, onChange, readOnly }) {
         ? value
           ? "☑"
           : "☐"
-        : String(value ?? normalizeFieldDefault(field) ?? "");
+        : formatContractFieldDisplayValue(field, value ?? normalizeFieldDefault(field));
 
     return (
       <div
@@ -105,8 +110,13 @@ function ClientFieldInput({ field, value, onChange, readOnly }) {
   return (
     <input
       type={field.type === "date" ? "date" : "text"}
-      value={value ?? ""}
-      onChange={(e) => onChange?.(field.id, e.target.value)}
+      value={field.type === "date" ? contractDateToIsoInput(value) : (value ?? "")}
+      onChange={(e) =>
+        onChange?.(
+          field.id,
+          field.type === "date" ? normalizeContractDateValue(e.target.value) : e.target.value
+        )
+      }
       placeholder={field.label}
       className={`contract-field-input contract-field-input--${field.type}`}
       style={style}

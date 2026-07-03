@@ -1,4 +1,9 @@
 /** Who may edit this field when the contract is sent to a client. */
+import {
+  formatContractDateDisplay,
+  normalizeContractDateValue,
+} from "./contractDateFormat.js";
+
 export const FIELD_EDITORS = {
   client: "client",
   admin: "admin",
@@ -124,7 +129,28 @@ function formatSyncValueForField(field, rawValue) {
   if (field?.type === "checkbox") {
     return rawValue === true || rawValue === "true" || rawValue === "1";
   }
+  if (field?.type === "date") {
+    return normalizeContractDateValue(rawValue);
+  }
   return String(rawValue);
+}
+
+export function formatContractFieldDisplayValue(field, value) {
+  if (field?.type === "date") return formatContractDateDisplay(value);
+  if (field?.type === "checkbox") {
+    return value ? "☑" : "☐";
+  }
+  return value == null || value === "" ? "" : String(value);
+}
+
+function normalizeDateFieldsInValues(fields = [], values = {}) {
+  const next = { ...values };
+  for (const field of fields) {
+    if (field.type !== "date") continue;
+    if (next[field.id] == null || next[field.id] === "") continue;
+    next[field.id] = normalizeContractDateValue(next[field.id]);
+  }
+  return next;
 }
 
 function buildLegacyFieldIdToSyncKey(detailSync = {}) {
@@ -216,11 +242,16 @@ export function mergeSignedContractValues(fields = [], clientValues = {}, ticket
   for (const field of fields) {
     if (!isClientEditable(field)) continue;
     if (clientValues[field.id] !== undefined) {
-      merged[field.id] =
-        field.type === "checkbox" ? Boolean(clientValues[field.id]) : String(clientValues[field.id] ?? "");
+      if (field.type === "checkbox") {
+        merged[field.id] = Boolean(clientValues[field.id]);
+      } else if (field.type === "date") {
+        merged[field.id] = normalizeContractDateValue(clientValues[field.id]);
+      } else {
+        merged[field.id] = String(clientValues[field.id] ?? "");
+      }
     }
   }
-  return merged;
+  return normalizeDateFieldsInValues(fields, merged);
 }
 
 /** Apply admin-only patches to a ticket's stored values. */
@@ -230,7 +261,11 @@ export function patchAdminTicketValues(fields = [], currentValues = {}, adminPat
     if (!isAdminEditable(field)) continue;
     if (adminPatch[field.id] === undefined) continue;
     next[field.id] =
-      field.type === "checkbox" ? Boolean(adminPatch[field.id]) : String(adminPatch[field.id] ?? "");
+      field.type === "checkbox"
+        ? Boolean(adminPatch[field.id])
+        : field.type === "date"
+          ? normalizeContractDateValue(adminPatch[field.id])
+          : String(adminPatch[field.id] ?? "");
   }
   return next;
 }

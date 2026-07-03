@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { formatContractDateDisplay } from "../src/lib/contractDateFormat.js";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
@@ -115,7 +116,8 @@ async function stampPdfCopy(template, values) {
       continue;
     }
 
-    const text = String(value);
+    const text =
+      field.type === "date" ? formatContractDateDisplay(value) : String(value);
     const font = pickStampFont(field, text, hebrewFont, latinFont);
     const fontSize = Math.min(Math.max(h * 0.55, 8), 12);
     page.drawText(text, {
@@ -131,6 +133,17 @@ async function stampPdfCopy(template, values) {
   return pdfDoc.save({ useObjectStreams: false });
 }
 
+function formatSignedAtDisplay(signedAt) {
+  if (!signedAt) return "";
+  return formatContractDateDisplay(signedAt) || String(signedAt);
+}
+
+function formatSignedFieldDisplay(field, raw) {
+  if (raw == null || raw === "") return "—";
+  if (field.type === "date") return formatContractDateDisplay(raw);
+  return String(raw);
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -143,7 +156,7 @@ function renderSignedHtml(template, ticket, values) {
   const rows = (template.fields ?? [])
     .map((field) => {
       const raw = values[field.id];
-      let display = raw == null || raw === "" ? "—" : String(raw);
+      let display = formatSignedFieldDisplay(field, raw);
       if (field.type === "signature" && String(raw).startsWith("data:image")) {
         display = `<img src="${escapeHtml(raw)}" alt="חתימה" style="max-height:80px;max-width:220px;" />`;
       } else if (field.type === "checkbox") {
@@ -171,7 +184,7 @@ function renderSignedHtml(template, ticket, values) {
 </head>
 <body>
   <h1>${escapeHtml(template.name)}</h1>
-  <p class="meta">מזהה חוזה: ${escapeHtml(ticket.id)} · נחתם: ${escapeHtml(ticket.signedAt ?? "")}</p>
+  <p class="meta">מזהה חוזה: ${escapeHtml(ticket.id)} · נחתם: ${escapeHtml(formatSignedAtDisplay(ticket.signedAt))}</p>
   <table>${rows}</table>
 </body>
 </html>`;
