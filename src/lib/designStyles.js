@@ -71,8 +71,8 @@ export const BROWSER_STYLES = [
 export const DEFAULT_PLAYER_STYLE_ID = "xdj-deck";
 export const DEFAULT_BROWSER_STYLE_ID = "xdj-hardware";
 
-const PLAYER_STORAGE_KEY = "kramer-player-style-v1";
-const BROWSER_STORAGE_KEY = "kramer-browser-style-v1";
+const PLAYER_STORAGE_KEY = "kremer-player-style-v1";
+const BROWSER_STORAGE_KEY = "kremer-browser-style-v1";
 
 export function getPlayerStyleById(id) {
   return PLAYER_STYLES.find((s) => s.id === id) ?? PLAYER_STYLES[0];

@@ -191,5 +191,5 @@ try {
 }
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Kramer Music server running on port ${PORT}`);
+  console.log(`kremer Music server running on port ${PORT}`);
 });

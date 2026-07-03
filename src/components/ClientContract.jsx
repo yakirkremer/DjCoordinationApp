@@ -251,7 +251,11 @@ export default function ClientContract({
     return missingProfileFields.map((key) => labels[key]).filter(Boolean);
   }, [missingProfileFields, t]);
   const [values, setValues] = useState(() =>
-    buildTicketDisplayValuesWithProfile(template?.fields ?? [], ticket?.values ?? {}, clientProfile)
+    buildTicketDisplayValuesWithProfile(
+      template?.fields ?? [],
+      ticket?.values ?? {},
+      clientProfile
+    )
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -262,7 +266,13 @@ export default function ClientContract({
 
   useEffect(() => {
     if (!template?.fields) return;
-    setValues(buildTicketDisplayValuesWithProfile(template.fields, ticket?.values ?? {}, clientProfile));
+    setValues(
+      buildTicketDisplayValuesWithProfile(
+        template.fields,
+        ticket?.values ?? {},
+        clientProfile
+      )
+    );
   }, [ticket?.id, template?.id, clientProfile, template?.fields, ticket?.values]);
 
   const signatureField = template?.fields?.find((f) => f.type === "signature");

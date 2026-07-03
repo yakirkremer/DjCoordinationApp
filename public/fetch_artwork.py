@@ -171,7 +171,7 @@ def extract_embedded_artwork(mp3_path):
 def http_get_json(url, timeout=12):
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "KramerMusicDJPool/1.0"},
+        headers={"User-Agent": "kremerMusicDJPool/1.0"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
@@ -180,7 +180,7 @@ def http_get_json(url, timeout=12):
 def download_bytes(url, timeout=15):
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "KramerMusicDJPool/1.0"},
+        headers={"User-Agent": "kremerMusicDJPool/1.0"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()

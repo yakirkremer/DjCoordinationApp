@@ -4,7 +4,7 @@ import path from "path";
 import { spawn } from "child_process";
 
 function usage() {
-  console.log("Usage: node scripts/restore-backup.mjs <path-to-kramer-backup.tar.gz>");
+  console.log("Usage: node scripts/restore-backup.mjs <path-to-kremer-backup.tar.gz>");
 }
 
 function runTar(args) {

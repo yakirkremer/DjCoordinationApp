@@ -974,6 +974,7 @@ export default function DJPoolDemo() {
           }}
           onUpdateStages={updateClientStages}
           onTicketAdminSaved={replaceTicket}
+          onUpdateTemplate={updateTemplate}
           contractTemplates={contractsData.templates}
           getTicketForClient={getTicketForClient}
           getTemplate={getTemplate}

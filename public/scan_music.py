@@ -134,7 +134,7 @@ def save_catalog(catalog):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Ingest and analyze DJ pool tracks")
+    parser = argparse.ArgumentParser(description="Ingest and analyze DjCoord tracks")
     parser.add_argument(
         "--reanalyze",
         action="store_true",

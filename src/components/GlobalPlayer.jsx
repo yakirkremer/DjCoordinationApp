@@ -12,8 +12,8 @@ import { getDropPlayerCssVars, getDropWaveformColors } from "../lib/dropTypeColo
 import { useDropColors } from "../hooks/useDropColors";
 import { useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
 
-const PLAYER_EXPAND_KEY = "kramer-player-expanded";
-const LINK_CUES_KEY = "kramer-link-cues-v1";
+const PLAYER_EXPAND_KEY = "kremer-player-expanded";
+const LINK_CUES_KEY = "kremer-link-cues-v1";
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(

@@ -30,7 +30,7 @@ export default function AdminLogin({ onLogin }) {
   return (
     <section className="panel-luxury rounded-sm p-8 max-w-md mx-auto w-full" dir={dir}>
       <div className="text-center mb-8">
-        <p className="font-lcd text-[10px] tracking-[0.3em] text-xdj-cyan uppercase mb-2">Kramer Music</p>
+        <p className="font-lcd text-[10px] tracking-[0.3em] text-xdj-cyan uppercase mb-2">kremer Music</p>
         <h2 className="text-xl font-semibold text-xdj-gold">
           <EditableText k="adminLogin.title" />
         </h2>

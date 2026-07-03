@@ -51,7 +51,7 @@ export const THEMES = [
 ];
 
 export const DEFAULT_THEME_ID = "xdj-dark";
-const STORAGE_KEY = "kramer-music-theme-v1";
+const STORAGE_KEY = "kremer-music-theme-v1";
 
 export function getThemeById(id) {
   return THEMES.find((t) => t.id === id) ?? THEMES[0];

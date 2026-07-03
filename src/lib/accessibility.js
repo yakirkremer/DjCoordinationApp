@@ -13,7 +13,7 @@ export const DEFAULT_A11Y_PREFERENCES = {
   readableText: false,
 };
 
-const STORAGE_KEY = "kramer-a11y-prefs-v1";
+const STORAGE_KEY = "kremer-a11y-prefs-v1";
 const BASE_FONT_PX = 16;
 
 const HIGH_CONTRAST_VARS = {

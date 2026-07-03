@@ -42,6 +42,7 @@ function attachPublicTemplate(ticket, templates = []) {
     name: template.name,
     sourceType: template.sourceType || "docx",
     fields: template.fields ?? [],
+    detailSync: template.detailSync ?? {},
   };
   const publicTemplate =
     base.sourceType === "pdf"
@@ -67,6 +68,14 @@ export function assignContractTicket(clientId, templateId, clientProfile = null)
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ clientId, templateId, clientProfile }),
+  });
+}
+
+export function syncTicketClientDetails(ticketId) {
+  return request(`/tickets/${encodeURIComponent(ticketId)}/sync-client`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
   });
 }
 

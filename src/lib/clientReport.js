@@ -85,7 +85,7 @@ export function buildClientReportText(report) {
   const lines = [];
   const push = (...parts) => lines.push(...parts);
 
-  push("KRAMER MUSIC — דוח העדפות לקוח");
+  push("kremer MUSIC — דוח העדפות לקוח");
   push(line());
   push(`תאריך דוח: ${new Date(report.generatedAt).toLocaleString("he-IL")}`);
   push(`שם: ${report.client.name}`);
@@ -177,7 +177,7 @@ export function buildClientReportText(report) {
   const dislikedCount = report.categoryTracks.reduce((n, g) => n + g.disliked.length, 0);
   push(`שירים שלא אהבו: ${dislikedCount}`);
   push(line());
-  push("נוצר אוטומטית ממערכת Kramer Music");
+  push("נוצר אוטומטית ממערכת kremer Music");
 
   return lines.join("\n");
 }
@@ -221,7 +221,7 @@ export function buildClientReportHtml(report, textBody) {
   </style>
 </head>
 <body>
-  <h1>Kramer Music — דוח העדפות</h1>
+  <h1>kremer Music — דוח העדפות</h1>
   <p class="meta">${esc(report.client.name)} · ${esc(report.client.type)} · ${new Date(report.generatedAt).toLocaleString("he-IL")}</p>
   <pre>${esc(textBody)}</pre>
   ${categoryRows ? `<h2>שירים לפי סגנון</h2><table><thead><tr><th>סגנון</th><th>אהבתי</th><th>לא אהבתי</th></tr></thead><tbody>${categoryRows}</tbody></table>` : ""}
@@ -251,13 +251,13 @@ export function exportClientReportFiles({ client, feedback, tracks, formSchema, 
     report,
     text,
     html,
-    txtFilename: `Kramer-${base}-report.txt`,
-    htmlFilename: `Kramer-${base}-report.html`,
+    txtFilename: `kremer-${base}-report.txt`,
+    htmlFilename: `kremer-${base}-report.html`,
   };
 }
 
 export function openClientReportEmail({ client, text, to = "" }) {
-  const subject = `דוח העדפות — ${client?.name ?? "לקוח"} | Kramer Music`;
+  const subject = `דוח העדפות — ${client?.name ?? "לקוח"} | kremer Music`;
   let body = text;
 
   if (body.length > MAILTO_BODY_LIMIT) {

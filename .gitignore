@@ -13,7 +13,7 @@ storage-bootstrap
 .env
 *.tar.gz
 *.tgz
-kramer-backup-*.tar.gz
+kremer-backup-*.tar.gz
 
 # Runtime data & uploads — local only, never push to Render via git
 public/data/catalog.json

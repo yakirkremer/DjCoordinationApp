@@ -38,16 +38,32 @@ export const CLIENT_PROFILE_PREFILL_KEYS = {
   eventLocation: "eventLocation",
 };
 
+/** Client attributes a contract field may sync from (set per field in template editor). */
+export const FIELD_SYNC_FROM_KEYS = [
+  "clientName",
+  "loginCode",
+  "clientType",
+  "eventDate",
+  "eventLocation",
+  "energyLevel",
+  "djNotes",
+];
+
 const PREFILL_LABEL_HINTS = {
   [CLIENT_PROFILE_PREFILL_KEYS.clientName]: ["שם", "name"],
   [CLIENT_PROFILE_PREFILL_KEYS.eventDate]: ["תאריך", "date"],
   [CLIENT_PROFILE_PREFILL_KEYS.eventLocation]: ["מיקום", "מקום", "location", "venue"],
 };
 
+export function getFieldSyncFromExplicit(field) {
+  const value = field?.syncFrom || field?.prefillFrom;
+  return value && FIELD_SYNC_FROM_KEYS.includes(value) ? value : null;
+}
+
 export function inferFieldPrefillKey(field) {
   if (!field) return null;
-  const fromField = field.prefillFrom;
-  if (fromField && PREFILL_LABEL_HINTS[fromField]) return fromField;
+  const explicit = getFieldSyncFromExplicit(field);
+  if (explicit) return explicit;
 
   const label = (field.label || "").toLowerCase();
   if (
@@ -103,6 +119,69 @@ export function buildClientProfilePrefillPatch(fields = [], profile = {}, ticket
   return patch;
 }
 
+function formatSyncValueForField(field, rawValue) {
+  if (rawValue == null || rawValue === "") return "";
+  if (field?.type === "checkbox") {
+    return rawValue === true || rawValue === "true" || rawValue === "1";
+  }
+  return String(rawValue);
+}
+
+function buildLegacyFieldIdToSyncKey(detailSync = {}) {
+  const map = {};
+  if (!detailSync || typeof detailSync !== "object") return map;
+  for (const [key, fieldId] of Object.entries(detailSync)) {
+    if (fieldId && typeof fieldId === "string") map[fieldId] = key;
+  }
+  return map;
+}
+
+function resolveFieldSyncKey(field, legacyFieldIdToKey = {}) {
+  const explicit = getFieldSyncFromExplicit(field);
+  if (explicit) return explicit;
+  if (legacyFieldIdToKey[field.id]) return legacyFieldIdToKey[field.id];
+  return inferFieldPrefillKey(field);
+}
+
+/** Apply per-field syncFrom mappings (and legacy template.detailSync) to ticket values. */
+export function applyFieldSyncToValues(
+  fields = [],
+  clientDetails = {},
+  currentValues = {},
+  { onlyEmpty = false, detailSync = {} } = {}
+) {
+  const legacyFieldIdToKey = buildLegacyFieldIdToSyncKey(detailSync);
+  const next = { ...currentValues };
+
+  for (const field of fields) {
+    if (field.type === "signature") continue;
+    const syncKey = resolveFieldSyncKey(field, legacyFieldIdToKey);
+    if (!syncKey) continue;
+
+    const raw = clientDetails[syncKey];
+    if (raw == null || String(raw).trim() === "") continue;
+
+    if (onlyEmpty && !isFieldValueEmpty(field, next[field.id] ?? normalizeFieldDefault(field))) {
+      continue;
+    }
+
+    next[field.id] = formatSyncValueForField(field, raw);
+  }
+
+  return next;
+}
+
+export function buildTicketValuesWithClientDetails(
+  fields = [],
+  ticketValues = {},
+  clientDetails = {},
+  detailSync = {},
+  { onlyEmpty = true } = {}
+) {
+  const base = buildTicketDisplayValues(fields, ticketValues);
+  return applyFieldSyncToValues(fields, clientDetails, base, { onlyEmpty, detailSync });
+}
+
 export function buildInitialContractValues(fields = []) {
   const values = {};
   for (const field of fields) {
@@ -115,10 +194,20 @@ export function buildTicketDisplayValues(fields = [], ticketValues = {}) {
   return { ...buildInitialContractValues(fields), ...ticketValues };
 }
 
-export function buildTicketDisplayValuesWithProfile(fields = [], ticketValues = {}, profile = {}) {
-  const base = buildTicketDisplayValues(fields, ticketValues);
-  const patch = buildClientProfilePrefillPatch(fields, profile, ticketValues);
-  return { ...base, ...patch };
+export function buildTicketDisplayValuesWithProfile(
+  fields = [],
+  ticketValues = {},
+  profile = {},
+  detailSync = {}
+) {
+  const clientDetails = {
+    clientName: profile.clientName ?? "",
+    eventDate: profile.eventDate ?? "",
+    eventLocation: profile.eventLocation ?? "",
+  };
+  return buildTicketValuesWithClientDetails(fields, ticketValues, clientDetails, detailSync, {
+    onlyEmpty: true,
+  });
 }
 
 /** Merge client sign submission with template defaults and pre-filled ticket values (admin fields). */

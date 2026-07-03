@@ -1,8 +1,8 @@
 import { DEFAULT_FORM_SCHEMA } from "./defaultFormSchema";
 import { feedbackStorageKey } from "./trackFeedbackStorage";
 
-const CLIENTS_KEY = "kramer-music-clients-v1";
-const SCHEMA_KEY = "kramer-music-form-schema-v1";
+const CLIENTS_KEY = "kremer-music-clients-v1";
+const SCHEMA_KEY = "kremer-music-form-schema-v1";
 
 function readLocalJson(key, fallback) {
   try {

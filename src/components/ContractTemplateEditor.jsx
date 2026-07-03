@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   FIELD_TYPES,
   DEFAULT_FIELD_SIZE,
@@ -7,6 +7,7 @@ import {
   getContractTemplateFileUrl,
 } from "../lib/api/contractApi";
 import { FIELD_EDITORS, normalizeFieldDefault } from "../lib/contractFields";
+import { CLIENT_DETAIL_SOURCES, hydrateFieldSyncFromDetailSync } from "../lib/clientDetails";
 import { confirmDeleteAction } from "../lib/confirmDelete";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 import ContractFieldOverlay from "./ContractFieldOverlay";
@@ -49,6 +50,20 @@ export default function ContractTemplateEditor({
 
   const fields = template?.fields ?? [];
   const isPdf = template?.sourceType === "pdf";
+  const hydratedTemplateIdRef = useRef(null);
+
+  useEffect(() => {
+    if (!template?.id || !template?.detailSync) return;
+    if (hydratedTemplateIdRef.current === template.id) return;
+    const hydratedFields = hydrateFieldSyncFromDetailSync(fields, template.detailSync);
+    const changed = hydratedFields.some((field, index) => field.syncFrom !== fields[index]?.syncFrom);
+    if (!changed) {
+      hydratedTemplateIdRef.current = template.id;
+      return;
+    }
+    hydratedTemplateIdRef.current = template.id;
+    onUpdate(template.id, { fields: hydratedFields });
+  }, [template?.id, template?.detailSync, fields, onUpdate]);
 
   const addField = (field) => {
     if (!field || !template) return;
@@ -206,6 +221,26 @@ export default function ContractTemplateEditor({
                 <option value={FIELD_EDITORS.client}>לקוח (ניתן לעריכה בחתימה)</option>
                 <option value={FIELD_EDITORS.both}>אדמין + לקוח (מילוי מראש ועריכה בחתימה)</option>
                 <option value={FIELD_EDITORS.admin}>אדמין בלבד (ערך קבוע)</option>
+              </select>
+            </label>
+          ) : null}
+          {selectedField.type !== "signature" ? (
+            <label className="contract-inspector-row">
+              <span>סנכרון מפרט לקוח</span>
+              <select
+                value={selectedField.syncFrom ?? selectedField.prefillFrom ?? ""}
+                onChange={(e) => {
+                  const syncFrom = e.target.value || undefined;
+                  updateField(selectedField.id, { syncFrom, prefillFrom: undefined });
+                }}
+                className="contract-inspector-input"
+              >
+                <option value="">לא מסונכרן</option>
+                {CLIENT_DETAIL_SOURCES.map((source) => (
+                  <option key={source.key} value={source.key}>
+                    {source.label}
+                  </option>
+                ))}
               </select>
             </label>
           ) : null}

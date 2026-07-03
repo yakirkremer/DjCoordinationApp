@@ -33,7 +33,7 @@ export const BROWSER_ROW_SIZES = [
 
 export const DEFAULT_BROWSER_ROW_SIZE_ID = "comfortable";
 
-const STORAGE_KEY = "kramer-browser-row-size-v1";
+const STORAGE_KEY = "kremer-browser-row-size-v1";
 
 const SIZE_VARS = {
   compact: {

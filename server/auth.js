@@ -23,7 +23,7 @@ function getSessionSecret() {
   const fromEnv = process.env.SESSION_SECRET?.trim() || process.env.ADMIN_SECRET?.trim();
   if (fromEnv) return fromEnv;
   if (!devSessionSecret) {
-    devSessionSecret = createHmac("sha256", "kramer-dev").update(String(Date.now())).digest("hex");
+    devSessionSecret = createHmac("sha256", "kremer-dev").update(String(Date.now())).digest("hex");
   }
   return devSessionSecret;
 }

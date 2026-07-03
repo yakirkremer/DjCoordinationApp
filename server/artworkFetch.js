@@ -5,7 +5,7 @@ import { readJsonFile, writeJsonFile, DATA_FILES } from "./dataStore.js";
 import { DATA_DIR, MUSIC_ROOT } from "./storagePaths.js";
 
 const ARTWORK_DIR = path.join(DATA_DIR, "artwork");
-const USER_AGENT = "KramerMusicDJPool/1.0";
+const USER_AGENT = "kremerMusicDJPool/1.0";
 
 const EDIT_PATTERN =
   /\s*[\(\[](?:[^)\]]*?(?:edit|remix|mashup|blend|mix|bootleg|version|remaster)[^)\]]*)[\)\]]/gi;

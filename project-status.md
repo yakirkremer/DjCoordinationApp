@@ -1,4 +1,4 @@
-# Kramer Music - DJ Pool & Preview App (Status & Roadmap)
+# kremer Music - DjCoord & Preview App (Status & Roadmap)
 
 This file serves as the ground-truth context for Cursor AI to understand the current architecture, database layout, file ingestion mechanisms, and UI state.
 
@@ -112,12 +112,12 @@ All UI components are tightly decoupled in `src/components/`:
 
 | Key | Purpose |
 |-----|---------|
-| `kramer-music-clients-v1` | All wedding clients (name, login code) |
-| `kramer-music-active-client-v1` | Currently logged-in client session |
-| `kramer-music-form-schema-v1` | Admin-editable wizard form definition |
-| `kramer-music-track-feedback-v1-{clientId}` | Per-client ratings, comments, categories, preferences |
+| `kremer-music-clients-v1` | All wedding clients (name, login code) |
+| `kremer-music-active-client-v1` | Currently logged-in client session |
+| `kremer-music-form-schema-v1` | Admin-editable wizard form definition |
+| `kremer-music-track-feedback-v1-{clientId}` | Per-client ratings, comments, categories, preferences |
 
-### Client session blob (`kramer-music-track-feedback-v1-{clientId}`)
+### Client session blob (`kremer-music-track-feedback-v1-{clientId}`)
 
 ```js
 {
@@ -146,7 +146,7 @@ All UI components are tightly decoupled in `src/components/`:
 }
 ```
 
-### Form schema blob (`kramer-music-form-schema-v1`)
+### Form schema blob (`kremer-music-form-schema-v1`)
 
 ```js
 {

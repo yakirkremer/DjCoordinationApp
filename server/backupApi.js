@@ -22,8 +22,8 @@ function runTar(args) {
 }
 
 async function buildBackupArchive() {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kramer-backup-"));
-  const outFile = path.join(tmpDir, `kramer-backup-${Date.now()}.tar.gz`);
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kremer-backup-"));
+  const outFile = path.join(tmpDir, `kremer-backup-${Date.now()}.tar.gz`);
 
   const entries = [];
   for (const name of ["data", "music"]) {
@@ -61,7 +61,7 @@ export function createBackupApiMiddleware() {
           res.setHeader("Content-Type", "application/gzip");
           res.setHeader(
             "Content-Disposition",
-            `attachment; filename="kramer-backup-${new Date().toISOString().slice(0, 10)}.tar.gz"`
+            `attachment; filename="kremer-backup-${new Date().toISOString().slice(0, 10)}.tar.gz"`
           );
           res.end(data);
         } finally {

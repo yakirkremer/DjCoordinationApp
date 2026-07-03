@@ -13,5 +13,5 @@ export const DEPLOY_EXCLUDE_PATHS = [
   "public/data/artwork",
   "public/music",
   "public/tmp_music",
-  "kramer-backup-2026-06-29.tar.gz",
+  "kremer-backup-2026-06-29.tar.gz",
 ];

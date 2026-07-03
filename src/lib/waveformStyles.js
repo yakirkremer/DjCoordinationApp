@@ -53,7 +53,7 @@ export const WAVEFORM_STYLES = [
 
 export const DEFAULT_WAVEFORM_STYLE_ID = "classic";
 
-const STORAGE_KEY = "kramer-waveform-style-v1";
+const STORAGE_KEY = "kremer-waveform-style-v1";
 
 export function getWaveformStyleById(id) {
   return WAVEFORM_STYLES.find((s) => s.id === id) ?? WAVEFORM_STYLES[0];

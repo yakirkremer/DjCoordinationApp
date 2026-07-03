@@ -1,7 +1,7 @@
 import { DEFAULT_FORM_SCHEMA } from "./defaultFormSchema";
 import { fetchFormSchema, saveFormSchema as saveFormSchemaApi } from "./api/dataApi";
 
-const SCHEMA_KEY = "kramer-music-form-schema-v1";
+const SCHEMA_KEY = "kremer-music-form-schema-v1";
 
 function normalizeSchema(parsed) {
   if (!parsed?.steps?.length) return structuredClone(DEFAULT_FORM_SCHEMA);

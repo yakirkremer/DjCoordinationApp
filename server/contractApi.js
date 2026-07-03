@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { parseMultipart, readRequestBody } from "./parseMultipart.js";
-import { readJsonFile, writeJsonFile, sendJson } from "./dataStore.js";
+import { readJsonFile, writeJsonFile, sendJson, DATA_FILES } from "./dataStore.js";
 import { isAdminSession, isAuthenticatedSession, parseRequestSession } from "./auth.js";
 import { DATA_DIR } from "./storagePaths.js";
 import { docxBufferToHtml } from "./docxToHtml.js";
@@ -9,8 +9,9 @@ import {
   mergeSignedContractValues,
   validateClientContractValues,
   patchAdminTicketValues,
-  buildTicketDisplayValuesWithProfile,
+  buildTicketValuesWithClientDetails,
 } from "../src/lib/contractFields.js";
+import { buildClientDetailsSnapshot } from "../src/lib/clientDetails.js";
 import {
   dedupeTicketsByClient,
   pickCanonicalTicketForClient,
@@ -31,6 +32,20 @@ export const EMPTY_CONTRACTS = { templates: [], tickets: [] };
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+async function loadClientDetailsForSync(clientId, clientProfile = {}) {
+  const clients = await readJsonFile(DATA_FILES.clients, []);
+  const stored = clients.find((c) => c.id === clientId) ?? null;
+  const client = stored ?? {
+    name: clientProfile.clientName ?? "",
+    eventDate: clientProfile.eventDate ?? "",
+    eventLocation: clientProfile.eventLocation ?? "",
+  };
+  const feedbackAll = await readJsonFile(DATA_FILES.feedback, {});
+  const feedbackEntry = feedbackAll[clientId] ?? null;
+  const preferences = feedbackEntry?.preferences ?? feedbackEntry ?? null;
+  return buildClientDetailsSnapshot(client, preferences);
 }
 
 export async function readContracts() {
@@ -55,6 +70,7 @@ function publicTemplate(template) {
     name: template.name,
     sourceType: template.sourceType || "docx",
     fields: template.fields ?? [],
+    detailSync: template.detailSync ?? {},
   };
   if (base.sourceType === "pdf") {
     return { ...base, fileUrl: `/api/contracts/templates/${template.id}/file` };
@@ -387,6 +403,7 @@ export async function handleContractsApi(req, res) {
 
       let ticket = pickCanonicalTicketForClient(contracts.tickets, clientId);
       const fields = template.fields ?? [];
+      const clientDetails = await loadClientDetailsForSync(clientId, clientProfile ?? {});
 
       if (ticket) {
         if (ticket.status === "signed") {
@@ -394,10 +411,12 @@ export async function handleContractsApi(req, res) {
           return true;
         }
         ticket.templateId = templateId;
-        ticket.values = buildTicketDisplayValuesWithProfile(
+        ticket.values = buildTicketValuesWithClientDetails(
           fields,
           ticket.values ?? {},
-          clientProfile ?? {}
+          clientDetails,
+          {},
+          { onlyEmpty: false }
         );
         ensureTicketSignToken(ticket);
       } else {
@@ -408,7 +427,9 @@ export async function handleContractsApi(req, res) {
           status: "pending",
           sentAt: new Date().toISOString(),
           signedAt: null,
-          values: buildTicketDisplayValuesWithProfile(fields, {}, clientProfile ?? {}),
+          values: buildTicketValuesWithClientDetails(fields, {}, clientDetails, {}, {
+            onlyEmpty: false,
+          }),
           signToken: null,
           signedCopyFile: null,
         };
@@ -459,6 +480,58 @@ export async function handleContractsApi(req, res) {
         sendJson(res, result.status, { error: result.error });
         return true;
       }
+
+      await writeContracts(contracts);
+      sendJson(res, 200, { ok: true, ticket: publicTicket(ticket, template) });
+      return true;
+    }
+
+    const ticketSyncMatch = subPath.match(/^\/tickets\/([^/]+)\/sync-client$/);
+    if (ticketSyncMatch && req.method === "PUT") {
+      if (!isAdminSession(session)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return true;
+      }
+
+      let body = "";
+      await new Promise((resolve, reject) => {
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+
+      const { detailSync: _legacyDetailSync } = JSON.parse(body || "{}");
+      const ticketId = ticketSyncMatch[1];
+      const contracts = await readContracts();
+      const ticket = contracts.tickets.find((t) => t.id === ticketId);
+
+      if (!ticket) {
+        sendJson(res, 404, { error: "Contract ticket not found" });
+        return true;
+      }
+
+      if (ticket.status === "signed") {
+        sendJson(res, 400, { error: "Cannot edit a signed contract" });
+        return true;
+      }
+
+      const template = contracts.templates.find((t) => t.id === ticket.templateId);
+      if (!template) {
+        sendJson(res, 404, { error: "Contract template not found" });
+        return true;
+      }
+
+      const clientDetails = await loadClientDetailsForSync(ticket.clientId, {});
+      const fields = template.fields ?? [];
+      ticket.values = buildTicketValuesWithClientDetails(
+        fields,
+        ticket.values ?? {},
+        clientDetails,
+        template.detailSync ?? {},
+        { onlyEmpty: false }
+      );
 
       await writeContracts(contracts);
       sendJson(res, 200, { ok: true, ticket: publicTicket(ticket, template) });

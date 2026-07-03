@@ -16,7 +16,7 @@ export default function AdminGate({ onLogin, onBackToClient }) {
           className="h-12 sm:h-14 w-auto mx-auto mb-6 object-contain"
         />
         <p className="font-lcd text-[10px] tracking-[0.35em] text-xdj-cyan uppercase mb-3">
-          Kramer Music
+          kremer Music
         </p>
         <h1 className="text-2xl sm:text-3xl font-semibold text-xdj-gold mb-3">
           <EditableText k="welcome.adminLogin" />

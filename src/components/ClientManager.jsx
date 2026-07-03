@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { CLIENT_TYPES } from "../lib/clientTypes";
 import { CLIENT_STAGE_IDS, CLIENT_STAGE_LABELS, getClientStages } from "../lib/clientStages";
 import { buildContractShareUrl } from "../lib/contractTokens";
-import AdminSentContractEditor from "./AdminSentContractEditor";
+import AdminClientTicketPanel from "./AdminClientTicketPanel";
 import ClientContract from "./ClientContract";
 import { fetchContracts, downloadSignedContractCopy } from "../lib/api/contractApi";
 import { pickCanonicalTicketForClient } from "../lib/contractTickets";
@@ -167,7 +167,7 @@ function ClientContractCell({
           onClick={() => onEditTicket(client, ticket)}
           className="text-[10px] text-amber-400 hover:text-amber-300 text-right"
         >
-          ערוך שדות אדמין
+          כרטיס לקוח / חוזה
         </button>
       ) : null}
       {signed && onViewTicket ? (
@@ -208,6 +208,7 @@ export default function ClientManager({
   onAssignContract,
   onUpdateStages,
   onTicketAdminSaved,
+  onUpdateTemplate,
   contractTemplates = [],
   getTicketForClient,
   getTemplate,
@@ -482,8 +483,8 @@ export default function ClientManager({
       </section>
 
       {editingTicket ? (
-        <AdminSentContractEditor
-          clientName={editingTicket.client.name}
+        <AdminClientTicketPanel
+          client={editingTicket.client}
           ticket={editingTicket.ticket}
           template={getTemplate?.(editingTicket.ticket.templateId) ?? null}
           onClose={() => setEditingTicket(null)}

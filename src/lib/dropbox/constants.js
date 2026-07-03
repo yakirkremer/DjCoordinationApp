@@ -1,5 +1,5 @@
-export const DROPBOX_STORAGE_KEY = "kramer-music-dropbox-import-v1";
-export const PKCE_VERIFIER_KEY = "kramer-music-dropbox-pkce";
+export const DROPBOX_STORAGE_KEY = "kremer-music-dropbox-import-v1";
+export const PKCE_VERIFIER_KEY = "kremer-music-dropbox-pkce";
 
 export const DROPBOX_SCOPES = ["files.metadata.read", "files.content.read"];
 

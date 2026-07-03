@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import ContractTemplateEditor, { ContractTemplateUploader } from "./ContractTemplateEditor";
 import { buildContractShareUrl } from "../lib/contractTokens";
 import { fetchContracts, downloadSignedContractCopy } from "../lib/api/contractApi";
-import AdminSentContractEditor from "./AdminSentContractEditor";
+import AdminClientTicketPanel from "./AdminClientTicketPanel";
 import ClientContract from "./ClientContract";
 import { pickCanonicalTicketForClient } from "../lib/contractTickets";
 
@@ -183,7 +183,7 @@ export default function ContractManager({
                               className="text-xs text-amber-400 hover:text-amber-300 text-right"
                               onClick={() => setEditingTicket(ticket)}
                             >
-                              ערוך שדות אדמין
+                              כרטיס לקוח / חוזה
                             </button>
                             <span className="text-xs text-gray-600">—</span>
                           </>
@@ -204,8 +204,8 @@ export default function ContractManager({
       </section>
 
       {editingTicket ? (
-        <AdminSentContractEditor
-          clientName={getClientName(editingTicket.clientId)}
+        <AdminClientTicketPanel
+          client={clients.find((c) => c.id === editingTicket.clientId) ?? null}
           ticket={editingTicket}
           template={getTemplate?.(editingTicket.templateId) ?? null}
           onClose={() => setEditingTicket(null)}

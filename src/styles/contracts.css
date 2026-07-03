@@ -617,3 +617,134 @@
   padding-top: 0.5rem;
   border-top: 1px solid var(--color-xdj-border);
 }
+
+.admin-client-ticket-panel {
+  max-width: 960px;
+}
+
+.admin-client-details-card,
+.admin-client-sync-section {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.admin-client-details-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-xdj-gold, #c9a962);
+  margin-bottom: 0.75rem;
+}
+
+.admin-client-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-client-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.admin-client-detail-label {
+  font-size: 0.7rem;
+  color: var(--color-xdj-muted);
+}
+
+.admin-client-detail-value {
+  font-size: 0.85rem;
+  color: var(--color-xdj-text);
+  word-break: break-word;
+}
+
+.admin-client-sync-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-client-sync-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-client-sync-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.admin-client-sync-table th,
+.admin-client-sync-table td {
+  border: 1px solid var(--color-xdj-border);
+  padding: 0.5rem 0.65rem;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.admin-client-sync-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-xdj-muted);
+  font-weight: 600;
+}
+
+.admin-client-sync-value {
+  color: var(--color-xdj-text);
+  max-width: 200px;
+  word-break: break-word;
+}
+
+.admin-client-sync-select {
+  width: 100%;
+  min-width: 160px;
+  background: #0a0a0c;
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  color: var(--color-xdj-text);
+  font-size: 0.8rem;
+}
+
+.admin-client-sync-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-client-sync-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-xdj-border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.admin-client-sync-list-source {
+  color: var(--color-xdj-muted);
+}
+
+.admin-client-sync-list-arrow {
+  color: #fbbf24;
+}
+
+.admin-client-sync-list-field {
+  color: var(--color-xdj-text);
+  font-weight: 600;
+}
+
+.admin-client-sync-list-value {
+  color: var(--color-xdj-text);
+  word-break: break-word;
+}

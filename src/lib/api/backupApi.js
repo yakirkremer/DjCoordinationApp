@@ -20,7 +20,7 @@ export async function downloadBackupArchive() {
   const blob = await res.blob();
   const cd = res.headers.get("content-disposition") || "";
   const match = cd.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] || "kramer-backup.tar.gz";
+  const filename = match?.[1] || "kremer-backup.tar.gz";
 
   const url = URL.createObjectURL(blob);
   try {
