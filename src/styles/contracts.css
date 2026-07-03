@@ -749,6 +749,69 @@
   word-break: break-word;
 }
 
+/* Client contract — scale overlay fields with document width (PDF + HTML) */
+.contract-client .contract-doc-frame--client,
+.contract-client--view .contract-doc-frame--client,
+.contract-client .contract-pdf-page,
+.contract-client--view .contract-pdf-page {
+  container-type: inline-size;
+}
+
+.contract-client .contract-field-layer,
+.contract-client--view .contract-field-layer {
+  /* ~12px when the page/frame is ~833px wide (PDF render width) */
+  font-size: clamp(6px, 1.44cqw, 12px);
+}
+
+.contract-client .contract-field-input,
+.contract-client--view .contract-field-input {
+  font-size: 1em;
+  line-height: 1.15;
+  padding: 0.08em 0.28em;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.contract-client .contract-field-readonly-text,
+.contract-client--view .contract-field-readonly-text {
+  font-size: 0.92em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.contract-client .contract-field-placeholder,
+.contract-client--view .contract-field-placeholder {
+  font-size: 0.85em;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.contract-client .contract-field-signature-hint,
+.contract-client--view .contract-field-signature-hint {
+  font-size: 0.85em;
+  line-height: 1.1;
+  padding: 0.15em;
+}
+
+.contract-client .contract-field-input--checkbox input,
+.contract-client--view .contract-field-input--checkbox input {
+  width: 1.1em;
+  height: 1.1em;
+  min-width: 0;
+  min-height: 0;
+}
+
+.contract-client .contract-field-input--readonly,
+.contract-client--view .contract-field-input--readonly {
+  padding: 0.08em 0.28em;
+}
+
 /* Client signing — mobile: one page scroll, no clipped inner box */
 .contract-client-scroll {
   -webkit-overflow-scrolling: touch;
@@ -769,6 +832,11 @@
   .contract-client .contract-doc-content {
     padding: 1rem 1.25rem;
     min-height: 0;
+    font-size: clamp(9px, 1.65cqw, 14px);
+  }
+
+  .contract-client .contract-doc-frame--client {
+    container-type: inline-size;
   }
 
   .contract-client .contract-doc-frame--pdf {
