@@ -860,4 +860,19 @@
   .contract-client-actions--sticky {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  .contract-client .contract-field-input--date {
+    font-size: max(1em, 16px);
+    line-height: 1.2;
+    min-height: 2.25em;
+    overflow: visible;
+    touch-action: manipulation;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .contract-client .contract-field-input--date:focus {
+    position: relative;
+    z-index: 20;
+  }
 }

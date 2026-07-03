@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ensurePdfWorker } from "../lib/pdfjsSetup";
 
 const RENDER_SCALE = 1.4;
@@ -13,13 +13,16 @@ export default function ContractPdfViewer({
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [pageContainers, setPageContainers] = useState({});
+  const [overlayReady, setOverlayReady] = useState(false);
+  const pageContainersRef = useRef({});
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
     setPages([]);
+    setOverlayReady(false);
+    pageContainersRef.current = {};
 
     (async () => {
       try {
@@ -77,6 +80,18 @@ export default function ContractPdfViewer({
     };
   }, [fileUrl]);
 
+  useLayoutEffect(() => {
+    setOverlayReady(pages.length > 0);
+  }, [pages]);
+
+  const bindPageRef = useCallback((pageIndex) => {
+    return (el) => {
+      if (el) {
+        pageContainersRef.current[pageIndex] = el;
+      }
+    };
+  }, []);
+
   if (loading) {
     return <p className="contract-pdf-loading text-sm text-gray-400 p-6 text-center">טוען PDF…</p>;
   }
@@ -90,19 +105,13 @@ export default function ContractPdfViewer({
       {pages.map((page) => (
         <div
           key={page.index}
-          ref={(el) => {
-            if (el) {
-              setPageContainers((prev) =>
-                prev[page.index] === el ? prev : { ...prev, [page.index]: el }
-              );
-            }
-          }}
+          ref={bindPageRef(page.index)}
           className={`contract-pdf-page${placingType ? " is-placing" : ""}`}
           style={{ width: page.width, height: page.height }}
           onClick={(e) => {
             if (!placingType || !onPageClick) return;
             if (e.target.closest(".contract-field-marker")) return;
-            const container = pageContainers[page.index];
+            const container = pageContainersRef.current[page.index];
             if (container) onPageClick(e, page.index, container);
           }}
         >
@@ -114,7 +123,7 @@ export default function ContractPdfViewer({
             height={page.height}
             draggable={false}
           />
-          {children?.(page.index, pageContainers[page.index])}
+          {overlayReady ? children?.(page.index, pageContainersRef.current[page.index]) : null}
         </div>
       ))}
     </div>

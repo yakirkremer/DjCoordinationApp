@@ -265,9 +265,20 @@ export default function ClientContract({
   const readOnly = viewOnly;
 
   const ticketValuesKey = useMemo(() => JSON.stringify(ticket?.values ?? {}), [ticket?.values]);
+  const userEditedRef = React.useRef(false);
+  const lastHydratedKeyRef = React.useRef("");
 
   useEffect(() => {
-    if (!template?.fields?.length) return;
+    userEditedRef.current = false;
+    lastHydratedKeyRef.current = "";
+  }, [ticket?.id, template?.id]);
+
+  useEffect(() => {
+    if (!template?.fields?.length || !ticket?.id) return;
+    const hydrateKey = `${ticket.id}|${template.id}|${ticketValuesKey}|${clientName}|${eventDate}|${eventLocation}`;
+    if (lastHydratedKeyRef.current === hydrateKey) return;
+    if (userEditedRef.current) return;
+    lastHydratedKeyRef.current = hydrateKey;
     setValues(
       buildTicketDisplayValuesWithProfile(
         template.fields,
@@ -275,7 +286,7 @@ export default function ClientContract({
         clientProfile
       )
     );
-  }, [ticket?.id, template?.id, ticketValuesKey, clientName, eventDate, eventLocation]);
+  }, [ticket?.id, template?.id, ticketValuesKey, clientName, eventDate, eventLocation, clientProfile, template?.fields, ticket?.values]);
 
   const signatureField = template?.fields?.find((f) => f.type === "signature");
 
@@ -287,6 +298,7 @@ export default function ClientContract({
     if (readOnly) return;
     const field = template?.fields?.find((f) => f.id === fieldId);
     if (field && !isClientEditable(field)) return;
+    userEditedRef.current = true;
     setValues((prev) => ({ ...prev, [fieldId]: value }));
   }, [template?.fields, readOnly]);
 

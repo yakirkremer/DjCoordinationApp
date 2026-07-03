@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FIELD_EDITORS,
   isAdminEditable,
@@ -35,6 +35,47 @@ function FieldBadge({ field }) {
     editor === FIELD_EDITORS.admin ? "אדמין" : editor === FIELD_EDITORS.both ? "שניהם" : "לקוח";
 
   return <span className={`contract-field-badge${badgeClass}`}>{label}</span>;
+}
+
+function ContractDateFieldInput({ field, value, onChange, style, className }) {
+  const [draft, setDraft] = useState(() => contractDateToIsoInput(value));
+  const focusedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (focusedRef.current) return;
+    setDraft(contractDateToIsoInput(value));
+  }, [value]);
+
+  const commit = (iso) => {
+    const normalized = iso ? normalizeContractDateValue(iso) : "";
+    onChange?.(field.id, normalized);
+    if (!focusedRef.current) {
+      setDraft(contractDateToIsoInput(normalized));
+    }
+  };
+
+  return (
+    <input
+      type="date"
+      value={draft}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        commit(draft);
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        setDraft(next);
+        if (next) commit(next);
+      }}
+      placeholder={field.label}
+      className={className}
+      style={style}
+      aria-label={field.label}
+    />
+  );
 }
 
 function ClientFieldInput({ field, value, onChange, readOnly }) {
@@ -107,16 +148,19 @@ function ClientFieldInput({ field, value, onChange, readOnly }) {
     );
   }
 
-  return (
+  return field.type === "date" ? (
+    <ContractDateFieldInput
+      field={field}
+      value={value}
+      onChange={onChange}
+      className={`contract-field-input contract-field-input--${field.type}`}
+      style={style}
+    />
+  ) : (
     <input
-      type={field.type === "date" ? "date" : "text"}
-      value={field.type === "date" ? contractDateToIsoInput(value) : (value ?? "")}
-      onChange={(e) =>
-        onChange?.(
-          field.id,
-          field.type === "date" ? normalizeContractDateValue(e.target.value) : e.target.value
-        )
-      }
+      type="text"
+      value={value ?? ""}
+      onChange={(e) => onChange?.(field.id, e.target.value)}
       placeholder={field.label}
       className={`contract-field-input contract-field-input--${field.type}`}
       style={style}
