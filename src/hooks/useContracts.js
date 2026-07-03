@@ -52,8 +52,10 @@ export default function useContracts(enabled = false) {
   const [error, setError] = useState(null);
   const saveTimer = useRef(null);
   const skipNextSave = useRef(false);
+  const saveGeneration = useRef(0);
 
   const loadContracts = useCallback(async () => {
+    saveGeneration.current += 1;
     const data = await fetchContracts();
     if (!isFullContractsDocument(data)) {
       return data;
@@ -79,23 +81,29 @@ export default function useContracts(enabled = false) {
       return;
     }
 
+    const generation = ++saveGeneration.current;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
+      const snapshot = contracts;
       try {
         const serverData = await fetchContracts();
+        if (generation !== saveGeneration.current) return;
+
         const payload = isFullContractsDocument(serverData)
-          ? mergeContractsBeforeSave(contracts, serverData)
-          : contracts;
+          ? mergeContractsBeforeSave(snapshot, serverData)
+          : snapshot;
 
         const ticketsChanged =
-          JSON.stringify(payload.tickets) !== JSON.stringify(contracts.tickets);
+          JSON.stringify(payload.tickets) !== JSON.stringify(snapshot.tickets);
         if (ticketsChanged) {
           skipNextSave.current = true;
           setContracts(payload);
         }
 
+        if (generation !== saveGeneration.current) return;
         await saveContractsApi(payload);
       } catch (err) {
+        if (generation !== saveGeneration.current) return;
         console.error("Failed to save contracts:", err);
         setError(err.message);
       }
@@ -111,12 +119,37 @@ export default function useContracts(enabled = false) {
     }));
   }, []);
 
-  const deleteTemplate = useCallback((templateId) => {
-    setContracts((prev) => ({
-      templates: prev.templates.filter((t) => t.id !== templateId),
-      tickets: prev.tickets.filter((t) => t.templateId !== templateId),
-    }));
-  }, []);
+  const deleteTemplate = useCallback(
+    async (templateId) => {
+      let nextState = null;
+      setContracts((prev) => {
+        nextState = {
+          templates: prev.templates.filter((t) => t.id !== templateId),
+          tickets: prev.tickets.filter((t) => t.templateId !== templateId),
+        };
+        return nextState;
+      });
+
+      skipNextSave.current = true;
+      saveGeneration.current += 1;
+      clearTimeout(saveTimer.current);
+
+      try {
+        const serverData = await fetchContracts();
+        const payload = isFullContractsDocument(serverData)
+          ? mergeContractsBeforeSave(nextState, serverData)
+          : nextState;
+        await saveContractsApi(payload);
+        setContracts(payload);
+      } catch (err) {
+        console.error("Failed to delete contract template:", err);
+        setError(err.message);
+        await loadContracts();
+        throw err;
+      }
+    },
+    [loadContracts]
+  );
 
   const createTicket = useCallback(async (clientId, templateId, clientProfile = null) => {
     if (!clientId || !templateId) return null;

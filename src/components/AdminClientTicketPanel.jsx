@@ -62,7 +62,7 @@ export default function AdminClientTicketPanel({
   onClose,
   onSaved,
 }) {
-  const fields = template?.fields ?? [];
+  const fields = useMemo(() => template?.fields ?? [], [template?.fields]);
   const syncedFields = useMemo(
     () =>
       fields

@@ -123,6 +123,18 @@ function AdminFieldMarker({
   onDelete,
   containerRef,
 }) {
+  const activeDragListenersRef = React.useRef(null);
+
+  React.useEffect(() => {
+    return () => {
+      const listeners = activeDragListenersRef.current;
+      if (!listeners) return;
+      window.removeEventListener("pointermove", listeners.onMove);
+      window.removeEventListener("pointerup", listeners.onUp);
+      activeDragListenersRef.current = null;
+    };
+  }, []);
+
   const startInteraction = useCallback(
     (e, mode) => {
       e.stopPropagation();
@@ -157,8 +169,10 @@ function AdminFieldMarker({
       const onUp = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        activeDragListenersRef.current = null;
       };
 
+      activeDragListenersRef.current = { onMove, onUp };
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },

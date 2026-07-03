@@ -71,6 +71,15 @@ export function assignContractTicket(clientId, templateId, clientProfile = null)
   });
 }
 
+export function deleteClientContract(clientId) {
+  const q = `?clientId=${encodeURIComponent(clientId)}`;
+  return request(`/tickets${q}`, { method: "DELETE" });
+}
+
+export function deleteSignedContractCopy(ticketId) {
+  return request(`/tickets/${encodeURIComponent(ticketId)}/copy`, { method: "DELETE" });
+}
+
 export function syncTicketClientDetails(ticketId) {
   return request(`/tickets/${encodeURIComponent(ticketId)}/sync-client`, {
     method: "PUT",

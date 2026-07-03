@@ -7,6 +7,7 @@ export const ADMIN_TAB_IDS = [
   "form",
   "copy",
   "analytics",
+  "storage",
   "settings",
 ];
 

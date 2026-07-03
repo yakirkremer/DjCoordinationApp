@@ -41,8 +41,9 @@ export default function AdminDashboard({ clients, tracks, formSchema }) {
 
     return () => {
       cancelled = true;
+      setLoadingFeedback(false);
     };
-  }, [client?.id, genres]);
+  }, [client, genres]);
 
   const breakdown = getCategoryBreakdown(
     genres,

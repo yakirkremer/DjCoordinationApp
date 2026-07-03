@@ -5,17 +5,28 @@ import { useI18n } from "../lib/i18n/AppSettingsContext";
 export default function ClientLogin({ onLogin }) {
   const [loginCode, setLoginCode] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { t, dir } = useI18n();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     if (!loginCode.trim()) {
       setError(t("login.codeRequired"));
       return;
     }
-    const success = await onLogin(loginCode);
-    if (!success) {
-      setError(t("login.codeInvalid"));
+
+    setSubmitting(true);
+    setError("");
+    try {
+      const success = await onLogin(loginCode);
+      if (!success) {
+        setError(t("login.codeInvalid"));
+      }
+    } catch (err) {
+      setError(err.message || t("login.codeInvalid"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -40,21 +51,23 @@ export default function ClientLogin({ onLogin }) {
             setError("");
           }}
           placeholder={t("login.placeholder")}
-          className="input-luxury font-lcd px-4 py-4 text-center text-base tracking-[0.3em] text-xdj-cyan rounded-sm uppercase min-h-[44px]"
+          className="input-luxury font-lcd px-4 py-4 text-center text-base tracking-[0.3em] text-xdj-cyan rounded-sm uppercase min-h-[44px] disabled:opacity-40"
           dir="ltr"
           inputMode="text"
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
+          disabled={submitting}
         />
 
         {error && <p className="text-xs text-xdj-orange text-center">{error}</p>}
 
         <button
           type="submit"
-          className="btn-luxury-primary px-4 py-3 rounded-sm text-sm tracking-widest min-h-[44px] text-base"
+          disabled={submitting}
+          className="btn-luxury-primary px-4 py-3 rounded-sm text-sm tracking-widest min-h-[44px] text-base disabled:opacity-40"
         >
-          <EditableText k="login.submit" />
+          {submitting ? t("common.loading") : <EditableText k="login.submit" />}
         </button>
       </form>
     </section>

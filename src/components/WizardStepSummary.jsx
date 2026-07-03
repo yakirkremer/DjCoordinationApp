@@ -38,7 +38,7 @@ export default function WizardStepSummary({
 
       <div className="bg-[#0a0a0c] border border-xdj-border rounded-sm p-5 flex flex-col gap-4 text-sm">
         {questionSteps.map((step) =>
-          step.questions.map((q) => {
+          (step.questions ?? []).map((q) => {
             const val = getFieldValue(preferences, q);
             if (!String(val).trim()) return null;
             return (
@@ -96,14 +96,14 @@ export default function WizardStepSummary({
           );
         })}
 
-        {hasStep("playlists") && preferences.mustPlay.length > 0 && (
+        {hasStep("playlists") && (preferences.mustPlay ?? []).length > 0 && (
           <div>
             <span className="text-xdj-muted">חובה לנגן: </span>
             <span className="text-green-400">{preferences.mustPlay.join(" • ")}</span>
           </div>
         )}
 
-        {hasStep("playlists") && preferences.doNotPlay.length > 0 && (
+        {hasStep("playlists") && (preferences.doNotPlay ?? []).length > 0 && (
           <div>
             <span className="text-xdj-muted">לא לנגן: </span>
             <span className="text-red-400">{preferences.doNotPlay.join(" • ")}</span>

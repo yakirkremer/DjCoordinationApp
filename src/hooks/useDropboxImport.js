@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PKCE_VERIFIER_KEY } from "../lib/dropbox/constants";
 import { getDropboxAppKey } from "../lib/dropbox/constants";
 import { generateCodeChallenge, generateCodeVerifier } from "../lib/dropbox/pkce";
@@ -28,44 +28,53 @@ export default function useDropboxImport() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [serverReady, setServerReady] = useState(false);
+  const fetchId = useRef(0);
 
   const isConfigured = Boolean(getDropboxAppKey());
   const isConnected = isTokenValid(state);
   const canBrowse = isConnected || serverReady;
 
   const refreshFolder = useCallback(async (path) => {
+    const id = ++fetchId.current;
     const folderPath = path ?? loadDropboxState().rootPath ?? "";
     setLoading(true);
     setError("");
     try {
       const token = await getAccessToken();
+      if (id !== fetchId.current) return;
       if (!token && !(await probeDropboxServer())) {
-        setEntries([]);
+        if (id === fetchId.current) setEntries([]);
         return;
       }
+      if (id !== fetchId.current) return;
       const data = await listDropboxFolder(folderPath);
+      if (id !== fetchId.current) return;
       setBrowsePath(data.path ?? "");
       setEntries(data.entries ?? []);
       saveDropboxState({ rootPath: data.path ?? "" });
       setState(loadDropboxState());
     } catch (err) {
+      if (id !== fetchId.current) return;
       setError(err.message || "Failed to load folder");
       setEntries([]);
     } finally {
-      setLoading(false);
+      if (id === fetchId.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    if (!window.location.pathname.endsWith("/dropbox/callback") && !code) return;
+    if (!window.location.pathname.endsWith("/dropbox/callback") && !code) return undefined;
+
+    let cancelled = false;
 
     (async () => {
       try {
         const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
         if (!code || !verifier) throw new Error("Missing OAuth code");
         const tokens = await exchangeAuthCode(code, verifier);
+        if (cancelled) return;
         sessionStorage.removeItem(PKCE_VERIFIER_KEY);
 
         const expiresAt = Date.now() + (tokens.expires_in || 14_400) * 1000;
@@ -75,6 +84,7 @@ export default function useDropboxImport() {
         } catch {
           /* optional */
         }
+        if (cancelled) return;
 
         const next = saveDropboxState({
           accessToken: tokens.access_token,
@@ -86,10 +96,16 @@ export default function useDropboxImport() {
         window.history.replaceState({}, "", "/");
         await refreshFolder(next.rootPath || "");
       } catch (err) {
-        setError(err.message || "Dropbox connection failed");
-        window.history.replaceState({}, "", "/");
+        if (!cancelled) {
+          setError(err.message || "Dropbox connection failed");
+          window.history.replaceState({}, "", "/");
+        }
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshFolder]);
 
   useEffect(() => {

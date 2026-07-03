@@ -119,18 +119,18 @@ export default function FormBuilder({
   const activeStep = schema.steps.find((s) => s.id === activeStepId) ?? schema.steps[0];
   const activeIdx = schema.steps.findIndex((s) => s.id === activeStep?.id);
 
-  const handleDeleteQuestion = (stepId, questionId) => {
+  const handleDeleteQuestion = async (stepId, questionId) => {
     const step = schema.steps.find((s) => s.id === stepId);
     const q = step?.questions.find((x) => x.id === questionId);
     if (q?.fieldKey && !q.fieldKey.startsWith("custom.")) return;
     const label = q?.label || questionId;
-    if (!confirmDeleteAction(t("admin.deleteQuestionConfirm", { label }))) return;
+    if (!(await confirmDeleteAction(t("admin.deleteQuestionConfirm", { label })))) return;
     deleteQuestion(stepId, questionId);
   };
 
-  const handleDeleteActiveStep = () => {
+  const handleDeleteActiveStep = async () => {
     if (!activeStep || !canDeleteStep(activeStep)) return;
-    if (!confirmDeleteAction(t("admin.deleteFormStepConfirm", { title: activeStep.title }))) return;
+    if (!(await confirmDeleteAction(t("admin.deleteFormStepConfirm", { title: activeStep.title })))) return;
 
     const idx = schema.steps.findIndex((s) => s.id === activeStep.id);
     const remaining = schema.steps.filter((s) => s.id !== activeStep.id);
@@ -171,8 +171,8 @@ export default function FormBuilder({
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm("לאפס את הטופס לברירת המחדל?")) restoreDefault();
+          onClick={async () => {
+            if (await confirmDeleteAction(t("admin.restoreFormConfirm"))) restoreDefault();
           }}
           className="btn-luxury mt-1 px-3 py-2 rounded-sm text-xs text-xdj-orange"
         >
@@ -275,10 +275,10 @@ export default function FormBuilder({
                 )}
               </div>
 
-              {activeStep.questions.length === 0 ? (
+              {activeStep.questions?.length === 0 ? (
                 <p className="text-xs text-xdj-muted">אין שאלות בשלב זה.</p>
               ) : (
-                activeStep.questions.map((q) => (
+                (activeStep.questions ?? []).map((q) => (
                   <QuestionEditor
                     key={q.id}
                     question={q}
@@ -297,10 +297,10 @@ export default function FormBuilder({
               items={activeStep.timelineItems ?? []}
               onAdd={() => addTimelineItem(activeStep.id)}
               onUpdate={(itemId, patch) => updateTimelineItem(activeStep.id, itemId, patch)}
-              onDelete={(itemId) => {
-                const item = activeStep.timeline?.find((x) => x.id === itemId);
+              onDelete={async (itemId) => {
+                const item = activeStep.timelineItems?.find((x) => x.id === itemId);
                 const label = item?.label || item?.time || itemId;
-                if (!confirmDeleteAction(t("admin.deleteTimelineItemConfirm", { label }))) return;
+                if (!(await confirmDeleteAction(t("admin.deleteTimelineItemConfirm", { label })))) return;
                 deleteTimelineItem(activeStep.id, itemId);
               }}
             />

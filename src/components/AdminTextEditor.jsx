@@ -6,6 +6,7 @@ import {
   TEXT_OVERRIDE_LOCALES,
 } from "../lib/i18n/textOverrides";
 import { LOCALE_LABELS } from "../lib/i18n/translations";
+import { confirmDeleteAction } from "../lib/confirmDelete";
 import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
 
 function countOverrides(overrides, locale) {
@@ -68,8 +69,8 @@ export default function AdminTextEditor() {
     });
   };
 
-  const resetLocale = () => {
-    if (!window.confirm(t("admin.textEditorResetLocale", { locale: LOCALE_LABELS[editLocale] }))) {
+  const resetLocale = async () => {
+    if (!(await confirmDeleteAction(t("admin.textEditorResetLocale", { locale: LOCALE_LABELS[editLocale] })))) {
       return;
     }
     setSaved(false);

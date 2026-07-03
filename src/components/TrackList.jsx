@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import TrackCommentInput from "./TrackCommentInput";
 import TrackFeedback from "./TrackFeedback";
 import TrackRating from "./TrackRating";
@@ -65,6 +65,218 @@ function TransportIcon({ type }) {
   return <span className="xdj-hw-transport-glyph">{icons[type]}</span>;
 }
 
+const TrackListCard = memo(function TrackListCard({
+  row,
+  showPreview,
+  isPlaying,
+  currentTrack,
+  onSelectVersion,
+  onRateTrack,
+  onCommentChange,
+  ratings,
+  comments,
+  coupleBrowseUx,
+  onSelect,
+  inlinePlayer,
+}) {
+  const { track, playTrack, isSelected, entry, versionId } = row;
+  const isThisPlaying =
+    isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
+  const rating = getTrackRating(ratings, track.id, versionId);
+  const comment = getTrackComment(comments, track.id, versionId);
+
+  return (
+    <>
+      <div
+        className={`xdj-az-track-card ${
+          isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""
+        }`}
+        onClick={onSelect}
+      >
+        <div className="xdj-az-track-card-top">
+          <TrackArtwork track={track} />
+          <div className="xdj-az-track-card-meta">
+            <div className="xdj-az-track-card-title">{track.title}</div>
+            <div className="xdj-az-track-card-artist">{track.artist}</div>
+            {entry?.lockVersion ? (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
+                <DropTypeBadge drop={playTrack.drop} compact />
+              </div>
+            ) : (
+              <TrackVersionPicker
+                track={track}
+                activeVersionId={versionId}
+                onSelectVersion={onSelectVersion}
+                compact
+              />
+            )}
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <TrackRating
+              rating={rating}
+              onRate={(value) => onRateTrack(track.id, value, versionId)}
+              compact
+              touchFriendly={coupleBrowseUx}
+            />
+          </div>
+        </div>
+        {showPreview ? (
+          <div
+            className="xdj-az-track-card-preview"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect();
+            }}
+          >
+            <PreviewWaveform track={playTrack} isActive={isSelected} isPlaying={isThisPlaying} />
+          </div>
+        ) : null}
+        <TrackFeedback
+          rating={rating}
+          comment={comment}
+          onRate={(value) => onRateTrack(track.id, value, versionId)}
+          onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
+          mobile
+          hideRating
+        />
+      </div>
+      {inlinePlayer}
+    </>
+  );
+});
+
+const TrackListRow = memo(function TrackListRow({
+  row,
+  index,
+  showPreview,
+  isPlaying,
+  currentTrack,
+  reorderMode,
+  dragTrackId,
+  dragOverTrackId,
+  onSelectVersion,
+  onRateTrack,
+  onCommentChange,
+  ratings,
+  comments,
+  formatTime,
+  canReorderRow,
+  onSelect,
+  onReorderDragStart,
+  onReorderDragEnd,
+  onReorderDragOver,
+  onDragLeave,
+  onReorderDrop,
+  inlinePlayer,
+}) {
+  const { track, playTrack, isSelected, entry, versionId } = row;
+  const isThisPlaying =
+    isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
+  const rating = getTrackRating(ratings, track.id, versionId);
+  const comment = getTrackComment(comments, track.id, versionId);
+  const reorderable = canReorderRow(entry);
+
+  return (
+    <>
+      <div
+        className={`xdj-az-row ${isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""} ${
+          dragOverTrackId === track.id ? "is-drag-over" : ""
+        } ${dragTrackId === track.id ? "is-dragging" : ""} ${reorderable ? "is-reorderable" : ""}`}
+        draggable={reorderable}
+        onDragStart={(e) => onReorderDragStart(e, track.id, entry)}
+        onDragEnd={onReorderDragEnd}
+        onDragOver={(e) => onReorderDragOver(e, track.id, entry)}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => onReorderDrop(e, track.id, entry)}
+        onClick={onSelect}
+      >
+        <div className="xdj-az-col xdj-az-col-no">
+          <span className="xdj-az-row-no">{String(index + 1).padStart(2, "0")}</span>
+          {isThisPlaying ? <span className="xdj-az-play-indicator" /> : null}
+        </div>
+
+        <div className="xdj-az-col xdj-az-col-art">
+          <TrackArtwork track={track} />
+        </div>
+
+        {showPreview ? (
+          <div
+            className="xdj-az-col xdj-az-col-preview"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect();
+            }}
+          >
+            <PreviewWaveform track={playTrack} isActive={isSelected} isPlaying={isThisPlaying} />
+          </div>
+        ) : null}
+
+        <div className="xdj-az-col xdj-az-col-title">
+          <span className="xdj-az-track-title">{track.title}</span>
+          {entry?.lockVersion ? (
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
+              <DropTypeBadge drop={playTrack.drop} compact />
+            </div>
+          ) : (
+            <TrackVersionPicker
+              track={track}
+              activeVersionId={versionId}
+              onSelectVersion={onSelectVersion}
+              compact
+              className="mt-0.5"
+            />
+          )}
+        </div>
+
+        <div className="xdj-az-col xdj-az-col-artist hidden md:block">
+          <span className="xdj-az-track-artist">{track.artist}</span>
+        </div>
+
+        <div className="xdj-az-col xdj-az-col-time hidden sm:block">
+          <span className="xdj-az-track-time">{formatTime(getPreviewLength(playTrack))}</span>
+        </div>
+
+        {!reorderMode ? (
+          <>
+            <div className="xdj-az-col xdj-az-col-rate" onClick={(e) => e.stopPropagation()}>
+              <TrackFeedback
+                rating={rating}
+                comment={comment}
+                onRate={(value) => onRateTrack(track.id, value, versionId)}
+                onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
+                compact
+              />
+            </div>
+
+            <div
+              className="xdj-az-col xdj-az-col-note hidden lg:block"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <TrackCommentInput
+                value={comment}
+                onChange={(text) => onCommentChange(track.id, text, versionId)}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="xdj-az-col xdj-az-col-grip">
+            {reorderable ? (
+              <span className="xdj-az-reorder-handle" title="Drag to reorder" aria-hidden>
+                ⋮⋮
+              </span>
+            ) : (
+              <span className="text-[9px] text-xdj-muted">—</span>
+            )}
+          </div>
+        )}
+      </div>
+      {inlinePlayer}
+    </>
+  );
+});
+
 export default function TrackList({
   tracks,
   genreTabs = null,
@@ -89,11 +301,15 @@ export default function TrackList({
 }) {
   const { settings } = useAppSettingsContext();
   const { t } = useI18n();
-  const genreTrackOrders = genreTrackOrdersProp ?? settings.genreTrackOrders ?? {};
+  const genreTrackOrders = useMemo(
+    () => genreTrackOrdersProp ?? settings.genreTrackOrders ?? {},
+    [genreTrackOrdersProp, settings.genreTrackOrders]
+  );
   const catalogMode = Array.isArray(genreTabs) && genreTabs.length > 0;
-  const categoriesInTracks = catalogMode
-    ? genreTabs
-    : [...new Set(tracks.map((t) => t.bucket))];
+  const categoriesInTracks = useMemo(
+    () => (catalogMode ? genreTabs : [...new Set(tracks.map((t) => t.bucket))]),
+    [catalogMode, genreTabs, tracks]
+  );
   const [activeTab, setActiveTab] = useState(categoriesInTracks[0] || "");
   const [showPreview, setShowPreview] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : true
@@ -428,192 +644,67 @@ export default function TrackList({
             ) : (
               <>
                 {renderInlinePlayer(inlinePlayer && currentTrack && !hasSelectedInList)}
-                <div className="xdj-az-mobile-cards">
-                  {filteredTracks.map((item, index) => {
-                    const row = resolveRow(item, index);
-                    const { track, playTrack, isSelected, rowKey, entry, versionId } = row;
-                    const isThisPlaying =
-                      isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
-
-                    return (
-                      <React.Fragment key={rowKey}>
-                      <div
-                        className={`xdj-az-track-card ${
-                          isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""
-                        }`}
-                        onClick={() => selectRow(row)}
-                      >
-                        <div className="xdj-az-track-card-top">
-                          <TrackArtwork track={track} />
-                          <div className="xdj-az-track-card-meta">
-                            <div className="xdj-az-track-card-title">{track.title}</div>
-                            <div className="xdj-az-track-card-artist">{track.artist}</div>
-                            {entry?.lockVersion ? (
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
-                                <DropTypeBadge drop={playTrack.drop} compact />
-                              </div>
-                            ) : (
-                              <TrackVersionPicker
-                                track={track}
-                                activeVersionId={versionId}
-                                onSelectVersion={onSelectVersion}
-                                compact
-                              />
-                            )}
-                          </div>
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <TrackRating
-                              rating={getTrackRating(ratings, track.id, versionId)}
-                              onRate={(value) => onRateTrack(track.id, value, versionId)}
-                              compact
-                              touchFriendly={coupleBrowseUx}
-                            />
-                          </div>
-                        </div>
-                        {showPreview && (
-                          <div
-                            className="xdj-az-track-card-preview"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              selectRow(row);
-                            }}
-                          >
-                            <PreviewWaveform
-                              track={playTrack}
-                              isActive={isSelected}
-                              isPlaying={isThisPlaying}
-                            />
-                          </div>
-                        )}
-                        <TrackFeedback
-                          rating={getTrackRating(ratings, track.id, versionId)}
-                          comment={getTrackComment(comments, track.id, versionId)}
-                          onRate={(value) => onRateTrack(track.id, value, versionId)}
-                          onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
-                          mobile
-                          hideRating
-                        />
-                      </div>
-                      {renderInlinePlayer(isSelected && useCardLayout)}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-
-                {filteredTracks.map((item, index) => {
-                const row = resolveRow(item, index);
-                const { track, playTrack, isSelected, rowKey, entry, versionId } = row;
-                const isThisPlaying =
-                  isSelected && isPlaying && currentTrack?.activeVersionId === versionId;
-
-                return (
-                  <React.Fragment key={rowKey}>
-                  <div
-                    className={`xdj-az-row ${isThisPlaying ? "is-playing" : isSelected ? "is-cursor" : ""} ${
-                      dragOverTrackId === track.id ? "is-drag-over" : ""
-                    } ${dragTrackId === track.id ? "is-dragging" : ""} ${
-                      canReorderRow(entry) ? "is-reorderable" : ""
-                    }`}
-                    draggable={canReorderRow(entry)}
-                    onDragStart={(e) => handleReorderDragStart(e, track.id, entry)}
-                    onDragEnd={handleReorderDragEnd}
-                    onDragOver={(e) => handleReorderDragOver(e, track.id, entry)}
-                    onDragLeave={() => setDragOverTrackId((id) => (id === track.id ? null : id))}
-                    onDrop={(e) => handleReorderDrop(e, track.id, entry)}
-                    onClick={() => selectRow(row)}
-                  >
-                    <div className="xdj-az-col xdj-az-col-no">
-                      <span className="xdj-az-row-no">{String(index + 1).padStart(2, "0")}</span>
-                      {isThisPlaying && <span className="xdj-az-play-indicator" />}
-                    </div>
-
-                    <div className="xdj-az-col xdj-az-col-art">
-                      <TrackArtwork track={track} />
-                    </div>
-
-                    {showPreview && (
-                      <div
-                        className="xdj-az-col xdj-az-col-preview"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectRow(row);
-                        }}
-                      >
-                        <PreviewWaveform
-                          track={playTrack}
-                          isActive={isSelected}
-                          isPlaying={isThisPlaying}
-                        />
-                      </div>
-                    )}
-
-                    <div className="xdj-az-col xdj-az-col-title">
-                      <span className="xdj-az-track-title">{track.title}</span>
-                      {entry?.lockVersion ? (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
-                          <DropTypeBadge drop={playTrack.drop} compact />
-                        </div>
-                      ) : (
-                        <TrackVersionPicker
-                          track={track}
-                          activeVersionId={versionId}
+                {useCardLayout ? (
+                  <div className="xdj-az-mobile-cards">
+                    {filteredTracks.map((item, index) => {
+                      const row = resolveRow(item, index);
+                      return (
+                        <TrackListCard
+                          key={row.rowKey}
+                          row={row}
+                          showPreview={showPreview}
+                          isPlaying={isPlaying}
+                          currentTrack={currentTrack}
                           onSelectVersion={onSelectVersion}
-                          compact
-                          className="mt-0.5"
+                          onRateTrack={onRateTrack}
+                          onCommentChange={onCommentChange}
+                          ratings={ratings}
+                          comments={comments}
+                          coupleBrowseUx={coupleBrowseUx}
+                          onSelect={() => selectRow(row)}
+                          inlinePlayer={renderInlinePlayer(
+                            row.isSelected && useCardLayout
+                          )}
                         />
-                      )}
-                    </div>
-
-                    <div className="xdj-az-col xdj-az-col-artist hidden md:block">
-                      <span className="xdj-az-track-artist">{track.artist}</span>
-                    </div>
-
-                    <div className="xdj-az-col xdj-az-col-time hidden sm:block">
-                      <span className="xdj-az-track-time">
-                        {formatTime(getPreviewLength(playTrack))}
-                      </span>
-                    </div>
-
-                    {!reorderMode ? (
-                      <>
-                        <div className="xdj-az-col xdj-az-col-rate" onClick={(e) => e.stopPropagation()}>
-                          <TrackFeedback
-                            rating={getTrackRating(ratings, track.id, versionId)}
-                            comment={getTrackComment(comments, track.id, versionId)}
-                            onRate={(value) => onRateTrack(track.id, value, versionId)}
-                            onCommentChange={(text) => onCommentChange(track.id, text, versionId)}
-                            compact
-                          />
-                        </div>
-
-                        <div
-                          className="xdj-az-col xdj-az-col-note hidden lg:block"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <TrackCommentInput
-                            value={getTrackComment(comments, track.id, versionId)}
-                            onChange={(text) => onCommentChange(track.id, text, versionId)}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="xdj-az-col xdj-az-col-grip">
-                        {canReorderRow(entry) ? (
-                          <span className="xdj-az-reorder-handle" title="Drag to reorder" aria-hidden>
-                            ⋮⋮
-                          </span>
-                        ) : (
-                          <span className="text-[9px] text-xdj-muted">—</span>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                  {renderInlinePlayer(isSelected && !useCardLayout)}
-                  </React.Fragment>
-                );
-              })}
+                ) : (
+                  filteredTracks.map((item, index) => {
+                    const row = resolveRow(item, index);
+                    return (
+                      <TrackListRow
+                        key={row.rowKey}
+                        row={row}
+                        index={index}
+                        showPreview={showPreview}
+                        isPlaying={isPlaying}
+                        currentTrack={currentTrack}
+                        reorderMode={reorderMode}
+                        dragTrackId={dragTrackId}
+                        dragOverTrackId={dragOverTrackId}
+                        onSelectVersion={onSelectVersion}
+                        onRateTrack={onRateTrack}
+                        onCommentChange={onCommentChange}
+                        ratings={ratings}
+                        comments={comments}
+                        formatTime={formatTime}
+                        canReorderRow={canReorderRow}
+                        onSelect={() => selectRow(row)}
+                        onReorderDragStart={handleReorderDragStart}
+                        onReorderDragEnd={handleReorderDragEnd}
+                        onReorderDragOver={handleReorderDragOver}
+                        onDragLeave={() =>
+                          setDragOverTrackId((id) => (id === row.track.id ? null : id))
+                        }
+                        onReorderDrop={handleReorderDrop}
+                        inlinePlayer={renderInlinePlayer(
+                          row.isSelected && !useCardLayout
+                        )}
+                      />
+                    );
+                  })
+                )}
               </>
             )}
           </div>

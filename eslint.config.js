@@ -17,5 +17,18 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      'react-hooks/exhaustive-deps': 'error',
+      // Existing patterns predate react-hooks v7; warn instead of blocking lint.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/refs': 'warn',
+      'react-hooks/purity': 'warn',
+    },
+  },
+  {
+    files: ['server/**/*.js', 'scripts/**/*.js', 'server.js', 'vite.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 ])

@@ -314,7 +314,7 @@ export default function ClientContract({
       setDone(true);
       onSigned?.(signedTicket);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "שליחת החוזה נכשלה");
     } finally {
       setSubmitting(false);
     }

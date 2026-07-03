@@ -90,10 +90,10 @@ export default function WizardStepTimeline({
     onUpdatePreferences({ weddingTimeline: next });
   };
 
-  const deleteItem = (id) => {
+  const deleteItem = async (id) => {
     const item = (preferences.weddingTimeline ?? []).find((x) => x.id === id);
     const label = item?.label || item?.time || id;
-    if (!confirmDeleteAction(t("admin.deleteTimelineItemConfirm", { label }))) return;
+    if (!(await confirmDeleteAction(t("admin.deleteTimelineItemConfirm", { label })))) return;
     onUpdatePreferences({
       weddingTimeline: (preferences.weddingTimeline ?? []).filter((item) => item.id !== id),
     });

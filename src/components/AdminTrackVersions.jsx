@@ -78,7 +78,7 @@ export default function AdminTrackVersions({
   };
 
   const handleDeleteVersion = async (versionId) => {
-    if (!confirmDeleteAction(t("admin.deleteVersionConfirm"))) return;
+    if (!(await confirmDeleteAction(t("admin.deleteVersionConfirm")))) return;
     try {
       const saved = await deleteTrackVersion(track.id, versionId);
       onTrackSaved?.(saved);

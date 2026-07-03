@@ -9,12 +9,14 @@ import { createDropboxImportMiddleware } from "./server/dropboxImport.js";
 import { createApiNotFoundMiddleware } from "./server/apiNotFound.js";
 import { createArtworkApiMiddleware } from "./server/artworkApi.js";
 import { createBackupApiMiddleware } from "./server/backupApi.js";
+import { createStorageBrowseApiMiddleware } from "./server/storageBrowseApi.js";
 import { createAuthApiMiddleware } from "./server/authApi.js";
 import { createContractApiMiddleware } from "./server/contractApi.js";
 import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
 import { assertProductionSecrets } from "./server/auth.js";
 import { safePathUnderRoot } from "./server/pathSafety.js";
 import { initStorage, STORAGE_ROOT } from "./server/storagePaths.js";
+import { repairClientContractLinks } from "./server/clientContractLink.js";
 import { ensureAllGenreDirs, readGenreList } from "./server/genreStorage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -145,6 +147,7 @@ const uploadMusic = createUploadMusicMiddleware();
 const dropboxImport = createDropboxImportMiddleware();
 const artworkApi = createArtworkApiMiddleware();
 const backupApi = createBackupApiMiddleware();
+const storageBrowseApi = createStorageBrowseApiMiddleware();
 const authApi = createAuthApiMiddleware();
 const contractApi = createContractApiMiddleware();
 const mediaAuth = createMediaAuthMiddleware();
@@ -167,10 +170,12 @@ const server = createServer((req, res) => {
         dropboxImport(req, res, () => {
           artworkApi(req, res, () => {
             backupApi(req, res, () => {
+              storageBrowseApi(req, res, () => {
               apiNotFound(req, res, () => {
                 mediaAuth(req, res, () => {
                   serveStatic(req, res);
                 });
+              });
               });
             });
           });
@@ -183,6 +188,17 @@ const server = createServer((req, res) => {
 
 await initStorage();
 assertProductionSecrets();
+try {
+  const { updated, orphansRemoved } = await repairClientContractLinks();
+  if (orphansRemoved > 0) {
+    console.log(`Removed ${orphansRemoved} orphan contract ticket(s) (deleted clients)`);
+  }
+  if (updated > 0) {
+    console.log(`Repaired contractTicketId on ${updated} client(s)`);
+  }
+} catch (err) {
+  console.warn("Client–contract link repair:", err.message);
+}
 try {
   const genres = await readGenreList();
   await ensureAllGenreDirs(genres);

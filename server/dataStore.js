@@ -3,6 +3,7 @@ import path from "path";
 import { normalizeGenres } from "../src/lib/categories.js";
 import { applyGenreSettings, ensureAllGenreDirs, readGenreList } from "./genreStorage.js";
 import { isAdminSession, isAuthenticatedSession, parseRequestSession } from "./auth.js";
+import { cascadeDeleteClientData } from "./clientContractLink.js";
 import { DATA_DIR } from "./storagePaths.js";
 
 export { DATA_DIR };
@@ -82,7 +83,19 @@ export async function handleDataApi(req, res) {
           sendJson(res, 400, { error: "Expected array" });
           return true;
         }
+        const previous = await readJsonFile(DATA_FILES.clients, []);
+        const previousIds = new Set(
+          (Array.isArray(previous) ? previous : []).map((c) => c.id).filter(Boolean)
+        );
+        const nextIds = new Set(body.map((c) => c.id).filter(Boolean));
+        const removedIds = [...previousIds].filter((id) => !nextIds.has(id));
+
         await writeJsonFile(DATA_FILES.clients, body);
+
+        if (removedIds.length > 0) {
+          await cascadeDeleteClientData(removedIds);
+        }
+
         sendJson(res, 200, { ok: true });
         return true;
       }

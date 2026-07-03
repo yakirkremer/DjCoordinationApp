@@ -227,6 +227,17 @@ export async function ensureSignedPdfCopy(ticket, template) {
   }
 }
 
+export async function deleteSignedCopyFiles(ticketId) {
+  if (!ticketId) return;
+  for (const ext of ["json", "html", "pdf"]) {
+    try {
+      await fs.unlink(path.join(SIGNED_DIR, `${ticketId}.${ext}`));
+    } catch {
+      // file may not exist
+    }
+  }
+}
+
 export async function readSignedCopyFile(ticketId, format = "auto") {
   const candidates =
     format === "json"

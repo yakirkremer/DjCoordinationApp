@@ -56,6 +56,7 @@ function ClientContractCell({
   setAssigningId,
   assignTemplateId,
   setAssignTemplateId,
+  assignPendingId,
   onAssign,
 }) {
   const [copied, setCopied] = useState(false);
@@ -91,6 +92,7 @@ function ClientContractCell({
       return <span className="text-xs text-gray-600">—</span>;
     }
     if (assigningId === client.id) {
+      const isPending = assignPendingId === client.id;
       return (
         <div className="flex flex-col gap-1 min-w-[140px]">
           <select
@@ -98,7 +100,8 @@ function ClientContractCell({
             onChange={(e) =>
               setAssignTemplateId((prev) => ({ ...prev, [client.id]: e.target.value }))
             }
-            className="text-xs bg-gray-950 border border-gray-700 rounded px-2 py-1 text-gray-200"
+            disabled={isPending}
+            className="text-xs bg-gray-950 border border-gray-700 rounded px-2 py-1 text-gray-200 disabled:opacity-40"
           >
             <option value="">תבנית...</option>
             {contractTemplates.map((tpl) => (
@@ -108,13 +111,19 @@ function ClientContractCell({
             ))}
           </select>
           <div className="flex gap-1">
-            <button type="button" onClick={onAssign} className="text-[10px] text-green-400 hover:text-green-300">
-              שלח
+            <button
+              type="button"
+              onClick={onAssign}
+              disabled={isPending || !assignTemplateId[client.id]}
+              className="text-[10px] text-green-400 hover:text-green-300 disabled:opacity-40"
+            >
+              {isPending ? "שולח..." : "שלח"}
             </button>
             <button
               type="button"
               onClick={() => setAssigningId(null)}
-              className="text-[10px] text-gray-500"
+              disabled={isPending}
+              className="text-[10px] text-gray-500 disabled:opacity-40"
             >
               ביטול
             </button>
@@ -221,13 +230,16 @@ export default function ClientManager({
   const [templateId, setTemplateId] = useState("");
   const [sendContract, setSendContract] = useState(false);
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
   const [assigningId, setAssigningId] = useState(null);
+  const [assignPendingId, setAssignPendingId] = useState(null);
   const [assignTemplateId, setAssignTemplateId] = useState({});
   const [editingTicket, setEditingTicket] = useState(null);
   const [viewingTicket, setViewingTicket] = useState(null);
 
-  const handleCreate = (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
+    if (creating) return;
     if (!name.trim()) {
       setError("יש להזין שם לקוח");
       return;
@@ -246,27 +258,34 @@ export default function ClientManager({
       return;
     }
 
-    const client = onCreateClient(
-      name,
-      loginCode,
-      clientType,
-      sendContract ? templateId : null,
-      eventDate,
-      eventLocation
-    );
-    if (!client) {
-      setError("קוד כניסה כבר קיים. בחרו קוד אחר.");
-      return;
-    }
-
-    setName("");
-    setLoginCode("");
-    setEventDate("");
-    setEventLocation("");
-    setClientType(CLIENT_TYPES[0].id);
-    setTemplateId("");
-    setSendContract(false);
+    setCreating(true);
     setError("");
+    try {
+      const client = await onCreateClient(
+        name,
+        loginCode,
+        clientType,
+        sendContract ? templateId : null,
+        eventDate,
+        eventLocation
+      );
+      if (!client) {
+        setError("קוד כניסה כבר קיים. בחרו קוד אחר.");
+        return;
+      }
+
+      setName("");
+      setLoginCode("");
+      setEventDate("");
+      setEventLocation("");
+      setClientType(CLIENT_TYPES[0].id);
+      setTemplateId("");
+      setSendContract(false);
+    } catch (err) {
+      setError(err.message || "יצירת הלקוח נכשלה");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const copyCode = (code) => {
@@ -276,11 +295,20 @@ export default function ClientManager({
   const getTypeLabel = (typeId) =>
     CLIENT_TYPES.find((t) => t.id === typeId)?.label ?? typeId;
 
-  const handleAssignContract = (clientId) => {
+  const handleAssignContract = async (clientId) => {
     const tplId = assignTemplateId[clientId];
-    if (!tplId || !onAssignContract) return;
-    onAssignContract(clientId, tplId);
-    setAssigningId(null);
+    if (!tplId || !onAssignContract || assignPendingId) return;
+
+    setAssignPendingId(clientId);
+    setError("");
+    try {
+      await onAssignContract(clientId, tplId);
+      setAssigningId(null);
+    } catch (err) {
+      setError(err.message || "שליחת החוזה נכשלה");
+    } finally {
+      setAssignPendingId(null);
+    }
   };
 
   return (
@@ -296,12 +324,14 @@ export default function ClientManager({
               onChange={(e) => setName(e.target.value)}
               placeholder="שם הזוג / האירוע *"
               required
-              className="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500"
+              disabled={creating}
+              className="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500 disabled:opacity-40"
             />
             <select
               value={clientType}
               onChange={(e) => setClientType(e.target.value)}
-              className="w-full sm:w-44 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500"
+              disabled={creating}
+              className="w-full sm:w-44 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500 disabled:opacity-40"
             >
               {CLIENT_TYPES.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -317,7 +347,8 @@ export default function ClientManager({
               onChange={(e) => setEventDate(e.target.value)}
               title="תאריך האירוע"
               required
-              className="flex-1 sm:flex-none sm:w-44 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500"
+              disabled={creating}
+              className="flex-1 sm:flex-none sm:w-44 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500 disabled:opacity-40"
               dir="ltr"
             />
             <input
@@ -326,7 +357,8 @@ export default function ClientManager({
               onChange={(e) => setEventLocation(e.target.value)}
               placeholder="מיקום האירוע *"
               required
-              className="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500"
+              disabled={creating}
+              className="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-gray-200 outline-none focus:border-purple-500 disabled:opacity-40"
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -335,14 +367,16 @@ export default function ClientManager({
               value={loginCode}
               onChange={(e) => setLoginCode(e.target.value.toUpperCase())}
               placeholder="קוד כניסה (אופציונלי)"
-              className="flex-1 sm:flex-none sm:w-40 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-center font-mono text-purple-300 outline-none focus:border-purple-500 uppercase"
+              disabled={creating}
+              className="flex-1 sm:flex-none sm:w-40 bg-gray-950 border border-gray-700 rounded-lg px-4 py-2 text-center font-mono text-purple-300 outline-none focus:border-purple-500 uppercase disabled:opacity-40"
               dir="ltr"
             />
             <button
               type="submit"
-              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold transition-all shrink-0"
+              disabled={creating}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-bold transition-all shrink-0 disabled:opacity-40"
             >
-              + צור לקוח
+              {creating ? "יוצר..." : "+ צור לקוח"}
             </button>
           </div>
 
@@ -352,6 +386,7 @@ export default function ClientManager({
                 type="checkbox"
                 checked={sendContract}
                 onChange={(e) => setSendContract(e.target.checked)}
+                disabled={creating}
                 className="rounded"
               />
               שלח חוזה לחתימה בכניסה ללקוח
@@ -454,6 +489,7 @@ export default function ClientManager({
                         setAssigningId={setAssigningId}
                         assignTemplateId={assignTemplateId}
                         setAssignTemplateId={setAssignTemplateId}
+                        assignPendingId={assignPendingId}
                         onAssign={() => handleAssignContract(client.id)}
                         onEditTicket={(c, t) => setEditingTicket({ client: c, ticket: t })}
                         onViewTicket={(c, t) => {

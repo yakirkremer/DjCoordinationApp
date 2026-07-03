@@ -7,7 +7,8 @@ export default function DynamicWizardStep({ step, preferences, onUpdatePreferenc
     onUpdatePreferences(setFieldValue(preferences, question, value));
   };
 
-  const isValid = validateQuestionsStep(preferences, step.questions);
+  const questions = step.questions ?? [];
+  const isValid = validateQuestionsStep(preferences, questions);
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -21,7 +22,7 @@ export default function DynamicWizardStep({ step, preferences, onUpdatePreferenc
       )}
 
       <div className="flex flex-col gap-4">
-        {step.questions.map((question) => (
+        {questions.map((question) => (
           <DynamicQuestionField
             key={question.id}
             question={question}

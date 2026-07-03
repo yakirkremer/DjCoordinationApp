@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { normalizePreviewCue } from "../lib/previewCue";
 import { getDropPlayerCssVars, getDropWaveformColors } from "../lib/dropTypeColors";
 import { useDropColors } from "../hooks/useDropColors";
@@ -196,7 +196,19 @@ function MirrorBars({ bars, cueLeft, cueWidth, isPlaying, waveColors }) {
   });
 }
 
-export default function PreviewWaveform({ track, isActive, isPlaying }) {
+function previewWaveformPropsEqual(prev, next) {
+  return (
+    prev.track.id === next.track.id &&
+    prev.track.activeVersionId === next.track.activeVersionId &&
+    prev.track.startTime === next.track.startTime &&
+    prev.track.endTime === next.track.endTime &&
+    prev.track.drop === next.track.drop &&
+    prev.isActive === next.isActive &&
+    prev.isPlaying === next.isPlaying
+  );
+}
+
+function PreviewWaveform({ track, isActive, isPlaying }) {
   const { activeWaveformStyle } = useAppSettingsContext();
   const { colorMap } = useDropColors();
   const seed = hashId(track.id);
@@ -272,3 +284,5 @@ export default function PreviewWaveform({ track, isActive, isPlaying }) {
     </div>
   );
 }
+
+export default memo(PreviewWaveform, previewWaveformPropsEqual);

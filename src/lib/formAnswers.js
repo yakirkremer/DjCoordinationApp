@@ -25,7 +25,7 @@ export function isQuestionAnswered(preferences, question) {
 }
 
 export function validateQuestionsStep(preferences, questions) {
-  return questions
+  return (questions ?? [])
     .filter((q) => q.required)
     .every((q) => isQuestionAnswered(preferences, q));
 }

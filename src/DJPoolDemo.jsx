@@ -25,11 +25,14 @@ import AccessibilityToolbar from "./components/AccessibilityToolbar";
 import AdminSettings from "./components/AdminSettings";
 import AdminTextEditor from "./components/AdminTextEditor";
 import AdminFetchArtwork from "./components/AdminFetchArtwork";
+import AdminStorageViewer from "./components/AdminStorageViewer";
 import DropsAndGenresGuide from "./components/DropsAndGenresGuide";
 import TutorialPage from "./components/TutorialPage";
 import AdminGate from "./components/AdminGate";
 import ClientBreadcrumb from "./components/ClientBreadcrumb";
 import Toast from "./components/Toast";
+import ConfirmDeleteProvider from "./components/ConfirmDeleteProvider";
+import ErrorBoundary from "./components/ErrorBoundary";
 import SiteTextEditPopover from "./components/SiteTextEditPopover";
 import SiteTextEditToggle from "./components/SiteTextEditToggle";
 import SiteTextEditBanner from "./components/SiteTextEditBanner";
@@ -74,7 +77,6 @@ export default function DJPoolDemo() {
   const [catalogError, setCatalogError] = useState(null);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const resumeHandledRef = useRef(false);
@@ -90,7 +92,7 @@ export default function DJPoolDemo() {
 
   const genres = useGenres();
 
-  const { clients, activeClient, createClient, updateClientStages, deleteClient, login, logout, ready: clientsReady, bootstrapAdmin } = useClients();
+  const { clients, activeClient, createClient, updateClientStages, setClientContractTicket: linkClientContractTicket, deleteClient, login, logout, ready: clientsReady, bootstrapAdmin } = useClients();
   const contractsEnabled =
     showAdminPanel && (adminTab === "clients" || adminTab === "contracts");
   const {
@@ -177,7 +179,7 @@ export default function DJPoolDemo() {
     return () => {
       cancelled = true;
     };
-  }, [activeClient?.id, clientScreen]);
+  }, [activeClient, clientScreen]);
 
   useEffect(() => {
     if (!contractLinkToken || !activeClient) return undefined;
@@ -231,22 +233,36 @@ export default function DJPoolDemo() {
       ).catch((err) => console.error("Failed to seed client preferences:", err));
 
       if (contractTemplateId) {
-        await createTicket(client.id, contractTemplateId, profile);
+        const ticket = await createTicket(client.id, contractTemplateId, profile);
+        if (!ticket?.id) {
+          throw new Error("הלקוח נוצר, אך שליחת החוזה נכשלה. נסו לשלוח חוזה מהטבלה.");
+        }
+        linkClientContractTicket(client.id, ticket.id);
       }
       return client;
     },
-    [createClient, createTicket]
+    [createClient, createTicket, linkClientContractTicket]
   );
 
   const handleDeleteClient = useCallback(
-    (id) => {
+    async (id) => {
       const client = clients.find((c) => c.id === id);
       const name = client?.name ?? id;
-      if (!confirmDeleteAction(t("admin.deleteClientConfirm", { name }))) return;
+      if (!(await confirmDeleteAction(t("admin.deleteClientConfirm", { name })))) return;
       deleteClient(id);
       deleteClientTickets(id);
     },
     [clients, deleteClient, deleteClientTickets, t]
+  );
+
+  const handleDeleteTemplate = useCallback(
+    async (templateId) => {
+      const template = contractsData.templates.find((t) => t.id === templateId);
+      const name = template?.name ?? templateId;
+      if (!(await confirmDeleteAction(t("admin.deleteTemplateConfirm", { name })))) return;
+      await deleteTemplate(templateId);
+    },
+    [contractsData.templates, deleteTemplate, t]
   );
 
   const refreshClientContract = useCallback(
@@ -264,12 +280,7 @@ export default function DJPoolDemo() {
   );
 
   useEffect(() => {
-    if (!contractsEnabled) return;
-    loadContracts().catch(() => {});
-  }, [adminTab, contractsEnabled, loadContracts]);
-
-  useEffect(() => {
-    if (!contractsEnabled) return;
+    if (!contractsEnabled) return undefined;
     const refreshContracts = () => loadContracts().catch(() => {});
     window.addEventListener("focus", refreshContracts);
     return () => window.removeEventListener("focus", refreshContracts);
@@ -310,7 +321,7 @@ export default function DJPoolDemo() {
     return () => {
       cancelled = true;
     };
-  }, [showAdminPanel, activeClient?.id]);
+  }, [showAdminPanel, activeClient]);
 
   useEffect(() => {
     if (!isAdminRoute) {
@@ -368,6 +379,10 @@ export default function DJPoolDemo() {
     }, 250);
   }, []);
 
+  useEffect(() => {
+    return () => clearTimeout(catalogSaveTimer.current);
+  }, []);
+
   const patchTrackField = useCallback((track, field, val) => {
     const activeId = track.activeVersionId || track.defaultVersionId;
     if (field === "startTime" || field === "endTime" || field === "duration") {
@@ -397,11 +412,10 @@ export default function DJPoolDemo() {
 
       setCurrentTrack((prev) => {
         if (prev?.id !== id) return prev;
-        const base = tracks.find((t) => t.id === id) || prev;
-        return patchTrackField(ensureTrackVersions(base), field, val);
+        return patchTrackField(ensureTrackVersions(prev), field, val);
       });
     },
-    [persistCatalog, patchTrackField, tracks]
+    [persistCatalog, patchTrackField]
   );
 
   const handleUpdateTrackCue = useCallback(
@@ -421,15 +435,14 @@ export default function DJPoolDemo() {
 
       setCurrentTrack((prev) => {
         if (prev?.id !== id) return prev;
-        const base = tracks.find((t) => t.id === id) || prev;
-        const activeId = base.activeVersionId || base.defaultVersionId;
-        const versions = (base.versions || []).map((v) =>
+        const activeId = prev.activeVersionId || prev.defaultVersionId;
+        const versions = (prev.versions || []).map((v) =>
           v.id === activeId ? { ...v, startTime, endTime } : v
         );
-        return normalizePreviewCue(applyActiveVersion({ ...base, versions }, activeId));
+        return normalizePreviewCue(applyActiveVersion({ ...prev, versions }, activeId));
       });
     },
-    [persistCatalog, tracks]
+    [persistCatalog]
   );
 
   const handleSelectVersion = useCallback(
@@ -445,26 +458,21 @@ export default function DJPoolDemo() {
         })
       );
 
+      let nextStart = null;
       setCurrentTrack((prev) => {
         if (prev?.id !== trackId) return prev;
         const next = normalizePreviewCue(
           applyActiveVersion(ensureTrackVersions(prev), versionId)
         );
+        nextStart = next.startTime ?? 0;
         return next;
       });
 
-      setCurrentTime((prevTime) => {
-        if (currentTrack?.id !== trackId) return prevTime;
-        const base = currentTrack;
-        const next = normalizePreviewCue(
-          applyActiveVersion(ensureTrackVersions(base), versionId)
-        );
-        return next.startTime ?? 0;
-      });
-
-      setIsPlaying((wasPlaying) => (currentTrack?.id === trackId ? true : wasPlaying));
+      if (nextStart !== null) {
+        setIsPlaying(true);
+      }
     },
-    [currentTrack?.id, lockedVersionIds]
+    [lockedVersionIds]
   );
 
   const handleTrackSelect = useCallback(
@@ -499,7 +507,6 @@ export default function DJPoolDemo() {
           setIsPlaying((playing) => !playing);
           return prev;
         }
-        setCurrentTime(normalized.startTime);
         setIsPlaying(true);
         return normalized;
       });
@@ -510,7 +517,7 @@ export default function DJPoolDemo() {
   const handleDeleteTrack = async (id) => {
     const track = tracks.find((t) => t.id === id);
     const label = track ? `${track.title} — ${track.artist}` : t("admin.thisTrack");
-    const confirmed = confirmDeleteAction(t("admin.deleteConfirm", { label }));
+    const confirmed = await confirmDeleteAction(t("admin.deleteConfirm", { label }));
     if (!confirmed) return;
 
     try {
@@ -537,7 +544,6 @@ export default function DJPoolDemo() {
     }
 
     setCurrentTrack(normalized);
-    setCurrentTime(normalized.startTime);
     if (play) {
       setIsPlaying(isSame ? !isPlaying : true);
     } else if (!isSame) {
@@ -554,11 +560,11 @@ export default function DJPoolDemo() {
     dlAnchor.click();
   };
 
-  const formatTime = (t) => {
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t % 60);
+  const formatTime = useCallback((time) => {
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
     return `${m}:${s < 10 ? "0" : ""}${s}`;
-  };
+  }, []);
 
   const handleArtworkFetched = useCallback(
     async () => {
@@ -584,24 +590,31 @@ export default function DJPoolDemo() {
     persistCatalog(verified);
   }, [persistCatalog]);
 
-  const handleTrackUploaded = (uploadedTracks) => {
-    handleTracksImported(Array.isArray(uploadedTracks) ? uploadedTracks : [uploadedTracks]);
-  };
+  const handleTracksImported = useCallback(
+    (importedTracks) => {
+      if (!importedTracks?.length) return;
+      const normalized = importedTracks.map((t) =>
+        normalizePreviewCue({ ...ensureTrackVersions(t), isMissing: false })
+      );
+      setTracks((prev) => {
+        const updated = [...prev, ...normalized];
+        persistCatalog(updated);
+        return updated;
+      });
+      setCatalogStatus("ready");
+      const first = resolvePlaybackTrack(normalized[0]);
+      setCurrentTrack(first);
+      setIsPlaying(false);
+    },
+    [persistCatalog, resolvePlaybackTrack]
+  );
 
-  const handleTracksImported = (importedTracks) => {
-    if (!importedTracks?.length) return;
-    const normalized = importedTracks.map((t) =>
-      normalizePreviewCue({ ...ensureTrackVersions(t), isMissing: false })
-    );
-    const updated = [...tracks, ...normalized];
-    setTracks(updated);
-    setCatalogStatus("ready");
-    persistCatalog(updated);
-    const first = resolvePlaybackTrack(normalized[0]);
-    setCurrentTrack(first);
-    setCurrentTime(first?.startTime ?? 0);
-    setIsPlaying(false);
-  };
+  const handleTrackUploaded = useCallback(
+    (uploadedTracks) => {
+      handleTracksImported(Array.isArray(uploadedTracks) ? uploadedTracks : [uploadedTracks]);
+    },
+    [handleTracksImported]
+  );
 
   const handleTrackReloaded = useCallback(
     (reloadedTrack) => {
@@ -618,7 +631,6 @@ export default function DJPoolDemo() {
       persistCatalog(updated);
       if (currentTrack?.id === normalized.id) {
         setCurrentTrack(normalized);
-        setCurrentTime(normalized.startTime ?? 0);
         setIsPlaying(false);
       }
     },
@@ -696,25 +708,48 @@ export default function DJPoolDemo() {
     ? tracks.find((t) => t.id === currentTrack.id) ?? null
     : null;
 
-  const playerProps = {
-    currentTrack,
-    catalogTrack: catalogTrackForPlayer,
-    activeVersionId: currentTrack?.activeVersionId,
-    versionLocked: Boolean(currentTrack?.id && lockedVersionIds[currentTrack.id]),
-    onSelectVersion: handleSelectVersion,
-    isPlaying,
-    setIsPlaying,
-    currentTime,
-    setCurrentTime,
-    formatTime,
-    onUpdateTrack: handleUpdateTrack,
-    onUpdateTrackCue: handleUpdateTrackCue,
-    isAdmin: showAdminPanel,
-    resolveTrackUrl,
-    embedded: isAdminEmbeddedPlayer,
-    onTrackReloaded: handleTrackReloaded,
-    onPlaybackFailed: handleTrackPlaybackFailed,
-  };
+  const playerProps = useMemo(
+    () => ({
+      currentTrack,
+      catalogTrack: catalogTrackForPlayer,
+      activeVersionId: currentTrack?.activeVersionId,
+      versionLocked: Boolean(currentTrack?.id && lockedVersionIds[currentTrack.id]),
+      onSelectVersion: handleSelectVersion,
+      isPlaying,
+      setIsPlaying,
+      formatTime,
+      onUpdateTrack: handleUpdateTrack,
+      onUpdateTrackCue: handleUpdateTrackCue,
+      isAdmin: showAdminPanel,
+      resolveTrackUrl,
+      embedded: isAdminEmbeddedPlayer,
+      onTrackReloaded: handleTrackReloaded,
+      onPlaybackFailed: handleTrackPlaybackFailed,
+    }),
+    [
+      currentTrack,
+      catalogTrackForPlayer,
+      lockedVersionIds,
+      handleSelectVersion,
+      isPlaying,
+      formatTime,
+      handleUpdateTrack,
+      handleUpdateTrackCue,
+      showAdminPanel,
+      resolveTrackUrl,
+      isAdminEmbeddedPlayer,
+      handleTrackReloaded,
+      handleTrackPlaybackFailed,
+    ]
+  );
+
+  const browseTracks = useMemo(
+    () =>
+      tracks.filter((track) =>
+        ensureTrackVersions(track).versions.some((version) => !version.isMissing)
+      ),
+    [tracks]
+  );
 
   useEffect(() => {
     if (!isAdminCatalog || catalogStatus !== "ready") return;
@@ -722,9 +757,8 @@ export default function DJPoolDemo() {
     const first = tracks.find((t) => !t.isMissing);
     if (first) {
       setCurrentTrack(resolvePlaybackTrack(first));
-      setCurrentTime(first.startTime ?? 0);
     }
-  }, [isAdminCatalog, catalogStatus, tracks, currentTrack]);
+  }, [isAdminCatalog, catalogStatus, tracks, currentTrack, resolvePlaybackTrack]);
 
   const handleEnterAdmin = useCallback(
     async (password) => {
@@ -843,6 +877,18 @@ export default function DJPoolDemo() {
     }
   }, [activeClient, clientScreen, clientStages, isAdminRoute, replace]);
 
+  const dismissToast = useCallback(() => setToastMessage(""), []);
+
+  const boundaryProps = useMemo(
+    () => ({
+      title: t("errors.boundaryTitle"),
+      message: t("errors.boundaryBody"),
+      retryLabel: t("errors.boundaryAction"),
+      refreshLabel: t("errors.boundaryRefresh"),
+    }),
+    [t]
+  );
+
   const renderAdminContent = () => {
     if (adminTab === "catalog") {
       return (
@@ -960,7 +1006,7 @@ export default function DJPoolDemo() {
           onDeleteClient={handleDeleteClient}
           onAssignContract={async (clientId, templateId) => {
             const client = clients.find((c) => c.id === clientId);
-            await createTicket(
+            const ticket = await createTicket(
               clientId,
               templateId,
               client
@@ -971,6 +1017,10 @@ export default function DJPoolDemo() {
                   }
                 : null
             );
+            if (!ticket?.id) {
+              throw new Error("שליחת החוזה נכשלה");
+            }
+            linkClientContractTicket(clientId, ticket.id);
           }}
           onUpdateStages={updateClientStages}
           onTicketAdminSaved={replaceTicket}
@@ -994,7 +1044,7 @@ export default function DJPoolDemo() {
           onTicketAdminSaved={replaceTicket}
           onReload={loadContracts}
           onUpdateTemplate={updateTemplate}
-          onDeleteTemplate={deleteTemplate}
+          onDeleteTemplate={handleDeleteTemplate}
         />
       );
     }
@@ -1008,6 +1058,9 @@ export default function DJPoolDemo() {
         </div>
       );
     }
+    if (adminTab === "storage") {
+      return <AdminStorageViewer />;
+    }
     if (adminTab === "settings") {
       return (
         <AdminSettings
@@ -1020,6 +1073,7 @@ export default function DJPoolDemo() {
   };
 
   return (
+    <ConfirmDeleteProvider>
     <div className="app-shell min-h-dvh flex flex-col luxury-bg text-xdj-text font-sans overflow-hidden" dir={dir}>
       <a href="#main-content" className="skip-to-content">
         {t("a11y.skipToContent")}
@@ -1141,14 +1195,24 @@ export default function DJPoolDemo() {
               {t("errors.catalogLoadAction")}
             </button>
           </section>
-        ) : showAdminSessionLoading ? (
+        ) : (
+          <ErrorBoundary
+            label="route"
+            resetKeys={[pathname, adminTab, clientScreen, guestView]}
+            {...boundaryProps}
+          >
+            {showAdminSessionLoading ? (
           <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING SESSION...</p>
         ) : showAdminGate ? (
           <AdminGate onLogin={handleEnterAdmin} onBackToClient={() => replace("/")} />
         ) : showAdminPanel ? (
           <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
             <AdminTabNav activeTab={adminTab} onTabChange={goAdminTab} />
-            <div className="flex flex-col flex-1 min-h-0">{renderAdminContent()}</div>
+            <div className="flex flex-col flex-1 min-h-0">
+              <ErrorBoundary label={`admin-${adminTab}`} resetKeys={[adminTab]} {...boundaryProps}>
+                {renderAdminContent()}
+              </ErrorBoundary>
+            </div>
           </div>
         ) : !activeClient ? (
           guestView === "contractLink" && contractLinkToken ? (
@@ -1197,17 +1261,23 @@ export default function DJPoolDemo() {
           </div>
         ) : clientScreen === "contract" ? (
           <div className="flex-1 min-h-0 overflow-y-auto">
-            <ClientContract
-              ticket={clientContractTicket}
-              clientName={activeClient.name}
-              eventDate={preferences.eventDate || activeClient.eventDate}
-              eventLocation={preferences.eventLocation || activeClient.eventLocation}
-              onFillEventDetails={
-                clientStages.form ? () => goClientScreen("wizard") : undefined
-              }
-              onSigned={refreshClientContract}
-              onBack={() => goClientScreen("home")}
-            />
+            <ErrorBoundary
+              label="contract"
+              resetKeys={[clientContractTicket?.id, clientScreen]}
+              {...boundaryProps}
+            >
+              <ClientContract
+                ticket={clientContractTicket}
+                clientName={activeClient.name}
+                eventDate={preferences.eventDate || activeClient.eventDate}
+                eventLocation={preferences.eventLocation || activeClient.eventLocation}
+                onFillEventDetails={
+                  clientStages.form ? () => goClientScreen("wizard") : undefined
+                }
+                onSigned={refreshClientContract}
+                onBack={() => goClientScreen("home")}
+              />
+            </ErrorBoundary>
           </div>
         ) : clientScreen === "guide" ? (
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1221,29 +1291,35 @@ export default function DJPoolDemo() {
             />
           </div>
         ) : clientScreen === "wizard" ? (
-          <PreferencesWizard
-            key={activeClient.id}
-            formSchema={formSchema}
-            clientType={activeClient.clientType}
-            preferences={preferences}
-            selectedCategories={selectedCategories}
-            categoryRatings={categoryRatings}
-            tracks={tracks.filter((t) => ensureTrackVersions(t).versions.some((v) => !v.isMissing))}
-            onUpdatePreferences={updatePreferences}
-            onToggleCategory={toggleCategory}
-            onRateCategory={rateCategory}
-            onTrackSelect={handleTrackSelect}
-            currentTrack={currentTrack}
-            isPlaying={isPlaying}
-            formatTime={formatTime}
-            onComplete={handleWizardComplete}
-            onSkip={handleWizardSkip}
-            onSaveProgress={saveWizardProgress}
-            onSaveAndExit={() => goClientScreen("home")}
-            onBrowseMusic={clientStages.catalog ? () => goClientScreen("browse") : undefined}
-            lastSavedAt={lastSavedAt}
-            isSaving={isSaving}
-          />
+          <ErrorBoundary
+            label="wizard"
+            resetKeys={[activeClient.id, clientScreen]}
+            {...boundaryProps}
+          >
+            <PreferencesWizard
+              key={activeClient.id}
+              formSchema={formSchema}
+              clientType={activeClient.clientType}
+              preferences={preferences}
+              selectedCategories={selectedCategories}
+              categoryRatings={categoryRatings}
+              tracks={tracks.filter((t) => ensureTrackVersions(t).versions.some((v) => !v.isMissing))}
+              onUpdatePreferences={updatePreferences}
+              onToggleCategory={toggleCategory}
+              onRateCategory={rateCategory}
+              onTrackSelect={handleTrackSelect}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+              formatTime={formatTime}
+              onComplete={handleWizardComplete}
+              onSkip={handleWizardSkip}
+              onSaveProgress={saveWizardProgress}
+              onSaveAndExit={() => goClientScreen("home")}
+              onBrowseMusic={clientStages.catalog ? () => goClientScreen("browse") : undefined}
+              lastSavedAt={lastSavedAt}
+              isSaving={isSaving}
+            />
+          </ErrorBoundary>
         ) : tracks.length === 0 ? (
           <section className="panel-luxury rounded-sm p-8 text-center max-w-md mx-auto space-y-4">
             <h2 className="text-lg font-semibold text-xdj-gold">{t("browse.emptyCatalogTitle")}</h2>
@@ -1257,46 +1333,51 @@ export default function DJPoolDemo() {
             </button>
           </section>
         ) : (
-          <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
-            <CategorySelector
-              allCategories={genres}
-              selectedCategories={selectedCategories}
-              categoryRatings={categoryRatings}
-              onToggleCategory={toggleCategory}
-              onRateCategory={rateCategory}
-            />
+          <ErrorBoundary label="browse" resetKeys={[clientScreen, activeClient?.id]} {...boundaryProps}>
+            <div className="flex flex-col flex-1 min-h-0 gap-2 sm:gap-4">
+              <CategorySelector
+                allCategories={genres}
+                selectedCategories={selectedCategories}
+                categoryRatings={categoryRatings}
+                onToggleCategory={toggleCategory}
+                onRateCategory={rateCategory}
+              />
 
-            <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0">
               <TrackList
                 genreTabs={selectedCategories}
-                tracks={tracks.filter((t) =>
-                  ensureTrackVersions(t).versions.some((v) => !v.isMissing)
-                )}
-                currentTrack={currentTrack}
-                activeVersionIds={activeVersionIds}
-                onSelectVersion={handleSelectVersion}
-                isPlaying={isPlaying}
-                onTrackSelect={handleTrackSelect}
-                formatTime={formatTime}
-                ratings={ratings}
-                comments={comments}
-                onRateTrack={rateTrack}
-                onCommentChange={setComment}
-                eventPhases={preferences.phases}
-                coupleBrowseUx
-              />
+                tracks={browseTracks}
+                  currentTrack={currentTrack}
+                  activeVersionIds={activeVersionIds}
+                  onSelectVersion={handleSelectVersion}
+                  isPlaying={isPlaying}
+                  onTrackSelect={handleTrackSelect}
+                  formatTime={formatTime}
+                  ratings={ratings}
+                  comments={comments}
+                  onRateTrack={rateTrack}
+                  onCommentChange={setComment}
+                  eventPhases={preferences.phases}
+                  coupleBrowseUx
+                />
+              </div>
             </div>
-          </div>
+          </ErrorBoundary>
+        )}
+          </ErrorBoundary>
         )}
       </main>
 
       {showFooterPlayer && (
         <div className="app-player-safe shrink-0">
-          <GlobalPlayer {...playerProps} embedded={false} />
+          <ErrorBoundary label="player" resetKeys={[currentTrack?.id]} {...boundaryProps}>
+            <GlobalPlayer {...playerProps} embedded={false} />
+          </ErrorBoundary>
         </div>
       )}
       {showAdminPanel ? <SiteTextEditPopover /> : null}
-      <Toast message={toastMessage} onDismiss={() => setToastMessage("")} />
+      <Toast message={toastMessage} onDismiss={dismissToast} />
     </div>
+    </ConfirmDeleteProvider>
   );
 }

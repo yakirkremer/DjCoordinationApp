@@ -38,8 +38,6 @@ export default function GlobalPlayer({
   onSelectVersion,
   isPlaying,
   setIsPlaying,
-  currentTime,
-  setCurrentTime,
   formatTime,
   onUpdateTrack,
   onUpdateTrackCue,
@@ -49,7 +47,7 @@ export default function GlobalPlayer({
   onTrackReloaded,
   onPlaybackFailed,
 }) {
-  const { activeWaveformStyle, activeTheme } = useAppSettingsContext();
+  const { activeWaveformStyle } = useAppSettingsContext();
   const { colorMap } = useDropColors();
   const waveformRef = useRef(null);
   const waveCanvasRef = useRef(null);
@@ -59,6 +57,15 @@ export default function GlobalPlayer({
   const durationRef = useRef(0);
   const linkSpanRef = useRef(60);
   const linkCuesRef = useRef(false);
+  const cueBoundsRef = useRef({ startTime: 0, endTime: 60 });
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
+  const setIsPlayingRef = useRef(setIsPlaying);
+  setIsPlayingRef.current = setIsPlaying;
+  const isAdminRef = useRef(isAdmin);
+  isAdminRef.current = isAdmin;
+  const activeDragListenersRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
   const [linkCues, setLinkCues] = useState(() => {
     try {
       return sessionStorage.getItem(LINK_CUES_KEY) === "1";
@@ -100,6 +107,20 @@ export default function GlobalPlayer({
   );
 
   useEffect(() => {
+    setCurrentTime(cue.startTime ?? 0);
+  }, [currentTrack?.id, currentTrack?.activeVersionId, cue.startTime]);
+
+  useEffect(() => {
+    return () => {
+      const listeners = activeDragListenersRef.current;
+      if (!listeners) return;
+      window.removeEventListener("pointermove", listeners.onMove);
+      window.removeEventListener("pointerup", listeners.onUp);
+      activeDragListenersRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     linkCuesRef.current = linkCues;
     try {
       sessionStorage.setItem(LINK_CUES_KEY, linkCues ? "1" : "0");
@@ -112,6 +133,7 @@ export default function GlobalPlayer({
     if (!draggingRef.current) {
       cueRef.current = { startTime: cue.startTime, endTime: cue.endTime };
     }
+    cueBoundsRef.current = { startTime: cue.startTime, endTime: cue.endTime };
   }, [cue.startTime, cue.endTime]);
 
   const previewLength = cue.endTime - cue.startTime;
@@ -144,6 +166,15 @@ export default function GlobalPlayer({
     },
     [cue.startTime, setCurrentTime]
   );
+
+  const onUpdateTrackRef = useRef(onUpdateTrack);
+  onUpdateTrackRef.current = onUpdateTrack;
+  const onPlaybackFailedRef = useRef(onPlaybackFailed);
+  onPlaybackFailedRef.current = onPlaybackFailed;
+  const seekToCueInRef = useRef(seekToCueIn);
+  seekToCueInRef.current = seekToCueIn;
+  const currentTrackRef = useRef(currentTrack);
+  currentTrackRef.current = currentTrack;
 
   const timeFromClientX = useCallback(
     (clientX) => {
@@ -214,8 +245,10 @@ export default function GlobalPlayer({
         draggingRef.current = null;
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        activeDragListenersRef.current = null;
       };
 
+      activeDragListenersRef.current = { onMove, onUp };
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
     },
@@ -232,7 +265,7 @@ export default function GlobalPlayer({
   );
 
   useEffect(() => {
-    if (!currentTrack || !waveformRef.current) return;
+    if (!currentTrackRef.current || !waveformRef.current) return;
 
     let cancelled = false;
 
@@ -242,7 +275,7 @@ export default function GlobalPlayer({
         wavesurferRef.current.pause();
         wavesurferRef.current.destroy();
       } catch (e) {
-        console.log("Error destroying previous wavesurfer instance:", e);
+        console.warn("Error destroying previous wavesurfer instance:", e);
       }
       wavesurferRef.current = null;
     }
@@ -251,11 +284,14 @@ export default function GlobalPlayer({
     setLoadError(null);
 
     async function initPlayer() {
+      const track = currentTrackRef.current;
+      if (!track) return;
+
       let audioUrl;
       try {
         audioUrl = resolveTrackUrl
-          ? await resolveTrackUrl(currentTrack)
-          : `/music/${currentTrack.bucket}/analyzed/${encodeURIComponent(currentTrack.filename)}`;
+          ? await resolveTrackUrl(track)
+          : `/music/${track.bucket}/analyzed/${encodeURIComponent(track.filename)}`;
       } catch (err) {
         if (!cancelled) {
           setLoadError(err.message || "Failed to load audio");
@@ -275,43 +311,45 @@ export default function GlobalPlayer({
         const dur = wavesurferRef.current.getDuration();
         setDuration(dur);
         durationRef.current = dur;
-        if (!currentTrack.duration || currentTrack.duration !== Math.floor(dur)) {
-          onUpdateTrack(currentTrack.id, "duration", Math.floor(dur));
+        if (!track.duration || track.duration !== Math.floor(dur)) {
+          onUpdateTrackRef.current(track.id, "duration", Math.floor(dur));
         }
-        seekToCueIn(wavesurferRef.current);
+        seekToCueInRef.current(wavesurferRef.current);
 
-        if (isPlaying) {
-          wavesurferRef.current.play().catch((err) => console.log("Playback blocked:", err));
+        if (isPlayingRef.current) {
+          wavesurferRef.current.play().catch((err) => console.warn("Playback blocked:", err));
         }
       });
 
       wavesurferRef.current.on("error", () => {
         if (!cancelled) {
           setLoadError("Playback error — file may be missing or corrupt.");
-          onPlaybackFailed?.(currentTrack.id);
+          onPlaybackFailedRef.current?.(track.id);
         }
       });
 
       wavesurferRef.current.on("timeupdate", (time) => {
         setCurrentTime(time);
-        if (!isAdmin && time >= cue.endTime) {
+        const { endTime } = cueBoundsRef.current;
+        if (!isAdminRef.current && time >= endTime) {
           wavesurferRef.current.pause();
-          setIsPlaying(false);
-          seekToCueIn(wavesurferRef.current);
+          setIsPlayingRef.current(false);
+          seekToCueInRef.current(wavesurferRef.current);
         }
       });
 
       wavesurferRef.current.on("interaction", () => {
         const time = wavesurferRef.current.getCurrentTime();
         setCurrentTime(time);
-        if (isAdmin) return;
-        if (time < cue.startTime) {
-          seekToCueIn(wavesurferRef.current);
-        } else if (time >= cue.endTime) {
-          wavesurferRef.current.setTime(cue.endTime);
+        if (isAdminRef.current) return;
+        const { startTime, endTime } = cueBoundsRef.current;
+        if (time < startTime) {
+          seekToCueInRef.current(wavesurferRef.current);
+        } else if (time >= endTime) {
+          wavesurferRef.current.setTime(endTime);
           wavesurferRef.current.pause();
-          setIsPlaying(false);
-          setCurrentTime(cue.endTime);
+          setIsPlayingRef.current(false);
+          setCurrentTime(endTime);
         }
       });
 
@@ -328,7 +366,7 @@ export default function GlobalPlayer({
           wavesurferRef.current.pause();
           wavesurferRef.current.destroy();
         } catch (e) {
-          console.log("Cleanup error:", e);
+          console.warn("Cleanup error:", e);
         }
       }
     };
@@ -340,7 +378,6 @@ export default function GlobalPlayer({
     currentTrack?.audioVersion,
     resolveTrackUrl,
     activeWaveformStyle,
-    activeTheme,
     dropWaveColors,
   ]);
 
@@ -355,7 +392,7 @@ export default function GlobalPlayer({
     } else {
       wavesurferRef.current.pause();
     }
-  }, [isPlaying, isAdmin, cue.startTime, cue.endTime, seekToCueIn, setIsPlaying]);
+  }, [isPlaying, isAdmin, cue, seekToCueIn, setIsPlaying]);
 
   const progressPct = previewLength > 0 ? (progressInCue / previewLength) * 100 : 0;
 

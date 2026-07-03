@@ -35,6 +35,10 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
 
   const saveTimer = useRef(null);
 
+  useEffect(() => {
+    return () => clearTimeout(saveTimer.current);
+  }, []);
+
   const persist = useCallback(
     (patch) => {
       if (!clientId) return;
@@ -54,13 +58,14 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
 
   useEffect(() => {
     if (!clientId) {
+      clearTimeout(saveTimer.current);
       setRatings({});
       setComments({});
       setSelectedCategories([]);
       setCategoryRatings({});
       setPreferences({ ...DEFAULT_PREFERENCES });
       setReady(true);
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -79,6 +84,7 @@ export default function useTrackFeedback(clientId = null, allGenres = DEFAULT_GE
 
     return () => {
       cancelled = true;
+      clearTimeout(saveTimer.current);
     };
   }, [clientId, allGenres]);
 

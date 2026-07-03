@@ -74,7 +74,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
     setNewGenre("");
   };
 
-  const handleRemoveGenre = (key) => {
+  const handleRemoveGenre = async (key) => {
     const row = draft.genres.find((g) => g.key === key);
     if (!row) return;
     const label = row.original || row.name;
@@ -83,7 +83,7 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
       setError(t("admin.genreInUse", { genre: label }));
       return;
     }
-    if (!confirmDeleteAction(t("admin.removeGenreConfirm", { name: label }))) return;
+    if (!(await confirmDeleteAction(t("admin.removeGenreConfirm", { name: label })))) return;
     setError("");
     setDraft((d) => ({
       ...d,
@@ -108,8 +108,8 @@ export default function AdminSettings({ tracks = [], onGenresChanged }) {
     setNewDropType("");
   };
 
-  const handleRemoveDropType = (drop) => {
-    if (!confirmDeleteAction(t("admin.removeDropTypeConfirm", { name: drop }))) return;
+  const handleRemoveDropType = async (drop) => {
+    if (!(await confirmDeleteAction(t("admin.removeDropTypeConfirm", { name: drop })))) return;
     setDraft((d) => {
       const dropTypes = normalizeDropTypes(d.dropTypes.filter((item) => item !== drop));
       const dropTypeColors = { ...d.dropTypeColors };

@@ -211,26 +211,29 @@ export function AppSettingsProvider({ children }) {
   }, []);
 
   const updateSettings = useCallback(async (patch) => {
-    const dropTypes = patch.dropTypes
-      ? normalizeDropTypes(patch.dropTypes)
-      : normalizeDropTypes(settings.dropTypes);
-    const genres = patch.genres ? normalizeGenres(patch.genres) : normalizeGenres(settings.genres);
-    const next = {
-      ...settings,
-      ...patch,
-      genres,
-      dropTypes,
-      dropTypeColors: normalizeDropTypeColors(
+    let next;
+    setSettings((prev) => {
+      const dropTypes = patch.dropTypes
+        ? normalizeDropTypes(patch.dropTypes)
+        : normalizeDropTypes(prev.dropTypes);
+      const genres = patch.genres ? normalizeGenres(patch.genres) : normalizeGenres(prev.genres);
+      next = {
+        ...prev,
+        ...patch,
+        genres,
         dropTypes,
-        patch.dropTypeColors ?? settings.dropTypeColors
-      ),
-      textOverrides: patch.textOverrides
-        ? normalizeTextOverrides(patch.textOverrides)
-        : normalizeTextOverrides(settings.textOverrides),
-    };
-    delete next.genreRenames;
-    delete next.genreRemoved;
-    setSettings(next);
+        dropTypeColors: normalizeDropTypeColors(
+          dropTypes,
+          patch.dropTypeColors ?? prev.dropTypeColors
+        ),
+        textOverrides: patch.textOverrides
+          ? normalizeTextOverrides(patch.textOverrides)
+          : normalizeTextOverrides(prev.textOverrides),
+      };
+      delete next.genreRenames;
+      delete next.genreRemoved;
+      return next;
+    });
     if (patch.theme && !personalTheme) {
       applyTheme(patch.theme);
     }
@@ -252,7 +255,7 @@ export function AppSettingsProvider({ children }) {
       ...(patch.genreRemoved ? { genreRemoved: patch.genreRemoved } : {}),
     });
     return next;
-  }, [settings, personalTheme, personalPlayerStyle, personalBrowserStyle, personalWaveformStyle]);
+  }, [personalTheme, personalPlayerStyle, personalBrowserStyle, personalWaveformStyle]);
 
   const t = useCallback(
     (key, vars) => translate(locale, key, vars, settings.textOverrides),

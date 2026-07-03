@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import {
   FIELD_TYPES,
   DEFAULT_FIELD_SIZE,
@@ -48,7 +48,7 @@ export default function ContractTemplateEditor({
   const [selectedFieldId, setSelectedFieldId] = useState(null);
   const [fillPreview, setFillPreview] = useState(false);
 
-  const fields = template?.fields ?? [];
+  const fields = useMemo(() => template?.fields ?? [], [template?.fields]);
   const isPdf = template?.sourceType === "pdf";
   const hydratedTemplateIdRef = useRef(null);
 
@@ -91,10 +91,10 @@ export default function ContractTemplateEditor({
     });
   };
 
-  const removeField = (fieldId) => {
+  const removeField = async (fieldId) => {
     const field = fields.find((f) => f.id === fieldId);
     const label = field?.label || fieldId;
-    if (!confirmDeleteAction(t("admin.deleteFieldConfirm", { label }))) return;
+    if (!(await confirmDeleteAction(t("admin.deleteFieldConfirm", { label })))) return;
     onUpdate(template.id, { fields: fields.filter((f) => f.id !== fieldId) });
     if (selectedFieldId === fieldId) setSelectedFieldId(null);
   };
@@ -349,11 +349,7 @@ export default function ContractTemplateEditor({
         <button
           type="button"
           className="text-sm text-red-400 hover:text-red-300"
-          onClick={() => {
-            if (confirmDeleteAction(t("admin.deleteTemplateConfirm", { name: template.name }))) {
-              onDelete(template.id);
-            }
-          }}
+          onClick={() => onDelete(template.id)}
         >
           מחק תבנית
         </button>

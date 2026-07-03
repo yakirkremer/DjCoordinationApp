@@ -48,10 +48,11 @@ export default function PreferencesWizard({
   );
   const [step, setStep] = useState(() => clampStep(preferences.wizardStep ?? 0, steps.length));
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     setStep(clampStep(preferences.wizardStep ?? 0, steps.length));
-  }, [clientType, steps.length]);
+  }, [clientType, steps.length, preferences.wizardStep]);
 
   const currentStepDef = steps[step];
   const stepAnswered = useMemo(
@@ -92,7 +93,7 @@ export default function PreferencesWizard({
   const canAdvance = () => {
     if (!currentStepDef) return false;
     if (currentStepDef.stepType === "questions") {
-      return validateQuestionsStep(preferences, currentStepDef.questions);
+      return validateQuestionsStep(preferences, currentStepDef.questions ?? []);
     }
     if (currentStepDef.stepType === "genres") {
       return selectedCategories.some((g) => (categoryRatings[g] || 0) > 0);
@@ -111,10 +112,14 @@ export default function PreferencesWizard({
   };
 
   const handleSaveAndExit = async () => {
+    if (saving) return;
     setSaving(true);
+    setSaveError("");
     try {
       await onSaveProgress(step);
       onSaveAndExit();
+    } catch (err) {
+      setSaveError(err.message || t("admin.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -246,6 +251,11 @@ export default function PreferencesWizard({
         <p className="wizard-completed-banner">{t("wizard.alreadyCompleted")}</p>
       ) : null}
       <p className="wizard-privacy-hint">{t("wizard.privacyNote")}</p>
+      {saveError ? (
+        <p className="text-xs text-xdj-orange text-center" role="alert">
+          {saveError}
+        </p>
+      ) : null}
       <div className={`wizard-scroll wizard-step-panel wizard-step-panel--${stepType}`} key={step}>
         {renderStep()}
       </div>

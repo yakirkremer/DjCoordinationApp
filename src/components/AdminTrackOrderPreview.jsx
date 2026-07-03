@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import TrackList from "./TrackList";
 import { useI18n, useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
 import { buildGenreOrderList } from "../lib/genreTrackOrder";
@@ -17,7 +17,10 @@ export default function AdminTrackOrderPreview({
 }) {
   const { t, dir } = useI18n();
   const { settings, updateSettings } = useAppSettingsContext();
-  const genreTrackOrders = settings.genreTrackOrders ?? {};
+  const genreTrackOrders = useMemo(
+    () => settings.genreTrackOrders ?? {},
+    [settings.genreTrackOrders]
+  );
   const [savingGenre, setSavingGenre] = useState("");
   const [error, setError] = useState("");
 

@@ -12,6 +12,7 @@ import {
   saveClients as saveClientsApi,
   deleteFeedback,
 } from "../lib/api/dataApi";
+import { deleteClientContract } from "../lib/api/contractApi";
 import { fetchSession, loginClient, logoutSession } from "../lib/api/auth";
 import { migrateLocalStorageToServer, shouldMigrateLocalStorage } from "../lib/migrateLocalStorage";
 import * as dataApi from "../lib/api/dataApi";
@@ -23,6 +24,8 @@ export default function useClients() {
   const [error, setError] = useState(null);
   const [clientsLoaded, setClientsLoaded] = useState(false);
   const saveTimer = useRef(null);
+  const clientsRef = useRef(clients);
+  clientsRef.current = clients;
 
   useEffect(() => {
     let cancelled = false;
@@ -46,13 +49,13 @@ export default function useClients() {
   }, []);
 
   const ensureClientsLoaded = useCallback(async () => {
-    if (clientsLoaded) return clients;
+    if (clientsLoaded) return clientsRef.current;
     const data = await fetchClients();
     const normalized = Array.isArray(data) ? data.map(normalizeClient) : [];
     setClients(normalized);
     setClientsLoaded(true);
     return normalized;
-  }, [clients, clientsLoaded]);
+  }, [clientsLoaded]);
 
   useEffect(() => {
     if (!clientsLoaded) return;
@@ -86,6 +89,7 @@ export default function useClients() {
         clientType: normalizeClientType(clientType),
         eventDate: trimmedDate,
         eventLocation: trimmedLocation,
+        contractTicketId: null,
         stages: { ...DEFAULT_CLIENT_STAGES },
         createdAt: new Date().toISOString(),
       };
@@ -106,6 +110,15 @@ export default function useClients() {
     setActiveClient((prev) => (prev?.id === clientId ? mergeStages(prev) : prev));
   }, []);
 
+  const setClientContractTicket = useCallback((clientId, ticketId) => {
+    const nextTicketId = ticketId || null;
+    const apply = (client) =>
+      client.id === clientId ? { ...client, contractTicketId: nextTicketId } : client;
+
+    setClients((prev) => prev.map(apply));
+    setActiveClient((prev) => (prev?.id === clientId ? apply(prev) : prev));
+  }, []);
+
   const deleteClient = useCallback(
     (id) => {
       setClients((prev) => prev.filter((c) => c.id !== id));
@@ -113,6 +126,9 @@ export default function useClients() {
         setActiveClient(null);
         logoutSession().catch(() => {});
       }
+      deleteClientContract(id).catch((err) =>
+        console.error("Failed to delete client contract:", err)
+      );
       deleteFeedback(id).catch((err) => console.error("Failed to delete client feedback:", err));
     },
     [activeClient?.id]
@@ -149,6 +165,7 @@ export default function useClients() {
     clientsLoaded,
     createClient,
     updateClientStages,
+    setClientContractTicket,
     deleteClient,
     login,
     logout,

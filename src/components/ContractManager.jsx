@@ -1,10 +1,16 @@
 import React, { useState } from "react";
 import ContractTemplateEditor, { ContractTemplateUploader } from "./ContractTemplateEditor";
 import { buildContractShareUrl } from "../lib/contractTokens";
-import { fetchContracts, downloadSignedContractCopy } from "../lib/api/contractApi";
+import {
+  fetchContracts,
+  downloadSignedContractCopy,
+  deleteSignedContractCopy,
+} from "../lib/api/contractApi";
 import AdminClientTicketPanel from "./AdminClientTicketPanel";
 import ClientContract from "./ClientContract";
 import { pickCanonicalTicketForClient } from "../lib/contractTickets";
+import { useI18n } from "../lib/i18n/AppSettingsContext";
+import { confirmDeleteAction } from "../lib/confirmDelete";
 
 function buildAdminViewTicket(ticket, template) {
   if (!ticket || !template) return null;
@@ -31,6 +37,7 @@ export default function ContractManager({
   getTemplate,
   onTicketAdminSaved,
 }) {
+  const { t } = useI18n();
   const [selectedId, setSelectedId] = useState(contracts[0]?.id ?? null);
   const [editingTicket, setEditingTicket] = useState(null);
   const [viewingTicket, setViewingTicket] = useState(null);
@@ -74,8 +81,8 @@ export default function ContractManager({
             <ContractTemplateEditor
               template={selected}
               onUpdate={onUpdateTemplate}
-              onDelete={(id) => {
-                onDeleteTemplate(id);
+              onDelete={async (id) => {
+                await onDeleteTemplate(id);
                 setSelectedId(contracts.find((t) => t.id !== id)?.id ?? null);
               }}
             />
@@ -174,6 +181,22 @@ export default function ContractManager({
                               onClick={() => downloadSignedContractCopy(ticket.id, "pdf").catch(() => {})}
                             >
                               הורד עותק
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-red-400 hover:text-red-300 text-right"
+                              onClick={async () => {
+                                const name = getClientName(ticket.clientId);
+                                if (!(await confirmDeleteAction(t("admin.deleteSignedCopyConfirm", { name })))) return;
+                                try {
+                                  const data = await deleteSignedContractCopy(ticket.id);
+                                  onTicketAdminSaved?.(data.ticket ?? { ...ticket, signedCopyFile: null });
+                                } catch (err) {
+                                  window.alert(err?.message || t("admin.deleteFailed"));
+                                }
+                              }}
+                            >
+                              {t("admin.deleteSignedCopyAction")}
                             </button>
                           </>
                         ) : (

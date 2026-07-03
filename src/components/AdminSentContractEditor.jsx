@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import ContractFieldOverlay from "./ContractFieldOverlay";
 import ContractPdfViewer from "./ContractPdfViewer";
 import {
@@ -57,7 +57,7 @@ export default function AdminSentContractEditor({
   onClose,
   onSaved,
 }) {
-  const fields = template?.fields ?? [];
+  const fields = useMemo(() => template?.fields ?? [], [template?.fields]);
   const adminFields = fields.filter(isAdminEditable);
   const [values, setValues] = useState(() => buildTicketDisplayValues(fields, ticket?.values ?? {}));
   const [saving, setSaving] = useState(false);

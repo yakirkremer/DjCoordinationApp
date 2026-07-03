@@ -14,12 +14,17 @@ export default function useFormSchema() {
 
   useEffect(() => {
     let cancelled = false;
-    loadFormSchema().then((data) => {
-      if (!cancelled) {
-        setSchema(data);
-        setReady(true);
-      }
-    });
+    loadFormSchema()
+      .then((data) => {
+        if (!cancelled) {
+          setSchema(data);
+          setReady(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Form schema load failed:", err);
+        if (!cancelled) setReady(true);
+      });
     return () => {
       cancelled = true;
     };

@@ -22,7 +22,14 @@ import {
   readSignedCopyFile,
   saveSignedContractCopy,
   ensureSignedPdfCopy,
+  deleteSignedCopyFiles,
 } from "./contractSignedCopy.js";
+import {
+  cascadeDeleteClientData,
+  deleteClientContractTicket,
+  repairClientContractLinks,
+  setClientContractTicketId,
+} from "./clientContractLink.js";
 
 export const CONTRACTS_FILE = "contracts.json";
 const CONTRACTS_DIR = path.join(DATA_DIR, "contracts");
@@ -246,6 +253,16 @@ export async function handleContractsApi(req, res) {
       return true;
     }
 
+    if (subPath === "/repair-links" && req.method === "POST") {
+      if (!isAdminSession(session)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return true;
+      }
+      const result = await repairClientContractLinks();
+      sendJson(res, 200, { ok: true, ...result });
+      return true;
+    }
+
     if (subPath === "" || subPath === "/") {
       if (req.method === "GET") {
         const contracts = await readContracts();
@@ -438,8 +455,29 @@ export async function handleContractsApi(req, res) {
       }
 
       contracts.tickets = dedupeTicketsByClient(contracts.tickets);
+      const canonical = pickCanonicalTicketForClient(contracts.tickets, clientId);
       await writeContracts(contracts);
-      sendJson(res, 200, { ticket: publicTicket(ticket, template) });
+      if (canonical) {
+        await setClientContractTicketId(clientId, canonical.id);
+      }
+      sendJson(res, 200, { ticket: publicTicket(canonical ?? ticket, template) });
+      return true;
+    }
+
+    if (ticketsMatch && req.method === "DELETE") {
+      if (!isAdminSession(session)) {
+        sendJson(res, 403, { error: "Admin access required" });
+        return true;
+      }
+
+      const clientId = url.searchParams.get("clientId")?.trim();
+      if (!clientId) {
+        sendJson(res, 400, { error: "clientId query parameter is required" });
+        return true;
+      }
+
+      const removed = await deleteClientContractTicket(clientId);
+      sendJson(res, 200, { ok: true, removed });
       return true;
     }
 
@@ -582,8 +620,30 @@ export async function handleContractsApi(req, res) {
     }
 
     const copyMatch = subPath.match(/^\/tickets\/([^/]+)\/copy$/);
-    if (copyMatch && req.method === "GET") {
+    if (copyMatch) {
       const ticketId = copyMatch[1];
+
+      if (req.method === "DELETE") {
+        if (!isAdminSession(session)) {
+          sendJson(res, 403, { error: "Admin access required" });
+          return true;
+        }
+
+        const contracts = await readContracts();
+        const ticket = contracts.tickets.find((t) => t.id === ticketId);
+        if (!ticket) {
+          sendJson(res, 404, { error: "Contract ticket not found" });
+          return true;
+        }
+
+        await deleteSignedCopyFiles(ticketId);
+        ticket.signedCopyFile = null;
+        await writeContracts(contracts);
+        sendJson(res, 200, { ok: true, ticket: publicTicket(ticket, contracts.templates.find((t) => t.id === ticket.templateId)) });
+        return true;
+      }
+
+      if (req.method === "GET") {
       const signToken = url.searchParams.get("signToken")?.trim() || null;
       const format = url.searchParams.get("format") || "auto";
       const contracts = await readContracts();
@@ -626,6 +686,7 @@ export async function handleContractsApi(req, res) {
       res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
       res.end(file.data);
       return true;
+      }
     }
 
     const signMatch = subPath.match(/^\/tickets\/([^/]+)\/sign$/);
@@ -698,13 +759,4 @@ export function createContractApiMiddleware() {
       if (!handled) next();
     });
   };
-}
-
-export async function deleteClientContractTicket(clientId) {
-  const contracts = await readContracts();
-  const before = contracts.tickets.length;
-  contracts.tickets = contracts.tickets.filter((t) => t.clientId !== clientId);
-  if (contracts.tickets.length !== before) {
-    await writeContracts(contracts);
-  }
 }
