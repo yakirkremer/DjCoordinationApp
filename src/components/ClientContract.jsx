@@ -264,8 +264,10 @@ export default function ClientContract({
   const viewOnly = isSigned;
   const readOnly = viewOnly;
 
+  const ticketValuesKey = useMemo(() => JSON.stringify(ticket?.values ?? {}), [ticket?.values]);
+
   useEffect(() => {
-    if (!template?.fields) return;
+    if (!template?.fields?.length) return;
     setValues(
       buildTicketDisplayValuesWithProfile(
         template.fields,
@@ -273,7 +275,7 @@ export default function ClientContract({
         clientProfile
       )
     );
-  }, [ticket?.id, template?.id, clientProfile, template?.fields, ticket?.values]);
+  }, [ticket?.id, template?.id, ticketValuesKey, clientName, eventDate, eventLocation]);
 
   const signatureField = template?.fields?.find((f) => f.type === "signature");
 

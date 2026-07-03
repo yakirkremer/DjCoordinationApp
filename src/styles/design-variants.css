@@ -22,8 +22,8 @@
   padding: 1rem;
   border-radius: 0.5rem;
   border: 1px solid var(--color-xdj-border);
-  background: color-mix(in srgb, var(--color-xdj-panel) 96%, #000);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  background: color-mix(in srgb, var(--color-xdj-panel) 96%, var(--color-xdj-black));
+  box-shadow: var(--shadow-elevated);
 }
 
 .appearance-section + .appearance-section {
@@ -61,7 +61,7 @@
   padding: 0.55rem;
   border-radius: 0.35rem;
   border: 1px solid var(--color-xdj-border);
-  background: rgba(0, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--color-xdj-screen) 90%, var(--color-xdj-border));
   text-align: start;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -530,7 +530,7 @@ html[data-browser-style="flat-list"] .xdj-hw-side {
 html[data-browser-style="flat-list"] .xdj-hw-bottom-row {
   padding: 0.65rem 0.85rem;
   border-top: 1px solid var(--color-xdj-border);
-  background: color-mix(in srgb, var(--color-xdj-panel) 90%, #000);
+  background: var(--color-xdj-screen);
 }
 
 html[data-browser-style="flat-list"] .xdj-az-browser {
@@ -1153,15 +1153,12 @@ html[data-browser-style="xdj-hardware"] .xdj-hw-faceplate::after {
 }
 
 html[data-browser-style="xdj-hardware"] .xdj-hw-screen-glass {
-  box-shadow:
-    inset 0 0 48px rgba(0, 0, 0, 0.92),
-    inset 0 0 0 1px rgba(0, 200, 255, 0.06),
-    0 0 20px rgba(0, 160, 220, 0.04);
+  box-shadow: var(--hw-screen-glass-shadow);
 }
 
 html[data-browser-style="xdj-hardware"] .xdj-az-toolbar {
-  background: linear-gradient(180deg, #1a1a22, #121218);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--az-toolbar-bg, linear-gradient(180deg, #1a1a22, #121218));
+  border-bottom: 1px solid var(--az-border, rgba(255, 255, 255, 0.04));
 }
 
 /* ── Browser: flat list (zebra + accent) ──────────────────── */
@@ -1181,7 +1178,7 @@ html[data-browser-style="flat-list"] .xdj-az-row.is-cursor {
 }
 
 html[data-browser-style="flat-list"] .xdj-az-col-header {
-  background: color-mix(in srgb, var(--color-xdj-panel) 95%, #000);
+  background: var(--az-header-bg);
   border-bottom: 2px solid var(--color-xdj-border);
   text-transform: uppercase;
   letter-spacing: 0.06em;

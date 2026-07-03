@@ -6,7 +6,9 @@ const SCHEMA_KEY = "kremer-music-form-schema-v1";
 function normalizeSchema(parsed) {
   if (!parsed?.steps?.length) return structuredClone(DEFAULT_FORM_SCHEMA);
 
-  let steps = parsed.steps.map((step) => ({
+  let steps = parsed.steps
+    .filter((step) => step.stepType !== "energy")
+    .map((step) => ({
     ...step,
     audience: step.audience ?? "all",
     timelineItems: Array.isArray(step.timelineItems) ? step.timelineItems : [],

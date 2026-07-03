@@ -4,7 +4,6 @@ import WizardStepHero from "./WizardStepHero";
 import WizardSaveStatus from "./WizardSaveStatus";
 import DynamicWizardStep from "./DynamicWizardStep";
 import WizardStepGenres from "./WizardStepGenres";
-import WizardStepEnergy from "./WizardStepEnergy";
 import WizardStepPhases from "./WizardStepPhases";
 import WizardStepPlaylists from "./WizardStepPlaylists";
 import WizardStepTimeline from "./WizardStepTimeline";
@@ -152,16 +151,6 @@ export default function PreferencesWizard({
             currentTrack={currentTrack}
             isPlaying={isPlaying}
             formatTime={formatTime}
-            title={currentStepDef.title}
-            description={currentStepDef.description}
-            hideHeader
-          />
-        );
-      case "energy":
-        return (
-          <WizardStepEnergy
-            energyLevel={preferences.energyLevel}
-            onSelect={(id) => onUpdatePreferences({ energyLevel: id })}
             title={currentStepDef.title}
             description={currentStepDef.description}
             hideHeader

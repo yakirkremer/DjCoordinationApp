@@ -25,22 +25,30 @@ export function parseContractDate(value) {
   return null;
 }
 
-/** Display format for contract fields: DD/MM/YYYY */
-export function formatContractDateDisplay(value) {
-  const parts = parseContractDate(value);
-  if (!parts) return String(value ?? "").trim();
+function formatContractDateDisplayFromParts(parts) {
   const dd = String(parts.day).padStart(2, "0");
   const mm = String(parts.month).padStart(2, "0");
   return `${dd}/${mm}/${parts.year}`;
 }
 
+/** Display format for contract fields: DD/MM/YYYY */
+export function formatContractDateDisplay(value) {
+  const parts = parseContractDate(value);
+  if (!parts) return String(value ?? "").trim();
+  return formatContractDateDisplayFromParts(parts);
+}
+
 /** Normalize stored contract date values to DD/MM/YYYY */
 export function normalizeContractDateValue(value) {
-  const s = String(value ?? "").trim();
-  if (!s) return "";
+  if (value == null || value === "") return "";
+  if (typeof value === "object" && value.year && value.month && value.day) {
+    return formatContractDateDisplayFromParts(value);
+  }
+  const s = String(value).trim();
+  if (!s || s === "[object Object]") return "";
   const parts = parseContractDate(s);
   if (!parts) return s;
-  return formatContractDateDisplay(parts);
+  return formatContractDateDisplayFromParts(parts);
 }
 
 /** Value for `<input type="date">` (YYYY-MM-DD) */

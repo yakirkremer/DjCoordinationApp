@@ -3,7 +3,7 @@ import { generateTimelineItemId, sortTimelineItems } from "../lib/weddingTimelin
 
 function AdminTimelineItemEditor({ item, onUpdate, onDelete }) {
   return (
-    <div className="bg-[#0a0a0c] border border-xdj-border rounded-sm p-4 flex flex-col gap-3">
+    <div className="bg-xdj-screen border border-xdj-border rounded-sm p-4 flex flex-col gap-3">
       <div className="flex justify-between items-center gap-2">
         <span className="font-lcd text-[9px] text-xdj-muted uppercase">ברירת מחדל</span>
         <button

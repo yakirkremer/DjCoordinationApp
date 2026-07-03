@@ -22,8 +22,6 @@ export function getStepAnsweredCount(
       const total = Math.max(selectedCategories.length, 1);
       return { answered: rated, total };
     }
-    case "energy":
-      return { answered: preferences.energyLevel ? 1 : 0, total: 1 };
     case "phases": {
       const assigned = Object.values(preferences.phases ?? {}).some((list) => list?.length > 0);
       return { answered: assigned ? 1 : 0, total: 1 };

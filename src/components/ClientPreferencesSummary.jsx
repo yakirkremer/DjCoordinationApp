@@ -24,12 +24,12 @@ export default function ClientPreferencesSummary({ preferences, formSchema, clie
           </span>
         )}
         {preferences.eventDate && (
-          <span className="text-xs bg-[#0a0a0c] border border-xdj-border rounded-sm px-3 py-1 text-xdj-muted font-lcd">
+          <span className="text-xs bg-xdj-screen border border-xdj-border rounded-sm px-3 py-1 text-xdj-muted font-lcd">
             {preferences.eventDate}
           </span>
         )}
         {preferences.eventLocation?.trim() && (
-          <span className="text-xs bg-[#0a0a0c] border border-xdj-border rounded-sm px-3 py-1 text-xdj-text">
+          <span className="text-xs bg-xdj-screen border border-xdj-border rounded-sm px-3 py-1 text-xdj-text">
             📍 {preferences.eventLocation}
           </span>
         )}
@@ -76,7 +76,7 @@ export default function ClientPreferencesSummary({ preferences, formSchema, clie
         {EVENT_PHASES.map((phase) => {
           const genres = preferences.phases?.[phase.id] ?? [];
           return (
-            <div key={phase.id} className="bg-[#0a0a0c] border border-xdj-border rounded-sm p-3">
+            <div key={phase.id} className="bg-xdj-screen border border-xdj-border rounded-sm p-3">
               <p className="text-xs text-xdj-muted mb-1">{phase.label}</p>
               <p className="text-sm text-xdj-text">
                 {genres.length > 0 ? genres.join(", ") : "—"}

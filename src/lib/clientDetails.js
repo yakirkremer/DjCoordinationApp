@@ -1,4 +1,4 @@
-import { mergePreferences, ENERGY_LEVELS } from "./preferences.js";
+import { mergePreferences } from "./preferences.js";
 import { getClientTypeLabel } from "./clientTypes.js";
 import {
   applyFieldSyncToValues,
@@ -13,7 +13,6 @@ export const CLIENT_DETAIL_KEYS = {
   clientType: "clientType",
   eventDate: "eventDate",
   eventLocation: "eventLocation",
-  energyLevel: "energyLevel",
   djNotes: "djNotes",
 };
 
@@ -23,17 +22,11 @@ export const CLIENT_DETAIL_SOURCES = [
   { key: CLIENT_DETAIL_KEYS.clientType, label: "סוג אירוע" },
   { key: CLIENT_DETAIL_KEYS.eventDate, label: "תאריך אירוע" },
   { key: CLIENT_DETAIL_KEYS.eventLocation, label: "מיקום אירוע" },
-  { key: CLIENT_DETAIL_KEYS.energyLevel, label: "רמת אנרגיה" },
   { key: CLIENT_DETAIL_KEYS.djNotes, label: "הערות לדיג'יי" },
 ];
 
 export function buildClientDetailsSnapshot(client, preferencesInput) {
   const preferences = mergePreferences(preferencesInput);
-  const energyLabel =
-    ENERGY_LEVELS.find((level) => level.id === preferences.energyLevel)?.label ??
-    preferences.energyLevel ??
-    "";
-
   return {
     [CLIENT_DETAIL_KEYS.clientName]: String(client?.name ?? "").trim(),
     [CLIENT_DETAIL_KEYS.loginCode]: String(client?.loginCode ?? "").trim(),
@@ -44,7 +37,6 @@ export function buildClientDetailsSnapshot(client, preferencesInput) {
     [CLIENT_DETAIL_KEYS.eventLocation]: String(
       preferences.eventLocation || client?.eventLocation || ""
     ).trim(),
-    [CLIENT_DETAIL_KEYS.energyLevel]: energyLabel,
     [CLIENT_DETAIL_KEYS.djNotes]: String(preferences.djNotes ?? "").trim(),
   };
 }

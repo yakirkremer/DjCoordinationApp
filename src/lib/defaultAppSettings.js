@@ -6,7 +6,7 @@ import { DEFAULT_BROWSER_ROW_SIZE_ID } from "./browserRowSize.js";
 /** Site-wide defaults (admin-editable via Settings tab). */
 export const DEFAULT_APP_SETTINGS = {
   defaultLocale: "he",
-  theme: "xdj-dark",
+  theme: "minimal-light",
   playerStyle: "xdj-deck",
   browserStyle: "xdj-hardware",
   browserRowSize: DEFAULT_BROWSER_ROW_SIZE_ID,

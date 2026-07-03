@@ -8,7 +8,6 @@ const STEP_IDS = [
   "eventDetails",
   "timeline",
   "genres",
-  "energy",
   "phases",
   "playlists",
   "summary",

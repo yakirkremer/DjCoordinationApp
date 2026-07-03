@@ -16,7 +16,6 @@ export const DEFAULT_PREFERENCES = {
   wizardStep: 0,
   eventDate: "",
   eventLocation: "",
-  energyLevel: "mixed",
   phases: {
     reception: [],
     dancing: [],

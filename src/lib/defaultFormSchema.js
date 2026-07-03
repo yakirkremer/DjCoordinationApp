@@ -60,13 +60,6 @@ export const DEFAULT_FORM_SCHEMA = {
       questions: [],
     },
     {
-      id: "energy",
-      stepType: "energy",
-      title: "רמת אנרגיה",
-      description: "בחרו את האווירה הכללית של האירוע.",
-      questions: [],
-    },
-    {
       id: "phases",
       stepType: "phases",
       title: "שלבי האירוע",

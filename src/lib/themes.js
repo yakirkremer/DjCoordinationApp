@@ -1,6 +1,12 @@
 /** Registered themes — add entries here and matching CSS in index.css (search "Site themes"). */
 export const THEMES = [
   {
+    id: "minimal-light",
+    nameHe: "מינימל בהיר",
+    nameEn: "Minimal Light",
+    preview: ["#ffffff", "#007aff", "#86868b"],
+  },
+  {
     id: "xdj-dark",
     nameHe: "XDJ כהה",
     nameEn: "XDJ Dark",
@@ -42,19 +48,13 @@ export const THEMES = [
     nameEn: "Deep Forest",
     preview: ["#0a120e", "#3d9970", "#c9a962"],
   },
-  {
-    id: "minimal-light",
-    nameHe: "מינימל בהיר",
-    nameEn: "Minimal Light",
-    preview: ["#f5f5f7", "#007aff", "#86868b"],
-  },
 ];
 
-export const DEFAULT_THEME_ID = "xdj-dark";
+export const DEFAULT_THEME_ID = "minimal-light";
 const STORAGE_KEY = "kremer-music-theme-v1";
 
 export function getThemeById(id) {
-  return THEMES.find((t) => t.id === id) ?? THEMES[0];
+  return THEMES.find((t) => t.id === id) ?? THEMES.find((t) => t.id === DEFAULT_THEME_ID);
 }
 
 export function readStoredTheme() {

@@ -50,7 +50,6 @@ export const FIELD_SYNC_FROM_KEYS = [
   "clientType",
   "eventDate",
   "eventLocation",
-  "energyLevel",
   "djNotes",
 ];
 
@@ -174,10 +173,11 @@ export function applyFieldSyncToValues(
   fields = [],
   clientDetails = {},
   currentValues = {},
-  { onlyEmpty = false, detailSync = {} } = {}
+  { onlyEmpty = false, detailSync = {}, sourceValues = null } = {}
 ) {
   const legacyFieldIdToKey = buildLegacyFieldIdToSyncKey(detailSync);
   const next = { ...currentValues };
+  const storedValues = sourceValues ?? {};
 
   for (const field of fields) {
     if (field.type === "signature") continue;
@@ -187,8 +187,11 @@ export function applyFieldSyncToValues(
     const raw = clientDetails[syncKey];
     if (raw == null || String(raw).trim() === "") continue;
 
-    if (onlyEmpty && !isFieldValueEmpty(field, next[field.id] ?? normalizeFieldDefault(field))) {
-      continue;
+    if (onlyEmpty) {
+      const stored = storedValues[field.id];
+      if (stored != null && stored !== "" && !isFieldValueEmpty(field, stored)) {
+        continue;
+      }
     }
 
     next[field.id] = formatSyncValueForField(field, raw);
@@ -205,19 +208,25 @@ export function buildTicketValuesWithClientDetails(
   { onlyEmpty = true } = {}
 ) {
   const base = buildTicketDisplayValues(fields, ticketValues);
-  return applyFieldSyncToValues(fields, clientDetails, base, { onlyEmpty, detailSync });
+  return applyFieldSyncToValues(fields, clientDetails, base, {
+    onlyEmpty,
+    detailSync,
+    sourceValues: ticketValues,
+  });
 }
 
 export function buildInitialContractValues(fields = []) {
   const values = {};
   for (const field of fields) {
-    values[field.id] = normalizeFieldDefault(field);
+    const def = normalizeFieldDefault(field);
+    values[field.id] = field.type === "date" ? normalizeContractDateValue(def) : def;
   }
   return values;
 }
 
 export function buildTicketDisplayValues(fields = [], ticketValues = {}) {
-  return { ...buildInitialContractValues(fields), ...ticketValues };
+  const merged = { ...buildInitialContractValues(fields), ...ticketValues };
+  return normalizeDateFieldsInValues(fields, merged);
 }
 
 export function buildTicketDisplayValuesWithProfile(

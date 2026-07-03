@@ -16,6 +16,7 @@ export function filterStepsForClientType(steps, clientType) {
   const type = normalizeClientType(clientType);
 
   return steps
+    .filter((step) => step.stepType !== "energy")
     .map((step) => {
       if (!isForClientType(step, type)) return null;
 

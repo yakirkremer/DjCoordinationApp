@@ -126,7 +126,7 @@ export default function DropboxImportPanel({ dropbox, existingTracks, onImported
             </span>
           </div>
 
-          <div className="max-h-48 overflow-y-auto border border-xdj-border/50 rounded-sm bg-[#0a0a0c]">
+          <div className="max-h-48 overflow-y-auto border border-xdj-border/50 rounded-sm bg-xdj-screen">
             {loading ? (
               <p className="text-xs text-xdj-muted p-3 text-center">טוען...</p>
             ) : entries.length === 0 ? (

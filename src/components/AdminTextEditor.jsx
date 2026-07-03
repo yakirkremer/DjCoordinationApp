@@ -196,7 +196,7 @@ export default function AdminTextEditor() {
                       const override = draft[editLocale]?.[key] ?? "";
                       const hasOverride = Boolean(override.trim());
                       return (
-                        <div key={key} className="admin-text-row border border-xdj-border rounded-sm p-3 bg-[#0a0a0c]">
+                        <div key={key} className="admin-text-row border border-xdj-border rounded-sm p-3 bg-xdj-screen">
                           <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                             <code className="text-[10px] text-xdj-cyan font-mono break-all">{key}</code>
                             {hasOverride ? (

@@ -7,7 +7,7 @@ import FormTimelineEditor from "./FormTimelineEditor";
 
 function QuestionEditor({ question, stepId, onUpdate, onDelete, canDelete }) {
   return (
-    <div className="bg-[#0a0a0c] border border-xdj-border rounded-sm p-4 flex flex-col gap-3">
+    <div className="bg-xdj-screen border border-xdj-border rounded-sm p-4 flex flex-col gap-3">
       <div className="flex justify-between items-start gap-2">
         <span className="font-lcd text-[9px] text-xdj-muted uppercase">{question.type}</span>
         {canDelete && (

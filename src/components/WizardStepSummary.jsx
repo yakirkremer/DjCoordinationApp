@@ -1,5 +1,5 @@
 import React from "react";
-import { ENERGY_LEVELS, EVENT_PHASES } from "../lib/preferences";
+import { EVENT_PHASES } from "../lib/preferences";
 import { getFieldValue } from "../lib/formAnswers";
 import { filterStepsForClientType } from "../lib/formFilter";
 import WeddingTimelineSummary from "./WeddingTimelineSummary";
@@ -20,7 +20,6 @@ export default function WizardStepSummary({
   hideHeader = false,
 }) {
   const { t } = useI18n();
-  const energy = ENERGY_LEVELS.find((l) => l.id === preferences.energyLevel);
 
   const visibleSteps = filterStepsForClientType(formSchema?.steps ?? [], clientType);
   const hasStep = (type) => visibleSteps.some((s) => s.stepType === type);
@@ -36,7 +35,7 @@ export default function WizardStepSummary({
         </div>
       )}
 
-      <div className="bg-[#0a0a0c] border border-xdj-border rounded-sm p-5 flex flex-col gap-4 text-sm">
+      <div className="bg-xdj-screen border border-xdj-border rounded-sm p-5 flex flex-col gap-4 text-sm">
         {questionSteps.map((step) =>
           (step.questions ?? []).map((q) => {
             const val = getFieldValue(preferences, q);
@@ -70,13 +69,6 @@ export default function WizardStepSummary({
           ) : (
             <span className="text-xdj-text">לא נבחרו</span>
           )}
-        </div>
-        )}
-
-        {hasStep("energy") && (
-        <div>
-          <span className="text-xdj-muted">רמת אנרגיה: </span>
-          <span className="text-xdj-text">{energy?.label ?? "—"}</span>
         </div>
         )}
 

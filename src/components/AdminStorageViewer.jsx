@@ -185,7 +185,7 @@ export default function AdminStorageViewer() {
               <p className="text-xs text-xdj-muted p-4 text-center">{t("admin.storageEmpty")}</p>
             ) : (
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[#0a0a0c] text-xdj-muted">
+                <thead className="sticky top-0 bg-xdj-screen text-xdj-muted">
                   <tr>
                     <th className="text-right p-2 font-normal">{t("admin.storageColName")}</th>
                     <th className="text-right p-2 font-normal w-20">{t("admin.storageColSize")}</th>

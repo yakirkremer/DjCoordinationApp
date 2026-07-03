@@ -15,7 +15,7 @@ export default function CategoryBreakdown({ breakdown }) {
         {categories.map(({ category, selected, rating }) => (
           <div key={category} className="flex items-center gap-3">
             <span className="w-24 text-sm text-xdj-text shrink-0">{category}</span>
-            <div className="flex-1 h-3 bg-[#0a0a0c] rounded-sm overflow-hidden border border-xdj-border">
+            <div className="flex-1 h-3 bg-xdj-screen rounded-sm overflow-hidden border border-xdj-border">
               <div
                 className={`h-full transition-all ${
                   rating > 0 ? "bg-xdj-gold" : selected ? "bg-xdj-cyan/50" : "bg-xdj-border"

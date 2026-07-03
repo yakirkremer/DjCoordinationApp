@@ -84,7 +84,7 @@ export default function ClientHome({
     selectedCategories
   );
   const commentCount = Object.keys(comments).filter((k) => comments[k]?.trim()).length;
-  const energyId = preferences.energyLevel;
+  const ratedStyleCount = Object.values(categoryRatings).filter((r) => Number(r) > 0).length;
   const wizardDone = preferences.wizardCompleted;
   const hasProgress =
     wizardDone ||
@@ -220,11 +220,9 @@ export default function ClientHome({
 
         <div className="client-dash-metrics">
           <div className="client-dash-metric">
-            <span className="client-dash-metric-value">
-              {energyId ? <EditableText k={`energy.${energyId}.label`} /> : "—"}
-            </span>
+            <span className="client-dash-metric-value">{ratedStyleCount || "—"}</span>
             <span className="client-dash-metric-label">
-              <EditableText k="home.energy" />
+              <EditableText k="home.stylesRated" />
             </span>
           </div>
           <div className="client-dash-metric">

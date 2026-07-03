@@ -92,7 +92,7 @@ const he = {
     formStatus: "סטטוס טופס",
     formDone: "הושלם",
     formInProgress: "בתהליך",
-    energy: "אנרגיה",
+    stylesRated: "סגנונות שדורגו",
     likedTracks: "שירים שאהבתי",
     trackComments: "הערות לשירים",
     editPreferences: "ערוך העדפות",
@@ -110,7 +110,7 @@ const he = {
     secondaryActions: "עוד אפשרויות",
     quickActions: "מה תרצו לעשות?",
     actionPreferencesTitle: "טופס העדפות",
-    actionPreferencesDesc: "פרטי אירוע, סגנונות ואנרגיה",
+    actionPreferencesDesc: "פרטי אירוע וסגנונות מוזיקה",
     actionBrowseTitle: "קטלוג שירים",
     actionBrowseDesc: "האזינו, דרגו ובחרו מועדפים — גם לפני סיום הטופס",
     actionBrowseLocked: "יש להשלים את הטופס קודם",
@@ -517,13 +517,13 @@ const he = {
         short: "לוח בקרה",
         title: "לוח הבקרה האישי",
         description:
-          "לאחר הכניסה תגיעו ללוח בקרה שמציג את סטטוס הטופס, רמת האנרגיה, כמה שירים אהבתם והערות שנוספו. מכאן מתחילים את הטופס, גולשים במוזיקה, או פותחים מדריכים.",
+          "לאחר הכניסה תגיעו ללוח בקרה שמציג את סטטוס הטופס, כמה סגנונות דירגתם, שירים שאהבתם והערות שנוספו. מכאן מתחילים את הטופס, גולשים במוזיקה, או פותחים מדריכים.",
         optionCount: 4,
         options: {
           0: "התחל / המשך / ערוך טופס העדפות",
           1: "גלוש ודרג שירים — נפתח אחרי השלמת הטופס",
           2: "מדריך סגנונות ודרופים — הסבר על ז'אנרים וגרסאות",
-          3: "סטטיסטיקות — סטטוס טופס, אנרגיה, שירים שאהבתם, הערות",
+          3: "סטטיסטיקות — סטטוס טופס, סגנונות שדורגו, שירים שאהבתם, הערות",
         },
       },
       eventDetails: {
@@ -606,7 +606,7 @@ const he = {
         short: "סיכום",
         title: "סיכום וסיום הטופס",
         description:
-          "בודקים שכל מה שמילאתם נכון — תאריך, סגנונות, אנרגיה, שלבים ורשימות. לוחצים \"סיים\" כדי לפתוח את קטלוג השירים לדירוג.",
+          "בודקים שכל מה שמילאתם נכון — תאריך, סגנונות, שלבים ורשימות. לוחצים \"סיים\" כדי לפתוח את קטלוג השירים לדירוג.",
         optionCount: 3,
         options: {
           0: "סקירה — כל הבחירות מוצגות בקצרה",
@@ -720,7 +720,7 @@ const en = {
     formStatus: "Form status",
     formDone: "Complete",
     formInProgress: "In progress",
-    energy: "Energy",
+    stylesRated: "Rated styles",
     likedTracks: "Liked tracks",
     trackComments: "Track notes",
     editPreferences: "Edit preferences",
@@ -738,7 +738,7 @@ const en = {
     secondaryActions: "More options",
     quickActions: "What would you like to do?",
     actionPreferencesTitle: "Preferences form",
-    actionPreferencesDesc: "Event details, styles & energy",
+    actionPreferencesDesc: "Event details & music styles",
     actionBrowseTitle: "Track catalog",
     actionBrowseDesc: "Listen, rate & pick favorites — even before finishing the form",
     actionBrowseLocked: "Complete the form first",
@@ -1145,13 +1145,13 @@ const en = {
         short: "Dashboard",
         title: "Your personal dashboard",
         description:
-          "After signing in you land on a dashboard showing form status, energy level, liked tracks, and comments. From here you start the form, browse music, or open guides.",
+          "After signing in you land on a dashboard showing form status, rated styles, liked tracks, and comments. From here you start the form, browse music, or open guides.",
         optionCount: 4,
         options: {
           0: "Start / continue / edit preferences form",
           1: "Browse & rate tracks — unlocks after completing the form",
           2: "Styles & drops guide — explains genres and versions",
-          3: "Stats — form status, energy, liked tracks, comments",
+          3: "Stats — form status, rated styles, liked tracks, comments",
         },
       },
       eventDetails: {
@@ -1234,7 +1234,7 @@ const en = {
         short: "Summary",
         title: "Review & finish the form",
         description:
-          "Check everything looks right — date, styles, energy, phases, and lists. Tap finish to unlock the track catalog for rating.",
+          "Check everything looks right — date, styles, phases, and lists. Tap finish to unlock the track catalog for rating.",
         optionCount: 3,
         options: {
           0: "Review — all choices shown at a glance",

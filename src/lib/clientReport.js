@@ -2,7 +2,7 @@ import { DEFAULT_GENRES } from "./categories";
 import { getFieldValue } from "./formAnswers";
 import { filterStepsForClientType } from "./formFilter";
 import { getClientTypeLabel, normalizeClientType } from "./clientTypes";
-import { ENERGY_LEVELS, EVENT_PHASES } from "./preferences";
+import { EVENT_PHASES } from "./preferences";
 import {
   getCategoryBreakdown,
   getLikedTracks,
@@ -44,7 +44,6 @@ export function buildClientReportData({ client, feedback, tracks, formSchema, al
   const breakdown = getCategoryBreakdown(allGenres, selectedCategories, categoryRatings);
   const likedTracks = getLikedTracks(tracks, ratings, comments);
   const categoryTracks = getTracksByCategoryRating(tracks, ratings, comments, selectedCategories);
-  const energy = ENERGY_LEVELS.find((l) => l.id === preferences.energyLevel);
 
   const questionSteps = filterStepsForClientType(
     (formSchema?.steps ?? []).filter((s) => s.stepType === "questions"),
@@ -71,7 +70,6 @@ export function buildClientReportData({ client, feedback, tracks, formSchema, al
       typeId: normalizeClientType(client?.clientType),
     },
     preferences,
-    energyLabel: energy?.label ?? "—",
     wizardCompleted: Boolean(preferences.wizardCompleted),
     breakdown,
     likedTracks,
@@ -99,7 +97,6 @@ export function buildClientReportText(report) {
   if (report.preferences.eventLocation?.trim()) {
     push(`מיקום: ${report.preferences.eventLocation}`);
   }
-  push(`אנרגיה: ${report.energyLabel}`);
   push("");
 
   if (report.customAnswers.length) {
