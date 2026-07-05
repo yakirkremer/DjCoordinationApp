@@ -2470,6 +2470,30 @@ body {
 }
 
 @media (max-width: 767px) {
+  /* Let the page scroll as one unit — avoid a tiny inner form box */
+  .wizard-shell {
+    max-height: none;
+  }
+
+  .wizard-scroll {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .wizard-stepper {
+    margin-bottom: 0.65rem;
+  }
+
+  .wizard-step-hero {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .wizard-privacy-hint {
+    margin-bottom: 0.5rem;
+  }
+
   .wizard-footer-actions {
     flex-direction: column-reverse;
     gap: 0.5rem;

@@ -835,6 +835,96 @@
   word-break: break-word;
 }
 
+/* Admin clients table — horizontal scroll on narrow screens */
+.client-manager-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .client-manager-table-wrap {
+    padding-bottom: 0.25rem;
+  }
+
+  .client-manager-table {
+    min-width: 36rem;
+  }
+
+  .client-contract-cell {
+    min-width: 0;
+    max-width: 11rem;
+  }
+
+  .client-stage-toggles {
+    min-width: 0;
+    max-width: 11rem;
+  }
+
+  /* Admin client ticket modal */
+  .admin-sent-contract-modal {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .admin-sent-contract-panel {
+    width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-sent-contract-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .admin-sent-contract-form {
+    overflow: visible;
+    flex: none;
+  }
+
+  .admin-client-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-client-sync-list-item {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .admin-client-sync-list-arrow {
+    display: none;
+  }
+
+  .admin-client-sync-list-source {
+    font-size: 0.75rem;
+  }
+
+  .admin-client-sync-list-field {
+    font-size: 0.8rem;
+  }
+
+  .admin-client-sync-list-value {
+    font-size: 0.85rem;
+    padding-top: 0.15rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-sent-contract-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-sent-contract-actions .btn-luxury,
+  .admin-sent-contract-actions .btn-luxury-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* Client contract — scale overlay fields with document width (PDF + HTML) */
 .contract-client .contract-doc-frame--client,
 .contract-client--view .contract-doc-frame--client,

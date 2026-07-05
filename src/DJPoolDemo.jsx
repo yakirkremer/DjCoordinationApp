@@ -1000,7 +1000,8 @@ export default function DJPoolDemo() {
         return <p className="font-lcd text-xs text-xdj-muted text-center py-8">LOADING CONTRACTS...</p>;
       }
       return (
-        <ClientManager
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden min-w-0">
+          <ClientManager
           clients={clients}
           onCreateClient={handleCreateClient}
           onDeleteClient={handleDeleteClient}
@@ -1029,6 +1030,7 @@ export default function DJPoolDemo() {
           getTicketForClient={getTicketForClient}
           getTemplate={getTemplate}
         />
+        </div>
       );
     }
     if (adminTab === "contracts") {
@@ -1176,7 +1178,8 @@ export default function DJPoolDemo() {
             (clientScreen === "home" ||
               clientScreen === "guide" ||
               clientScreen === "tutorial" ||
-              clientScreen === "contract")) ||
+              clientScreen === "contract" ||
+              clientScreen === "wizard")) ||
           guestView === "contractLink" ||
           guestView === "guide" ||
           guestView === "tutorial"
@@ -1294,35 +1297,37 @@ export default function DJPoolDemo() {
             />
           </div>
         ) : clientScreen === "wizard" ? (
-          <ErrorBoundary
-            label="wizard"
-            resetKeys={[activeClient.id, clientScreen]}
-            {...boundaryProps}
-          >
-            <PreferencesWizard
-              key={activeClient.id}
-              formSchema={formSchema}
-              clientType={activeClient.clientType}
-              preferences={preferences}
-              selectedCategories={selectedCategories}
-              categoryRatings={categoryRatings}
-              tracks={tracks.filter((t) => ensureTrackVersions(t).versions.some((v) => !v.isMissing))}
-              onUpdatePreferences={updatePreferences}
-              onToggleCategory={toggleCategory}
-              onRateCategory={rateCategory}
-              onTrackSelect={handleTrackSelect}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              formatTime={formatTime}
-              onComplete={handleWizardComplete}
-              onSkip={handleWizardSkip}
-              onSaveProgress={saveWizardProgress}
-              onSaveAndExit={() => goClientScreen("home")}
-              onBrowseMusic={clientStages.catalog ? () => goClientScreen("browse") : undefined}
-              lastSavedAt={lastSavedAt}
-              isSaving={isSaving}
-            />
-          </ErrorBoundary>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <ErrorBoundary
+              label="wizard"
+              resetKeys={[activeClient.id, clientScreen]}
+              {...boundaryProps}
+            >
+              <PreferencesWizard
+                key={activeClient.id}
+                formSchema={formSchema}
+                clientType={activeClient.clientType}
+                preferences={preferences}
+                selectedCategories={selectedCategories}
+                categoryRatings={categoryRatings}
+                tracks={tracks.filter((t) => ensureTrackVersions(t).versions.some((v) => !v.isMissing))}
+                onUpdatePreferences={updatePreferences}
+                onToggleCategory={toggleCategory}
+                onRateCategory={rateCategory}
+                onTrackSelect={handleTrackSelect}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                formatTime={formatTime}
+                onComplete={handleWizardComplete}
+                onSkip={handleWizardSkip}
+                onSaveProgress={saveWizardProgress}
+                onSaveAndExit={() => goClientScreen("home")}
+                onBrowseMusic={clientStages.catalog ? () => goClientScreen("browse") : undefined}
+                lastSavedAt={lastSavedAt}
+                isSaving={isSaving}
+              />
+            </ErrorBoundary>
+          </div>
         ) : tracks.length === 0 ? (
           <section className="panel-luxury rounded-sm p-8 text-center max-w-md mx-auto space-y-4">
             <h2 className="text-lg font-semibold text-xdj-gold">{t("browse.emptyCatalogTitle")}</h2>

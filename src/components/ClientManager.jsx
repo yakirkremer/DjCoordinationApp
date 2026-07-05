@@ -94,7 +94,7 @@ function ClientContractCell({
     if (assigningId === client.id) {
       const isPending = assignPendingId === client.id;
       return (
-        <div className="flex flex-col gap-1 min-w-[140px]">
+        <div className="flex flex-col gap-1 min-w-0">
           <select
             value={assignTemplateId[client.id] ?? ""}
             onChange={(e) =>
@@ -147,7 +147,7 @@ function ClientContractCell({
     contractTemplates.find((t) => t.id === ticket.templateId)?.name ?? "חוזה";
 
   return (
-    <div className="client-contract-cell flex flex-col gap-1.5 min-w-[150px]">
+    <div className="client-contract-cell flex flex-col gap-1.5 min-w-0">
       <span
         className={`text-xs rounded px-2 py-1 w-fit ${
           signed
@@ -312,7 +312,7 @@ export default function ClientManager({
   };
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="flex flex-col gap-6 max-w-full min-w-0" dir="rtl">
       <section className="bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-800">
         <h2 className="text-lg font-bold text-gray-100 mb-4">יצירת לקוח חדש</h2>
 
@@ -425,8 +425,9 @@ export default function ClientManager({
         </p>
       </section>
 
-      <section className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
-        <table className="w-full text-right border-collapse">
+      <section className="bg-gray-900 rounded-xl border border-gray-800 shadow-2xl max-w-full min-w-0">
+        <div className="client-manager-table-wrap">
+        <table className="client-manager-table w-full text-right border-collapse">
           <thead>
             <tr className="bg-gray-800/50 text-gray-400 text-xs uppercase">
               <th className="p-4">שם</th>
@@ -450,7 +451,7 @@ export default function ClientManager({
                 const ticket = getTicketForClient?.(client.id) ?? null;
                 return (
                   <tr key={client.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="p-4 font-bold text-gray-200">
+                    <td className="p-4 font-bold text-gray-200" data-label="שם">
                       {client.name}
                       {client.eventDate || client.eventLocation ? (
                         <p className="text-[10px] text-gray-500 font-normal mt-0.5">
@@ -458,12 +459,12 @@ export default function ClientManager({
                         </p>
                       ) : null}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4" data-label="סוג">
                       <span className="text-xs bg-purple-950/50 border border-purple-800 rounded px-2 py-1 text-purple-300">
                         {getTypeLabel(client.clientType)}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4" data-label="קוד כניסה">
                       <button
                         onClick={() => copyCode(client.loginCode)}
                         className="font-mono text-purple-400 hover:text-purple-300 tracking-widest"
@@ -472,14 +473,14 @@ export default function ClientManager({
                         {client.loginCode}
                       </button>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4" data-label="שלבים">
                       {onUpdateStages ? (
                         <StageToggles client={client} onUpdateStages={onUpdateStages} />
                       ) : (
                         <span className="text-xs text-gray-600">—</span>
                       )}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4" data-label="חוזה">
                       <ClientContractCell
                         client={client}
                         ticket={ticket}
@@ -498,10 +499,10 @@ export default function ClientManager({
                         }}
                       />
                     </td>
-                    <td className="p-4 text-xs text-gray-500">
+                    <td className="p-4 text-xs text-gray-500" data-label="נוצר">
                       {new Date(client.createdAt).toLocaleDateString("he-IL")}
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-4 text-center" data-label="פעולות">
                       <button
                         onClick={() => onDeleteClient(client.id)}
                         className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-gray-800 transition-colors"
@@ -516,6 +517,7 @@ export default function ClientManager({
             )}
           </tbody>
         </table>
+        </div>
       </section>
 
       {editingTicket ? (
