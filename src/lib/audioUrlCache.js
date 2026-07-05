@@ -30,17 +30,19 @@ export function warmAudioUrl(url) {
   if (!url || warmingUrls.has(url)) return;
 
   warmingUrls.add(url);
-  const audio = new Audio();
-  audio.preload = "auto";
-
   const done = () => {
     warmingUrls.delete(url);
-    audio.removeEventListener("canplaythrough", done);
-    audio.removeEventListener("error", done);
   };
 
-  audio.addEventListener("canplaythrough", done, { once: true });
-  audio.addEventListener("error", done, { once: true });
-  audio.src = url;
-  audio.load();
+  // Prime the HTTP cache with the first chunk — enough to start playback quickly.
+  fetch(url, {
+    credentials: "include",
+    headers: { Range: "bytes=0-262143" },
+  })
+    .then((res) => {
+      if (!res.ok && res.status !== 206) throw new Error(`warm failed (${res.status})`);
+      return res.arrayBuffer();
+    })
+    .then(done)
+    .catch(done);
 }

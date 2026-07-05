@@ -1,6 +1,7 @@
 import React from "react";
 import { getVibeLabel } from "./GenreVibeMeter";
 import DropTypeBadge from "./DropTypeBadge";
+import TrackArtistName from "./TrackArtistName";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 
 function TrackChip({ track, variant }) {
@@ -11,7 +12,9 @@ function TrackChip({ track, variant }) {
       title={track.comment || undefined}
     >
       <span className="category-track-chip-title">{track.title}</span>
-      <span className="category-track-chip-artist">{track.artist}</span>
+      <span className="category-track-chip-artist">
+        <TrackArtistName artist={track.artist} />
+      </span>
       {dropLabel ? (
         <span className="category-track-chip-drop">
           <DropTypeBadge drop={dropLabel} compact />

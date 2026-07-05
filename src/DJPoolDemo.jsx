@@ -47,7 +47,7 @@ import { resolveTrackAudioUrl, verifyTracksOnServer } from "./lib/trackAudioUrl"
 import { deleteTrack } from "./lib/api/uploadTrack";
 import { countMissingTracks } from "./lib/trackSource";
 import useAudioPreload from "./hooks/useAudioPreload";
-import { saveCatalog } from "./lib/api/dataApi";
+import { saveCatalog, fetchCatalog } from "./lib/api/dataApi";
 import { fetchSession, loginAdmin, logoutSession } from "./lib/api/auth";
 import { useI18n } from "./lib/i18n/AppSettingsContext";
 import {
@@ -299,16 +299,30 @@ export default function DJPoolDemo() {
       setCatalogError(null);
 
       try {
-        const verifiedTracks = (
-          await verifyTracksOnServer()
-        ).map((track) => normalizePreviewCue(ensureTrackVersions(track)));
+        const catalog = await fetchCatalog();
+        const initialTracks = catalog.map((track) =>
+          normalizePreviewCue(ensureTrackVersions(track))
+        );
 
         if (cancelled) return;
-        setTracks(verifiedTracks);
+        setTracks(initialTracks);
         setCatalogStatus("ready");
 
-        const firstValid = verifiedTracks.find((t) => !t.isMissing);
+        const firstValid = initialTracks.find((t) => !t.isMissing);
         if (firstValid) setCurrentTrack(firstValid);
+
+        verifyTracksOnServer()
+          .then((verifiedTracks) => {
+            if (cancelled) return;
+            setTracks(
+              verifiedTracks.map((track) =>
+                normalizePreviewCue(ensureTrackVersions(track))
+              )
+            );
+          })
+          .catch((err) => {
+            console.warn("Background catalog verify failed:", err);
+          });
       } catch (err) {
         if (cancelled) return;
         console.error("Error loading music catalog:", err);

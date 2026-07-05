@@ -16,13 +16,9 @@ export default function useAudioPreload(tracks, currentTrackId, enabled = true) 
   useEffect(() => {
     if (!enabled || !tracksRef.current?.length) return;
 
-    const timer = setTimeout(() => {
-      preloadTrackAudioUrls(tracksRef.current, {
-        aroundTrackId: currentTrackId,
-        limit: 12,
-      });
-    }, 150);
-
-    return () => clearTimeout(timer);
+    preloadTrackAudioUrls(tracksRef.current, {
+      aroundTrackId: currentTrackId,
+      limit: 16,
+    });
   }, [tracksPreloadKey, currentTrackId, enabled]);
 }

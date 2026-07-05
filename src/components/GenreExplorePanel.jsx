@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
+import TrackArtistName from "./TrackArtistName";
 import DropTypeBadge from "./DropTypeBadge";
 import GenreVibeMeter from "./GenreVibeMeter";
 import { countTracksForGenre, entryPlaybackTrack, getTracksForGenre, isDropMirrorGenre } from "../lib/genreCatalog";
@@ -85,7 +86,9 @@ export default function GenreExplorePanel({
                 <TrackArtwork track={entry.track} />
                 <div className="genre-explore-row-meta min-w-0">
                   <div className="genre-explore-row-title">{entry.track.title}</div>
-                  <div className="genre-explore-row-artist">{entry.track.artist}</div>
+                  <div className="genre-explore-row-artist">
+                    <TrackArtistName artist={entry.track.artist} />
+                  </div>
                   <div className="genre-explore-row-badges">
                     {entry.via === "drop" ? (
                       <>

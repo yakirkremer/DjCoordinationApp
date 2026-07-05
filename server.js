@@ -67,7 +67,7 @@ async function serveStatic(req, res) {
       const setFileHeaders = () => {
         res.setHeader("Content-Type", contentType);
         if (ext === ".mp3") {
-          res.setHeader("Cache-Control", "private, max-age=3600");
+          res.setHeader("Cache-Control", "private, max-age=86400, immutable");
           res.setHeader("Accept-Ranges", "bytes");
         }
       };
@@ -104,8 +104,14 @@ async function serveStatic(req, res) {
         }
       }
 
-      const data = await readFile(filePath);
       setFileHeaders();
+      if (ext === ".mp3") {
+        res.setHeader("Content-Length", fileStat.size);
+        createReadStream(filePath).pipe(res);
+        return;
+      }
+
+      const data = await readFile(filePath);
       res.end(data);
       return;
     } catch {

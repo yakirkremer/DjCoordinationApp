@@ -1,6 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
 import { ensureTrackVersions } from "../src/lib/trackVersions.js";
+import {
+  containsHebrew,
+  isEnglishArtistName,
+  shouldResolveEnglishArtist,
+} from "../src/lib/trackArtist.js";
 import { readJsonFile, writeJsonFile, DATA_FILES } from "./dataStore.js";
 import { DATA_DIR, MUSIC_ROOT } from "./storagePaths.js";
 
@@ -68,9 +73,16 @@ async function downloadBytes(url, timeoutMs = 15000) {
 
 async function searchItunes(artist, title) {
   const queries = [];
-  if (artist && title) queries.push(`${artist} ${title}`);
-  if (title) queries.push(title);
-  if (artist) queries.push(artist);
+  const titleClean = cleanSearchText(title);
+  const artistClean = cleanSearchText(artist);
+
+  if (containsHebrew(artistClean)) {
+    if (titleClean) queries.push(titleClean);
+  } else {
+    if (artistClean && titleClean) queries.push(`${artistClean} ${titleClean}`);
+    if (titleClean) queries.push(titleClean);
+    if (artistClean) queries.push(artistClean);
+  }
 
   for (const query of queries) {
     const params = new URLSearchParams({
@@ -86,9 +98,11 @@ async function searchItunes(artist, title) {
         if (!art) continue;
         const itemArtist = item.artistName || "";
         const itemTitle = item.trackName || "";
-        if (!resultMatchesQuery(itemArtist, itemTitle, artist, title)) continue;
+        if (!resultMatchesQuery(itemArtist, itemTitle, artistClean, titleClean)) continue;
         return {
           artworkUrl: art.replace("100x100bb", "600x600bb").replace("100x100", "600x600"),
+          artist: itemArtist.trim(),
+          title: itemTitle.trim(),
           source: "itunes",
         };
       }
@@ -101,11 +115,18 @@ async function searchItunes(artist, title) {
 
 async function searchDeezer(artist, title) {
   const queries = [];
-  if (artist && title) {
-    queries.push(`artist:"${artist}" track:"${title}"`);
-    queries.push(`${artist} ${title}`);
+  const titleClean = cleanSearchText(title);
+  const artistClean = cleanSearchText(artist);
+
+  if (containsHebrew(artistClean)) {
+    if (titleClean) queries.push(titleClean);
+  } else if (artistClean && titleClean) {
+    queries.push(`artist:"${artistClean}" track:"${titleClean}"`);
+    queries.push(`${artistClean} ${titleClean}`);
+    if (titleClean) queries.push(titleClean);
+  } else if (titleClean) {
+    queries.push(titleClean);
   }
-  if (title) queries.push(title);
 
   for (const query of queries) {
     const params = new URLSearchParams({ q: query, limit: "5" });
@@ -117,8 +138,8 @@ async function searchDeezer(artist, title) {
         if (!art) continue;
         const itemArtist = item.artist?.name || "";
         const itemTitle = item.title || "";
-        if (!resultMatchesQuery(itemArtist, itemTitle, artist, title)) continue;
-        return { artworkUrl: art, source: "deezer" };
+        if (!resultMatchesQuery(itemArtist, itemTitle, artistClean, titleClean)) continue;
+        return { artworkUrl: art, artist: itemArtist.trim(), title: itemTitle.trim(), source: "deezer" };
       }
     } catch {
       /* try next query */
@@ -127,7 +148,7 @@ async function searchDeezer(artist, title) {
   return null;
 }
 
-async function findOnlineArtwork(artist, title) {
+async function findOnlineMatch(artist, title) {
   const match = await searchItunes(artist, title);
   if (match) return match;
   return searchDeezer(artist, title);
@@ -152,37 +173,50 @@ async function fileExists(filePath) {
   }
 }
 
+function applyArtistMetadataFix(track, match) {
+  if (!match?.artist || !isEnglishArtistName(match.artist)) return false;
+  if (!shouldResolveEnglishArtist(track.artist)) return false;
+  if (track.artist === match.artist) return false;
+  track.artist = match.artist;
+  return true;
+}
+
 async function processTrack(track, { force = false } = {}) {
   const trackId = track.id;
   const dest = artworkPath(trackId);
   const url = artworkUrl(trackId);
   const { artist, title } = resolveSearchMeta(track);
+  let artistUpdated = false;
 
   if (!title) {
-    return { trackId, status: "no-meta", artwork: track.artwork || null };
+    return { trackId, status: "no-meta", artwork: track.artwork || null, artistUpdated };
+  }
+
+  const match = await findOnlineMatch(artist, title);
+  if (match) {
+    artistUpdated = applyArtistMetadataFix(track, match);
   }
 
   const hasArtwork = track.artwork && (await fileExists(dest));
   if (!force && hasArtwork) {
-    return { trackId, status: "skip", artwork: track.artwork };
+    return { trackId, status: "skip", artwork: track.artwork, artistUpdated };
   }
 
-  const match = await findOnlineArtwork(artist, title);
   if (!match) {
-    return { trackId, status: "not-found", artwork: track.artwork || null };
+    return { trackId, status: "not-found", artwork: track.artwork || null, artistUpdated };
   }
 
   try {
     const imageData = await downloadBytes(match.artworkUrl);
     if (imageData.length < 500) {
-      return { trackId, status: "error", artwork: track.artwork || null };
+      return { trackId, status: "error", artwork: track.artwork || null, artistUpdated };
     }
     await fs.mkdir(ARTWORK_DIR, { recursive: true });
     await fs.writeFile(dest, imageData);
     track.artwork = url;
-    return { trackId, status: match.source, artwork: url };
+    return { trackId, status: match.source, artwork: url, artistUpdated };
   } catch {
-    return { trackId, status: "error", artwork: track.artwork || null };
+    return { trackId, status: "error", artwork: track.artwork || null, artistUpdated };
   }
 }
 
@@ -194,6 +228,7 @@ function emptyStats() {
     "not-found": 0,
     "no-meta": 0,
     error: 0,
+    artistUpdated: 0,
     total: 0,
   };
 }
@@ -210,8 +245,12 @@ export async function fetchArtworkForCatalog({ force = false, sleepMs = 200 } = 
     const track = ensureTrackVersions(catalog[i]);
     stats.total += 1;
     const result = await processTrack(track, { force });
-    if (track.artwork) {
-      catalog[i] = { ...catalog[i], artwork: track.artwork };
+    if (track.artwork || result.artistUpdated) {
+      catalog[i] = {
+        ...catalog[i],
+        ...(track.artwork ? { artwork: track.artwork } : {}),
+        ...(result.artistUpdated ? { artist: track.artist } : {}),
+      };
     }
     results.push({
       trackId: track.id,
@@ -219,8 +258,10 @@ export async function fetchArtworkForCatalog({ force = false, sleepMs = 200 } = 
       artist: track.artist,
       status: result.status,
       artwork: result.artwork,
+      artistUpdated: result.artistUpdated,
     });
     stats[result.status] = (stats[result.status] || 0) + 1;
+    if (result.artistUpdated) stats.artistUpdated += 1;
 
     if (sleepMs > 0 && (result.status === "itunes" || result.status === "deezer")) {
       await new Promise((r) => setTimeout(r, sleepMs));
@@ -239,8 +280,12 @@ export async function fetchArtworkForTrack(trackId, { force = false } = {}) {
 
   const track = ensureTrackVersions(catalog[idx]);
   const result = await processTrack(track, { force });
-  if (track.artwork) {
-    catalog[idx] = { ...catalog[idx], artwork: track.artwork };
+  if (track.artwork || result.artistUpdated) {
+    catalog[idx] = {
+      ...catalog[idx],
+      ...(track.artwork ? { artwork: track.artwork } : {}),
+      ...(result.artistUpdated ? { artist: track.artist } : {}),
+    };
   }
   await writeJsonFile(DATA_FILES.catalog, catalog);
 

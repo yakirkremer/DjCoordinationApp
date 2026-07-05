@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
 import TrackArtwork from "./TrackArtwork";
+import TrackArtistName from "./TrackArtistName";
 import TrackReloadButton from "./TrackReloadButton";
 import TrackRelinkButton from "./TrackRelinkButton";
 import TrackVersionPicker from "./TrackVersionPicker";
@@ -412,7 +413,9 @@ export default function GlobalPlayer({
             </div>
             <div className="xdj-az-player-mini-meta">
               <h4 className="xdj-az-player-mini-title">{currentTrack.title}</h4>
-              <p className="xdj-az-player-mini-artist">{currentTrack.artist}</p>
+              <p className="xdj-az-player-mini-artist">
+                <TrackArtistName artist={currentTrack.artist} />
+              </p>
               {catalogTrack && onSelectVersion && !versionLocked ? (
                 <TrackVersionPicker
                   track={catalogTrack}
@@ -463,7 +466,9 @@ export default function GlobalPlayer({
           <span className="xdj-az-deck-badge">1</span>
           <div className="xdj-az-player-track-meta">
             <h4 className="xdj-az-player-title">{currentTrack.title}</h4>
-            <p className="xdj-az-player-artist">{currentTrack.artist}</p>
+            <p className="xdj-az-player-artist">
+              <TrackArtistName artist={currentTrack.artist} />
+            </p>
             {catalogTrack && onSelectVersion && !versionLocked ? (
               <TrackVersionPicker
                 track={catalogTrack}

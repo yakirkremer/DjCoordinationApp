@@ -4,6 +4,7 @@ import TrackFeedback from "./TrackFeedback";
 import TrackRating from "./TrackRating";
 import PreviewWaveform from "./PreviewWaveform";
 import TrackArtwork from "./TrackArtwork";
+import TrackArtistName from "./TrackArtistName";
 import TrackVersionPicker from "./TrackVersionPicker";
 import DropTypeBadge from "./DropTypeBadge";
 import { getTrackComment, getTrackRating, hasExplicitRating } from "../lib/trackRating";
@@ -15,8 +16,8 @@ import {
   getTracksForGenre,
 } from "../lib/genreCatalog";
 import { sortTracksInGenre } from "../lib/genreTrackOrder";
-import { useAppSettingsContext } from "../lib/i18n/AppSettingsContext";
-import { useI18n } from "../lib/i18n/AppSettingsContext";
+import { useAppSettingsContext, useI18n } from "../lib/i18n/AppSettingsContext";
+import { formatTrackArtist } from "../lib/trackArtist";
 
 const REORDER_DRAG_TYPE = "application/x-dj-track-reorder-id";
 
@@ -97,7 +98,9 @@ const TrackListCard = memo(function TrackListCard({
           <TrackArtwork track={track} />
           <div className="xdj-az-track-card-meta">
             <div className="xdj-az-track-card-title">{track.title}</div>
-            <div className="xdj-az-track-card-artist">{track.artist}</div>
+            <div className="xdj-az-track-card-artist">
+              <TrackArtistName artist={track.artist} />
+            </div>
             {entry?.lockVersion ? (
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-[9px] text-xdj-muted">{track.bucket}</span>
@@ -231,7 +234,9 @@ const TrackListRow = memo(function TrackListRow({
         </div>
 
         <div className="xdj-az-col xdj-az-col-artist hidden md:block">
-          <span className="xdj-az-track-artist">{track.artist}</span>
+          <span className="xdj-az-track-artist">
+            <TrackArtistName artist={track.artist} />
+          </span>
         </div>
 
         <div className="xdj-az-col xdj-az-col-time hidden sm:block">
@@ -300,7 +305,7 @@ export default function TrackList({
   coupleBrowseUx = false,
 }) {
   const { settings } = useAppSettingsContext();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const genreTrackOrders = useMemo(
     () => genreTrackOrdersProp ?? settings.genreTrackOrders ?? {},
     [genreTrackOrdersProp, settings.genreTrackOrders]
@@ -356,7 +361,8 @@ export default function TrackList({
         const track = catalogMode ? item.track : item;
         return (
           track.title?.toLowerCase().includes(query) ||
-          track.artist?.toLowerCase().includes(query)
+          track.artist?.toLowerCase().includes(query) ||
+          formatTrackArtist(track.artist, locale).toLowerCase().includes(query)
         );
       })
     : catalogMode

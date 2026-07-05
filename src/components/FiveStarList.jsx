@@ -1,5 +1,6 @@
 import React from "react";
 import DropTypeBadge from "./DropTypeBadge";
+import TrackArtistName from "./TrackArtistName";
 
 export default function FiveStarList({ tracks }) {
   return (
@@ -15,7 +16,9 @@ export default function FiveStarList({ tracks }) {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-gray-200">{track.title}</p>
-                  <p className="text-sm font-bold text-xdj-cyan">{track.artist}</p>
+                  <p className="text-sm font-bold text-xdj-cyan">
+                    <TrackArtistName artist={track.artist} />
+                  </p>
                   <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap mt-0.5">
                     <span className="text-purple-400">{track.bucket}</span>
                     {track.drop ? <DropTypeBadge drop={track.drop} compact /> : null}
