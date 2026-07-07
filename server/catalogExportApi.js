@@ -8,7 +8,6 @@ import { MUSIC_ROOT } from "./storagePaths.js";
 
 const require = createRequire(import.meta.url);
 const archiver = require("archiver");
-
 function toMigrationTrack(rawTrack) {
   const track = ensureTrackVersions(rawTrack);
   return {
@@ -29,33 +28,51 @@ function toMigrationTrack(rawTrack) {
 
 async function buildCatalogExportData() {
   const catalog = await readJsonFile(DATA_FILES.catalog, []);
-  const payload = { tracks: (Array.isArray(catalog) ? catalog : []).map(toMigrationTrack) };
+  const safeCatalog = Array.isArray(catalog) ? catalog : [];
+  const payload = { tracks: safeCatalog.map(toMigrationTrack) };
+  const artworkMap = { tracks: safeCatalog.map(toArtworkMapEntry) };
   const files = [];
   const seen = new Set();
 
-  for (const track of payload.tracks) {
-    for (const version of track.versions) {
-      const rel = String(version.file || "").replace(/^audio\//, "");
-      if (!rel) continue;
-      const [bucket, ...nameParts] = rel.split("/");
-      const filename = nameParts.join("/");
-      if (!bucket || !filename) continue;
+function toArtworkMapEntry(rawTrack) {
+  const track = ensureTrackVersions(rawTrack);
+  const artworkUrl = typeof track.artwork === "string" ? track.artwork.trim() : "";
+  const artworkFilename = artworkUrl.startsWith("/data/artwork/")
+    ? path.basename(artworkUrl)
+    : "";
 
-      const base = path.basename(filename);
-      const src = path.join(MUSIC_ROOT, bucket, "analyzed", base);
-      const zipName = `audio/${bucket}/${base}`;
+  return {
+    trackId: track.id,
+    title: track.title ?? "",
+    artist: track.artist ?? "",
+    genre: track.bucket ?? "",
+    artworkUrl: artworkUrl || null,
+    artworkFile: artworkFilename ? `artwork/${artworkFilename}` : null,
+    versions: (track.versions || []).map((version) => ({
+      versionId: version.id ?? "",
+      dropType: version.drop ?? "",
+      artworkFile: artworkFilename ? `artwork/${artworkFilename}` : null,
+    })),
+  };
+}
+
+  for (const entry of artworkMap.tracks) {
+    const artworkFile = String(entry.artworkFile || "");
+    if (!artworkFile) continue;
+    const filename = path.basename(artworkFile);
+    const src = path.join(MUSIC_ROOT, "..", "data", "artwork", filename);
+    try {
+      await fs.access(src);
+      const zipName = `artwork/${filename}`;
       if (seen.has(zipName)) continue;
-      try {
-        await fs.access(src);
-        seen.add(zipName);
-        files.push({ src, zipName });
-      } catch (err) {
-        if (err.code !== "ENOENT") throw err;
-      }
+      seen.add(zipName);
+      files.push({ src, zipName });
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
     }
   }
 
-  return { payload, files };
+  return { payload, artworkMap, files };
 }
 
 export function createCatalogExportApiMiddleware() {
@@ -74,7 +91,7 @@ export function createCatalogExportApiMiddleware() {
     }
 
     buildCatalogExportData()
-      .then(({ payload, files }) => {
+      .then(({ payload, artworkMap, files }) => {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/zip");
         res.setHeader(
@@ -91,6 +108,7 @@ export function createCatalogExportApiMiddleware() {
         });
         archive.pipe(res);
         archive.append(JSON.stringify(payload, null, 2), { name: "catalog-export.json" });
+        archive.append(JSON.stringify(artworkMap, null, 2), { name: "artwork-map.json" });
         for (const file of files) {
           archive.file(file.src, { name: file.zipName });
         }
