@@ -1,6 +1,6 @@
-import fs from "fs/promises";
 import path from "path";
-import { strToU8, zipSync } from "fflate";
+import fs from "fs/promises";
+import archiver from "archiver";
 import { ensureTrackVersions } from "../src/lib/trackVersions.js";
 import { isAdminSession, parseRequestSession } from "./auth.js";
 import { DATA_FILES, readJsonFile } from "./dataStore.js";
@@ -24,12 +24,11 @@ function toMigrationTrack(rawTrack) {
   };
 }
 
-async function buildCatalogExportZip() {
+async function buildCatalogExportData() {
   const catalog = await readJsonFile(DATA_FILES.catalog, []);
   const payload = { tracks: (Array.isArray(catalog) ? catalog : []).map(toMigrationTrack) };
-  const files = {
-    "catalog-export.json": strToU8(JSON.stringify(payload, null, 2)),
-  };
+  const files = [];
+  const seen = new Set();
 
   for (const track of payload.tracks) {
     for (const version of track.versions) {
@@ -39,18 +38,21 @@ async function buildCatalogExportZip() {
       const filename = nameParts.join("/");
       if (!bucket || !filename) continue;
 
-      const src = path.join(MUSIC_ROOT, bucket, "analyzed", path.basename(filename));
+      const base = path.basename(filename);
+      const src = path.join(MUSIC_ROOT, bucket, "analyzed", base);
+      const zipName = `audio/${bucket}/${base}`;
+      if (seen.has(zipName)) continue;
       try {
-        const bytes = await fs.readFile(src);
-        files[`audio/${bucket}/${path.basename(filename)}`] = new Uint8Array(bytes);
+        await fs.access(src);
+        seen.add(zipName);
+        files.push({ src, zipName });
       } catch (err) {
         if (err.code !== "ENOENT") throw err;
       }
     }
   }
 
-  const zipData = zipSync(files, { level: 6 });
-  return Buffer.from(zipData);
+  return { payload, files };
 }
 
 export function createCatalogExportApiMiddleware() {
@@ -68,15 +70,28 @@ export function createCatalogExportApiMiddleware() {
       return;
     }
 
-    buildCatalogExportZip()
-      .then((zipBuffer) => {
+    buildCatalogExportData()
+      .then(({ payload, files }) => {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/zip");
         res.setHeader(
           "Content-Disposition",
           `attachment; filename="catalog-export-${new Date().toISOString().slice(0, 10)}.zip"`
         );
-        res.end(zipBuffer);
+        const archive = archiver("zip", { zlib: { level: 6 } });
+        archive.on("error", (err) => {
+          if (!res.writableEnded) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json; charset=utf-8");
+            res.end(JSON.stringify({ error: err.message || "Catalog ZIP export failed" }));
+          }
+        });
+        archive.pipe(res);
+        archive.append(JSON.stringify(payload, null, 2), { name: "catalog-export.json" });
+        for (const file of files) {
+          archive.file(file.src, { name: file.zipName });
+        }
+        archive.finalize();
       })
       .catch((err) => {
         res.statusCode = 500;
