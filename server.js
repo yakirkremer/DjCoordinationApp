@@ -13,7 +13,6 @@ import { createStorageBrowseApiMiddleware } from "./server/storageBrowseApi.js";
 import { createAuthApiMiddleware } from "./server/authApi.js";
 import { createContractApiMiddleware } from "./server/contractApi.js";
 import { createMediaAuthMiddleware } from "./server/mediaAuth.js";
-import { createActivityApiMiddleware, createApiActivityMiddleware } from "./server/activityApi.js";
 import { createCatalogExportApiMiddleware } from "./server/catalogExportApi.js";
 import { assertProductionSecrets } from "./server/auth.js";
 import { safePathUnderRoot } from "./server/pathSafety.js";
@@ -159,8 +158,6 @@ const storageBrowseApi = createStorageBrowseApiMiddleware();
 const authApi = createAuthApiMiddleware();
 const contractApi = createContractApiMiddleware();
 const mediaAuth = createMediaAuthMiddleware();
-const apiActivity = createApiActivityMiddleware();
-const activityApi = createActivityApiMiddleware();
 const catalogExportApi = createCatalogExportApiMiddleware();
 const apiNotFound = createApiNotFoundMiddleware();
 
@@ -175,8 +172,6 @@ const server = createServer((req, res) => {
   }
 
   authApi(req, res, () => {
-    apiActivity(req, res, () => {
-    activityApi(req, res, () => {
     contractApi(req, res, () => {
     catalogExportApi(req, res, () => {
     dataApi(req, res, () => {
@@ -191,8 +186,6 @@ const server = createServer((req, res) => {
                 });
               });
               });
-            });
-          });
         });
       });
     });
