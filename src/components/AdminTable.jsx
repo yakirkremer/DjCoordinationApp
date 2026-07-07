@@ -9,6 +9,7 @@ import { countMissingTracks, getTrackSourceSummary } from "../lib/trackSource";
 import { ensureTrackVersions } from "../lib/trackVersions";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 import { updateTrack } from "../lib/api/uploadTrack";
+import { fetchCatalogMigrationExport } from "../lib/api/dataApi";
 
 const EDITABLE_FIELDS = ["title", "artist", "bucket"];
 
@@ -50,6 +51,8 @@ export default function AdminTable({
   const [bulkApplying, setBulkApplying] = useState(false);
   const [bulkMessage, setBulkMessage] = useState("");
   const [bulkError, setBulkError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const selectedCount = selectedIds.size;
   const allSelected = tracks.length > 0 && selectedCount === tracks.length;
@@ -283,6 +286,31 @@ export default function AdminTable({
     }
   };
 
+  const handleExportMigration = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportError("");
+    try {
+      const payload = await fetchCatalogMigrationExport();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const dateTag = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `catalog-export-${dateTag}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err.message || t("admin.exportMigrationFailed"));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const toggleExpanded = (trackId) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -308,6 +336,14 @@ export default function AdminTable({
       <div className="xdj-browser-header flex flex-wrap items-center justify-between gap-2">
         <span className="font-lcd text-xs tracking-[0.25em] text-xdj-cyan">{t("admin.catalogEditor")}</span>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleExportMigration}
+            disabled={exporting}
+            className="text-[10px] px-2 py-1 rounded border border-xdj-gold/50 text-xdj-gold hover:bg-xdj-gold/10 disabled:opacity-40"
+          >
+            {exporting ? t("admin.exportingMigration") : t("admin.exportMigration")}
+          </button>
           {onRefreshTrackFiles ? (
             <button
               type="button"
@@ -319,6 +355,7 @@ export default function AdminTable({
             </button>
           ) : null}
           <span className="text-[10px] text-xdj-muted">{t("admin.rowHint")}</span>
+          {exportError ? <span className="text-[10px] text-xdj-orange">{exportError}</span> : null}
         </div>
       </div>
 
