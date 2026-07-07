@@ -67,6 +67,24 @@ export function fetchCatalogMigrationExport() {
   return request("catalog-export");
 }
 
+export async function downloadCatalogMigrationZip() {
+  const res = await fetch("/api/admin/catalog-export-zip", {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const err = await res.json();
+      if (err?.error) message = err.error;
+    } catch {
+      // ignore non-json error body
+    }
+    throw new Error(message);
+  }
+  return res.blob();
+}
+
 export function fetchAppSettings() {
   return request("settings");
 }

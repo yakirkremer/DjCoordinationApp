@@ -9,7 +9,10 @@ import { countMissingTracks, getTrackSourceSummary } from "../lib/trackSource";
 import { ensureTrackVersions } from "../lib/trackVersions";
 import { useI18n } from "../lib/i18n/AppSettingsContext";
 import { updateTrack } from "../lib/api/uploadTrack";
-import { fetchCatalogMigrationExport } from "../lib/api/dataApi";
+import {
+  downloadCatalogMigrationZip,
+  fetchCatalogMigrationExport,
+} from "../lib/api/dataApi";
 
 const EDITABLE_FIELDS = ["title", "artist", "bucket"];
 
@@ -52,6 +55,7 @@ export default function AdminTable({
   const [bulkMessage, setBulkMessage] = useState("");
   const [bulkError, setBulkError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [exportingZip, setExportingZip] = useState(false);
   const [exportError, setExportError] = useState("");
 
   const selectedCount = selectedIds.size;
@@ -297,8 +301,9 @@ export default function AdminTable({
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
+      const dateTag = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `catalog-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `catalog-export-${dateTag}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -307,6 +312,27 @@ export default function AdminTable({
       setExportError(err.message || t("admin.exportMigrationFailed"));
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportMigrationZip = async () => {
+    if (exportingZip) return;
+    setExportingZip(true);
+    setExportError("");
+    try {
+      const blob = await downloadCatalogMigrationZip();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `catalog-export-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err.message || t("admin.exportMigrationZipFailed"));
+    } finally {
+      setExportingZip(false);
     }
   };
 
@@ -342,6 +368,14 @@ export default function AdminTable({
             className="text-[10px] px-2 py-1 rounded border border-xdj-gold/50 text-xdj-gold hover:bg-xdj-gold/10 disabled:opacity-40"
           >
             {exporting ? t("admin.exportingMigration") : t("admin.exportMigration")}
+          </button>
+          <button
+            type="button"
+            onClick={handleExportMigrationZip}
+            disabled={exportingZip}
+            className="text-[10px] px-2 py-1 rounded border border-xdj-gold/50 text-xdj-gold hover:bg-xdj-gold/10 disabled:opacity-40"
+          >
+            {exportingZip ? t("admin.exportingMigrationZip") : t("admin.exportMigrationZip")}
           </button>
           {onRefreshTrackFiles ? (
             <button
