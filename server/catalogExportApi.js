@@ -1,12 +1,13 @@
 import path from "path";
 import fs from "fs/promises";
-import * as archiverPkg from "archiver";
+import { createRequire } from "module";
 import { ensureTrackVersions } from "../src/lib/trackVersions.js";
 import { isAdminSession, parseRequestSession } from "./auth.js";
 import { DATA_FILES, readJsonFile } from "./dataStore.js";
 import { MUSIC_ROOT } from "./storagePaths.js";
 
-const archiver = archiverPkg.default ?? archiverPkg;
+const require = createRequire(import.meta.url);
+const archiver = require("archiver");
 
 function toMigrationTrack(rawTrack) {
   const track = ensureTrackVersions(rawTrack);
