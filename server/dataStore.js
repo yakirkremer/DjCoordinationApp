@@ -1,7 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
 import { normalizeGenres } from "../src/lib/categories.js";
-import { ensureTrackVersions } from "../src/lib/trackVersions.js";
 import { applyGenreSettings, ensureAllGenreDirs, readGenreList } from "./genreStorage.js";
 import { isAdminSession, isAuthenticatedSession, parseRequestSession } from "./auth.js";
 import { cascadeDeleteClientData } from "./clientContractLink.js";
@@ -54,30 +53,6 @@ export function sendJson(res, status, payload) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(JSON.stringify(payload));
-}
-
-function buildCatalogMigrationExport(catalog) {
-  const tracks = (Array.isArray(catalog) ? catalog : []).map((rawTrack) => {
-    const track = ensureTrackVersions(rawTrack);
-    const versions = (track.versions || [])
-      .filter((version) => version?.filename)
-      .map((version) => ({
-        dropType: version.drop ?? "",
-        file: `audio/${track.bucket}/${version.filename}`,
-        startCue: Number.isFinite(Number(version.startTime)) ? Number(version.startTime) : 0,
-        endCue: Number.isFinite(Number(version.endTime)) ? Number(version.endTime) : 0,
-      }));
-
-    return {
-      trackId: track.id,
-      title: track.title ?? "",
-      artist: track.artist ?? "",
-      genre: track.bucket ?? "",
-      versions,
-    };
-  });
-
-  return { tracks };
 }
 
 export async function handleDataApi(req, res) {
@@ -219,19 +194,6 @@ export async function handleDataApi(req, res) {
         }
         await writeJsonFile(DATA_FILES.catalog, body);
         sendJson(res, 200, { ok: true });
-        return true;
-      }
-    }
-
-    if (resource === "catalog-export") {
-      if (req.method === "GET") {
-        if (!isAdminSession(session)) {
-          sendJson(res, 403, { error: "Admin access required" });
-          return true;
-        }
-        const catalog = await readJsonFile(DATA_FILES.catalog, []);
-        const payload = buildCatalogMigrationExport(catalog);
-        sendJson(res, 200, payload);
         return true;
       }
     }

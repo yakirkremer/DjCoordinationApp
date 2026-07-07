@@ -63,10 +63,6 @@ export function saveCatalog(tracks) {
   return request("catalog", { method: "PUT", body: JSON.stringify(tracks) });
 }
 
-export function fetchCatalogMigrationExport() {
-  return request("catalog-export");
-}
-
 export function fetchAppSettings() {
   return request("settings");
 }
