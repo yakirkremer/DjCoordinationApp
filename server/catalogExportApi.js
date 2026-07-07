@@ -1,29 +1,10 @@
 import fs from "fs/promises";
-import os from "os";
 import path from "path";
-import { spawn } from "child_process";
+import { strToU8, zipSync } from "fflate";
 import { ensureTrackVersions } from "../src/lib/trackVersions.js";
 import { isAdminSession, parseRequestSession } from "./auth.js";
 import { DATA_FILES, readJsonFile } from "./dataStore.js";
 import { MUSIC_ROOT } from "./storagePaths.js";
-
-function runZip(args, cwd) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn("zip", args, {
-      cwd,
-      stdio: ["ignore", "ignore", "pipe"],
-    });
-    let stderr = "";
-    proc.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    proc.on("error", reject);
-    proc.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(stderr.trim() || `zip failed (${code})`));
-    });
-  });
-}
 
 function toMigrationTrack(rawTrack) {
   const track = ensureTrackVersions(rawTrack);
@@ -46,18 +27,9 @@ function toMigrationTrack(rawTrack) {
 async function buildCatalogExportZip() {
   const catalog = await readJsonFile(DATA_FILES.catalog, []);
   const payload = { tracks: (Array.isArray(catalog) ? catalog : []).map(toMigrationTrack) };
-
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "kremer-catalog-export-"));
-  const exportDir = path.join(tmpDir, "export");
-  const audioDir = path.join(exportDir, "audio");
-  const zipPath = path.join(tmpDir, `catalog-export-${Date.now()}.zip`);
-
-  await fs.mkdir(audioDir, { recursive: true });
-  await fs.writeFile(
-    path.join(exportDir, "catalog-export.json"),
-    JSON.stringify(payload, null, 2),
-    "utf8"
-  );
+  const files = {
+    "catalog-export.json": strToU8(JSON.stringify(payload, null, 2)),
+  };
 
   for (const track of payload.tracks) {
     for (const version of track.versions) {
@@ -68,18 +40,17 @@ async function buildCatalogExportZip() {
       if (!bucket || !filename) continue;
 
       const src = path.join(MUSIC_ROOT, bucket, "analyzed", path.basename(filename));
-      const dest = path.join(audioDir, bucket, path.basename(filename));
-      await fs.mkdir(path.dirname(dest), { recursive: true });
       try {
-        await fs.copyFile(src, dest);
+        const bytes = await fs.readFile(src);
+        files[`audio/${bucket}/${path.basename(filename)}`] = new Uint8Array(bytes);
       } catch (err) {
         if (err.code !== "ENOENT") throw err;
       }
     }
   }
 
-  await runZip(["-qr", zipPath, "."], exportDir);
-  return { tmpDir, zipPath };
+  const zipData = zipSync(files, { level: 6 });
+  return Buffer.from(zipData);
 }
 
 export function createCatalogExportApiMiddleware() {
@@ -98,19 +69,14 @@ export function createCatalogExportApiMiddleware() {
     }
 
     buildCatalogExportZip()
-      .then(async ({ tmpDir, zipPath }) => {
-        try {
-          const data = await fs.readFile(zipPath);
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/zip");
-          res.setHeader(
-            "Content-Disposition",
-            `attachment; filename="catalog-export-${new Date().toISOString().slice(0, 10)}.zip"`
-          );
-          res.end(data);
-        } finally {
-          await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-        }
+      .then((zipBuffer) => {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="catalog-export-${new Date().toISOString().slice(0, 10)}.zip"`
+        );
+        res.end(zipBuffer);
       })
       .catch((err) => {
         res.statusCode = 500;
