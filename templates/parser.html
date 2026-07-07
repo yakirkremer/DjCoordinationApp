@@ -1,0 +1,2352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML Track Database — Title Parser</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaf0;
+      --muted: #9aa3b8;
+      --accent: #5b8def;
+      --hebrew: #9c6bff;
+      --english: #5b8def;
+      --remixer: #f59e0b;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f6fb;
+        --panel: #fff;
+        --border: #d8deea;
+        --text: #1a1f2e;
+        --muted: #5c667a;
+        --hebrew: #6b4fd6;
+        --english: #2f6fd6;
+        --remixer: #c77800;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header, section {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    h1, h2 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+    .nav { margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .nav a { color: var(--accent); text-decoration: none; }
+    .nav a:hover { text-decoration: underline; }
+    p.hint { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.85rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    input[type="text"] {
+      flex: 1 1 320px;
+      min-width: 200px;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    button {
+      padding: 0.55rem 0.9rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    button:disabled { opacity: 0.55; cursor: default; }
+    .demo-input {
+      width: 100%;
+      margin-bottom: 0.75rem;
+    }
+    .demo-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.85rem;
+      background: var(--bg);
+      min-height: 84px;
+    }
+    .result-card .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .result-card .value {
+      font-size: 0.95rem;
+      word-break: break-word;
+      min-height: 1.2em;
+    }
+    .result-card.hebrew .value { color: var(--hebrew); }
+    .result-card.english .value { color: var(--english); }
+    .result-card.remixer .value { color: var(--remixer); }
+    .result-card.reparsed .value { font-weight: 500; }
+    td.reparsed { font-weight: 500; }
+    .reparse-order-toolbar {
+      margin: 0.75rem 0;
+      font-size: 0.85rem;
+      gap: 0.65rem;
+    }
+    .reparse-order-toolbar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .reparse-order-toolbar select {
+      min-width: 7.5rem;
+    }
+    .write-format-group {
+      flex: 1 1 100%;
+      align-items: center;
+    }
+    .demo-divider {
+      margin: 1.25rem 0 0.75rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .demo-divider h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+    }
+  #demo-playlist-status {
+      color: #e53935;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    #demo-playlist-status.ok { color: var(--muted); }
+    .demo-playlist-wrap {
+      margin-top: 0.75rem;
+      max-height: 360px;
+    }
+    #demo-error, #import-status, #db-status, #status {
+      color: #e53935;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    #import-status.ok, #db-status.ok, #status.ok { color: var(--muted); }
+    .table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 520px);
+      min-height: 200px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 0.45rem 0.55rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    td.hebrew { color: var(--hebrew); }
+    td.english { color: var(--english); }
+    td.artist { color: #a78bfa; }
+    td.remixer { color: var(--remixer); }
+    tr.artist-missing td.english .cell-input {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.08);
+    }
+    td.select-col { width: 36px; text-align: center; }
+    .cell-input {
+      width: 100%;
+      min-width: 120px;
+      padding: 0.35rem 0.45rem;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+    .cell-input:hover { border-color: var(--border); background: var(--bg); }
+    .cell-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+    .cell-input.saving { opacity: 0.6; }
+    .cell-input.saved { border-color: #2e7d32; }
+    .cell-input.error { border-color: #e53935; }
+    .actions-toolbar {
+      margin-top: 0.75rem;
+      gap: 0.5rem;
+    }
+    .actions-toolbar .group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-right: 1rem;
+    }
+    .actions-toolbar .group-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-right: 0.25rem;
+    }
+    .filter-toolbar {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+    }
+    .filter-toolbar .group-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    #filter-playlist-status {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: 0.35rem 0 0.5rem;
+    }
+    #filter-playlist-status.warn { color: #f59e0b; }
+    #manual-match-section {
+      margin: 0.75rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+    }
+    #manual-match-section h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+    }
+    .unmatched-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 0.65rem;
+    }
+    .unmatched-table th, .unmatched-table td {
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .unmatched-table th {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+    }
+    .match-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 110;
+      padding: 1rem;
+    }
+    .match-overlay[hidden] { display: none; }
+    .match-dialog {
+      width: min(760px, 100%);
+      max-height: min(85vh, 720px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .match-dialog header {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .match-dialog header h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .match-playlist-info {
+      margin: 0.35rem 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      word-break: break-word;
+    }
+    .match-search-wrap {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .match-search-wrap input {
+      width: 100%;
+    }
+    .match-results-wrap {
+      overflow: auto;
+      flex: 1 1 auto;
+      min-height: 120px;
+      max-height: 360px;
+    }
+    .match-results {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .match-results th, .match-results td {
+      padding: 0.45rem 0.55rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .match-results tr[data-id] { cursor: pointer; }
+    .match-results tr[data-id]:hover { background: var(--bg); }
+    .match-results .pick-btn {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.78rem;
+    }
+    .match-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1rem;
+    }
+    .confirm-overlay[hidden] { display: none; }
+    .confirm-dialog {
+      width: min(900px, 100%);
+      max-height: min(85vh, 720px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+    .confirm-dialog header {
+      padding: 1rem 1.1rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .confirm-changes-wrap {
+      overflow: auto;
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+    }
+    .confirm-changes {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .confirm-changes th, .confirm-changes td {
+      padding: 0.45rem 0.55rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      word-break: break-word;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .empty {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav"><a href="/">← Playlist library</a> · <a href="/compare/">XML vs File Title Compare</a> · <a href="/master/">Master Library</a> · <a href="/onelibrary/">USB Kit Editor</a></div>
+    <h1>XML Track Database</h1>
+    <p class="hint">Parse Rekordbox titles into English, Hebrew, and remixer — test below before importing XML.</p>
+  </header>
+
+  <section>
+    <h2>Title parser demo</h2>
+    <p class="hint">Text inside (parentheses) → remixer. Hebrew only → Hebrew name. English only → English name. Both → split by script.</p>
+    <div class="toolbar reparse-order-toolbar">
+      <span class="group-label">Reparsed name order:</span>
+      <label>1st <select id="reparse-order-1">
+        <option value="english" selected>English</option>
+        <option value="remixer">Remixer (with parentheses)</option>
+        <option value="hebrew">Hebrew</option>
+        <option value="">— skip —</option>
+      </select></label>
+      <label>2nd <select id="reparse-order-2">
+        <option value="english">English</option>
+        <option value="remixer" selected>Remixer (with parentheses)</option>
+        <option value="hebrew">Hebrew</option>
+        <option value="">— skip —</option>
+      </select></label>
+      <label>3rd <select id="reparse-order-3">
+        <option value="english">English</option>
+        <option value="remixer">Remixer (with parentheses)</option>
+        <option value="hebrew" selected>Hebrew</option>
+        <option value="">— skip —</option>
+      </select></label>
+    </div>
+    <p class="hint">Default: English + (Remixer) + Hebrew. Empty parts are omitted.</p>
+    <input id="demo-title" class="demo-input" type="text" placeholder="e.g. Odeya - HaZug HaMalhuti (Buskilaz _Tommorowland_ Remix) אודיה - הזוג המלכותי">
+    <div class="toolbar">
+      <button id="demo-parse-btn" type="button">Parse title</button>
+      <button id="demo-clear-btn" class="secondary" type="button">Clear</button>
+    </div>
+    <div id="demo-error" hidden></div>
+    <div class="demo-results">
+      <div class="result-card">
+        <div class="label">XML title</div>
+        <div class="value" id="demo-xml-title">—</div>
+      </div>
+      <div class="result-card remixer">
+        <div class="label">Remixer</div>
+        <div class="value" id="demo-remixer">—</div>
+      </div>
+      <div class="result-card hebrew">
+        <div class="label">Hebrew name</div>
+        <div class="value" id="demo-hebrew">—</div>
+      </div>
+      <div class="result-card english">
+        <div class="label">English name</div>
+        <div class="value" id="demo-english">—</div>
+      </div>
+      <div class="result-card reparsed" style="grid-column: 1 / -1;">
+        <div class="label">Reparsed name</div>
+        <div class="value" id="demo-reparsed">—</div>
+      </div>
+    </div>
+
+    <div class="demo-divider">
+      <h3>Parse playlist file</h3>
+      <p class="hint">Load a Rekordbox playlist export (.txt) and parse every Track Title — useful for debugging bulk results.</p>
+      <div class="toolbar">
+        <input id="demo-playlist-path" type="text" placeholder="Path to playlist .txt" value="{{ default_playlist_path }}" style="flex:1 1 280px;">
+        <button id="demo-playlist-browse-btn" class="secondary" type="button">Browse…</button>
+        <input id="demo-playlist-file-input" type="file" accept=".txt,text/plain" hidden>
+        <button id="demo-playlist-parse-btn" type="button">Parse playlist</button>
+      </div>
+      <div id="demo-playlist-status" hidden></div>
+      <div id="demo-playlist-wrap" class="table-wrap demo-playlist-wrap" hidden>
+        <table id="demo-playlist-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Track title</th>
+              <th>English</th>
+              <th>Hebrew</th>
+              <th>Remixer</th>
+              <th>Reparsed</th>
+            </tr>
+          </thead>
+          <tbody id="demo-playlist-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Track database</h2>
+    <p class="hint">Step 1: create a new .db or load an existing one. The track list below always comes from this database.</p>
+    <div class="toolbar">
+      <input id="db-path-input" type="text" list="db-recent-list" placeholder="Path to .db file" value="{{ db_path }}" style="flex:1 1 280px;">
+      <datalist id="db-recent-list"></datalist>
+      <button id="db-browse-btn" class="secondary" type="button">Browse…</button>
+      <input id="db-file-input" type="file" accept=".db,application/octet-stream" hidden>
+      <button id="db-load-btn" type="button">Load</button>
+      <button id="db-create-btn" class="secondary" type="button">Create new</button>
+    </div>
+    <div id="db-status" class="ok">Loading database info…</div>
+  </section>
+
+  <section>
+    <h2>Import Rekordbox XML</h2>
+    <p class="hint">Step 2: import XML into the active database. Parsed titles are stored in the database — the editable list below always reflects the database.</p>
+    <div class="toolbar">
+      <input id="xml-path" type="text" placeholder="Path to rekordbox.xml" value="{{ default_xml_path }}">
+      <button id="xml-browse-btn" class="secondary" type="button">Browse…</button>
+      <input id="xml-file-input" type="file" accept=".xml,text/xml" hidden>
+      <button id="xml-import-btn" type="button">Import into DB</button>
+      <button id="xml-create-import-btn" class="secondary" type="button">New DB + Import</button>
+    </div>
+    <label class="filter-checkbox" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;">
+      <input id="parse-from-filename" type="checkbox">
+      Parse from file name (replace XML title in database). Skips files whose name has no Hebrew.
+    </label>
+    <div id="import-status" class="ok">Create or load a database, then import XML to fill the list below.</div>
+  </section>
+
+  <section>
+    <h2>Import Rekordbox DB/PDB</h2>
+    <p class="hint">Use this for USB/export files (`.pdb`, `.db`, `.dat`, `.sync`). Imported tracks go into the same editable database and use the same parsing/translation tools.</p>
+    <div class="toolbar">
+      <input id="rb-db-path" type="text" placeholder="Path to export.pdb / exportLibrary.db">
+      <button id="rb-db-import-btn" type="button">Import into DB</button>
+      <button id="rb-db-create-import-btn" class="secondary" type="button">New DB + Import</button>
+    </div>
+    <div id="rb-db-import-status" class="ok">Optional: import Rekordbox DB/PDB into the active parser database.</div>
+    <div class="toolbar" style="margin-top:0.5rem;">
+      <input id="onelibrary-path" type="text" placeholder="Path to exportLibrary.db (SQLCipher)">
+      <button id="write-onelibrary-btn" class="secondary" type="button">Write parser titles to exportLibrary.db</button>
+    </div>
+    <div id="onelibrary-status" class="ok">Optional: write parsed titles back to OneLibrary (new Rekordbox devices).</div>
+  </section>
+
+  <section>
+    <div class="toolbar">
+      <h2 style="margin:0; flex:1 1 auto;">Database tracks</h2>
+      <input id="search-input" type="text" placeholder="Search database…" style="flex:0 1 240px;">
+      <label class="filter-checkbox" style="display:flex;align-items:center;gap:0.35rem;font-size:0.85rem;color:var(--muted);white-space:nowrap;">
+        <input id="artist-missing-filter" type="checkbox">
+        Artist not in title
+      </label>
+      <button id="refresh-btn" class="secondary" type="button">Refresh</button>
+    </div>
+    <p class="hint" style="margin:0 0 0.5rem;">Editable view of the active database. Changes are saved when you leave a cell.</p>
+    <div class="toolbar filter-toolbar">
+      <span class="group-label">Playlist filter:</span>
+      <input id="filter-playlist-path" type="text" placeholder="Path to playlist .txt" value="{{ default_playlist_path }}" style="flex:1 1 280px;">
+      <button id="filter-playlist-browse-btn" class="secondary" type="button">Browse…</button>
+      <input id="filter-playlist-file-input" type="file" accept=".txt,text/plain" hidden>
+      <button id="filter-playlist-apply-btn" type="button">Apply filter</button>
+      <button id="filter-playlist-clear-btn" class="secondary" type="button" hidden>Clear filter</button>
+    </div>
+    <div id="filter-playlist-status" class="ok">Optional: narrow the database list to tracks that match a playlist.</div>
+    <div id="manual-match-section" hidden>
+      <h3>Manual match — playlist tracks without XML match</h3>
+      <p class="hint" style="margin:0;">Search the XML library and link each playlist row to the correct track.</p>
+      <div class="table-wrap" style="max-height:220px; min-height:0;">
+        <table class="unmatched-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Playlist title</th>
+              <th>Location</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="unmatched-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="toolbar actions-toolbar">
+      <div class="group">
+        <span class="group-label">Export XML:</span>
+        <button id="export-xml-hebrew-btn" class="secondary" type="button">Hebrew titles</button>
+        <button id="export-xml-english-btn" class="secondary" type="button">English titles</button>
+        <button id="export-site-json-btn" class="secondary" type="button">Site JSON</button>
+        <button id="export-site-bundle-btn" class="secondary" type="button">Site ZIP + JSON</button>
+      </div>
+      <div class="group">
+        <span class="group-label">English names:</span>
+        <button id="fill-english-btn" class="secondary" type="button">Fill from Hebrew</button>
+        <button id="fill-artist-english-btn" class="secondary" type="button">Translate artist to English</button>
+        <button id="export-unknown-hebrew-btn" class="secondary" type="button">Export missing words</button>
+        <button id="add-artist-btn" class="secondary" type="button">Add artist to English</button>
+      </div>
+      <div class="group write-format-group">
+        <span class="group-label">Write file tags:</span>
+        <div class="toolbar reparse-order-toolbar" style="margin:0;">
+          <label>1st <select id="write-order-1">
+            <option value="english">English</option>
+            <option value="remixer">Remixer (with parentheses)</option>
+            <option value="hebrew" selected>Hebrew</option>
+            <option value="">— skip —</option>
+          </select></label>
+          <label>2nd <select id="write-order-2">
+            <option value="english">English</option>
+            <option value="remixer" selected>Remixer (with parentheses)</option>
+            <option value="hebrew">Hebrew</option>
+            <option value="">— skip —</option>
+          </select></label>
+          <label>3rd <select id="write-order-3">
+            <option value="english">English</option>
+            <option value="remixer">Remixer (with parentheses)</option>
+            <option value="hebrew">Hebrew</option>
+            <option value="" selected>— skip —</option>
+          </select></label>
+        </div>
+        <button id="write-formatted-btn" type="button">Write</button>
+        <button id="write-hebrew-btn" class="secondary" type="button" title="Hebrew field only, no remixer">Hebrew only</button>
+        <button id="write-english-btn" class="secondary" type="button" title="English field only, no remixer">English only</button>
+        <button id="write-merged-btn" class="secondary" type="button" title="English + Hebrew, no remixer">Merged only</button>
+        <button id="write-xml-btn" class="secondary" type="button" title="Restore the original title from the XML import">Revert to XML</button>
+      </div>
+    </div>
+    <div id="status" class="ok">Import XML to populate the database.</div>
+    <div class="table-wrap">
+      <table id="tracks-table" hidden>
+        <thead>
+          <tr>
+            <th class="select-col"><input id="select-all" type="checkbox" title="Select all visible"></th>
+            <th>#</th>
+            <th>XML title</th>
+            <th>File name</th>
+            <th>Artist</th>
+            <th>English</th>
+            <th>Hebrew</th>
+            <th>Remixer</th>
+            <th>Reparsed</th>
+            <th>Location</th>
+          </tr>
+        </thead>
+        <tbody id="body"></tbody>
+      </table>
+      <div id="empty" class="empty">Create or load a database, then import XML to see tracks here.</div>
+    </div>
+  </section>
+
+  <div id="match-overlay" class="match-overlay" hidden>
+    <div class="match-dialog" role="dialog">
+      <header>
+        <h2>Match to XML track</h2>
+        <p id="match-playlist-info" class="match-playlist-info"></p>
+      </header>
+      <div class="match-search-wrap">
+        <input id="match-search-input" type="text" placeholder="Search XML by title, file name, location…">
+      </div>
+      <div class="match-results-wrap">
+        <table class="match-results">
+          <thead>
+            <tr>
+              <th>XML title</th>
+              <th>File name</th>
+              <th>Location</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="match-results-body"></tbody>
+        </table>
+        <div id="match-results-empty" class="empty" hidden>Type to search the full XML library.</div>
+      </div>
+      <div class="match-actions">
+        <button id="match-cancel-btn" class="secondary" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm-overlay" class="confirm-overlay" hidden>
+    <div class="confirm-dialog" role="dialog">
+      <header>
+        <h2 id="confirm-title" style="margin:0;font-size:1rem;">Confirm file title changes</h2>
+        <p id="confirm-description" class="hint" style="margin:0.35rem 0 0;"></p>
+      </header>
+      <div class="confirm-changes-wrap">
+        <table class="confirm-changes">
+          <thead>
+            <tr><th>File</th><th>Before</th><th>After</th></tr>
+          </thead>
+          <tbody id="confirm-body"></tbody>
+        </table>
+      </div>
+      <div class="confirm-actions">
+        <button id="confirm-cancel" class="secondary" type="button">Cancel</button>
+        <button id="confirm-apply" type="button">Apply changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const URL_PREFIX = "{{ url_prefix }}";
+
+    const demoTitleInput = document.getElementById("demo-title");
+    const demoParseBtn = document.getElementById("demo-parse-btn");
+    const demoClearBtn = document.getElementById("demo-clear-btn");
+    const demoErrorEl = document.getElementById("demo-error");
+    const demoXmlTitleEl = document.getElementById("demo-xml-title");
+    const demoRemixerEl = document.getElementById("demo-remixer");
+    const demoHebrewEl = document.getElementById("demo-hebrew");
+    const demoEnglishEl = document.getElementById("demo-english");
+    const demoReparsedEl = document.getElementById("demo-reparsed");
+    const reparseOrder1 = document.getElementById("reparse-order-1");
+    const reparseOrder2 = document.getElementById("reparse-order-2");
+    const reparseOrder3 = document.getElementById("reparse-order-3");
+    const writeOrder1 = document.getElementById("write-order-1");
+    const writeOrder2 = document.getElementById("write-order-2");
+    const writeOrder3 = document.getElementById("write-order-3");
+
+    const demoPlaylistPathInput = document.getElementById("demo-playlist-path");
+    const demoPlaylistBrowseBtn = document.getElementById("demo-playlist-browse-btn");
+    const demoPlaylistFileInput = document.getElementById("demo-playlist-file-input");
+    const demoPlaylistParseBtn = document.getElementById("demo-playlist-parse-btn");
+    const demoPlaylistStatusEl = document.getElementById("demo-playlist-status");
+    const demoPlaylistWrapEl = document.getElementById("demo-playlist-wrap");
+    const demoPlaylistBodyEl = document.getElementById("demo-playlist-body");
+
+    const xmlPathInput = document.getElementById("xml-path");
+    const dbPathInput = document.getElementById("db-path-input");
+    const dbRecentList = document.getElementById("db-recent-list");
+    const dbBrowseBtn = document.getElementById("db-browse-btn");
+    const dbFileInput = document.getElementById("db-file-input");
+    const dbLoadBtn = document.getElementById("db-load-btn");
+    const dbCreateBtn = document.getElementById("db-create-btn");
+    const dbStatusEl = document.getElementById("db-status");
+    const xmlBrowseBtn = document.getElementById("xml-browse-btn");
+    const xmlFileInput = document.getElementById("xml-file-input");
+    const xmlImportBtn = document.getElementById("xml-import-btn");
+    const xmlCreateImportBtn = document.getElementById("xml-create-import-btn");
+    const rbDbPathInput = document.getElementById("rb-db-path");
+    const rbDbImportBtn = document.getElementById("rb-db-import-btn");
+    const rbDbCreateImportBtn = document.getElementById("rb-db-create-import-btn");
+    const rbDbImportStatusEl = document.getElementById("rb-db-import-status");
+    const onelibraryPathInput = document.getElementById("onelibrary-path");
+    const writeOnelibraryBtn = document.getElementById("write-onelibrary-btn");
+    const onelibraryStatusEl = document.getElementById("onelibrary-status");
+    const parseFromFilenameInput = document.getElementById("parse-from-filename");
+    const importStatusEl = document.getElementById("import-status");
+    const searchInput = document.getElementById("search-input");
+    const artistMissingFilter = document.getElementById("artist-missing-filter");
+    const refreshBtn = document.getElementById("refresh-btn");
+    const filterPlaylistPathInput = document.getElementById("filter-playlist-path");
+    const filterPlaylistBrowseBtn = document.getElementById("filter-playlist-browse-btn");
+    const filterPlaylistFileInput = document.getElementById("filter-playlist-file-input");
+    const filterPlaylistApplyBtn = document.getElementById("filter-playlist-apply-btn");
+    const filterPlaylistClearBtn = document.getElementById("filter-playlist-clear-btn");
+    const filterPlaylistStatusEl = document.getElementById("filter-playlist-status");
+    const manualMatchSection = document.getElementById("manual-match-section");
+    const unmatchedBody = document.getElementById("unmatched-body");
+    const matchOverlay = document.getElementById("match-overlay");
+    const matchPlaylistInfoEl = document.getElementById("match-playlist-info");
+    const matchSearchInput = document.getElementById("match-search-input");
+    const matchResultsBody = document.getElementById("match-results-body");
+    const matchResultsEmpty = document.getElementById("match-results-empty");
+    const matchCancelBtn = document.getElementById("match-cancel-btn");
+    const statusEl = document.getElementById("status");
+    const table = document.getElementById("tracks-table");
+    const body = document.getElementById("body");
+    const empty = document.getElementById("empty");
+    const selectAllInput = document.getElementById("select-all");
+    const exportXmlHebrewBtn = document.getElementById("export-xml-hebrew-btn");
+    const exportXmlEnglishBtn = document.getElementById("export-xml-english-btn");
+    const exportSiteJsonBtn = document.getElementById("export-site-json-btn");
+    const exportSiteBundleBtn = document.getElementById("export-site-bundle-btn");
+    const writeHebrewBtn = document.getElementById("write-hebrew-btn");
+    const writeEnglishBtn = document.getElementById("write-english-btn");
+    const writeMergedBtn = document.getElementById("write-merged-btn");
+    const writeXmlBtn = document.getElementById("write-xml-btn");
+    const writeFormattedBtn = document.getElementById("write-formatted-btn");
+    const fillEnglishBtn = document.getElementById("fill-english-btn");
+    const fillArtistEnglishBtn = document.getElementById("fill-artist-english-btn");
+    const exportUnknownHebrewBtn = document.getElementById("export-unknown-hebrew-btn");
+    const addArtistBtn = document.getElementById("add-artist-btn");
+    const confirmOverlay = document.getElementById("confirm-overlay");
+    const confirmTitleEl = document.getElementById("confirm-title");
+    const confirmDescriptionEl = document.getElementById("confirm-description");
+    const confirmBody = document.getElementById("confirm-body");
+    const confirmCancelBtn = document.getElementById("confirm-cancel");
+    const confirmApplyBtn = document.getElementById("confirm-apply");
+
+    let selectedXmlFile = null;
+    let selectedPlaylistFile = null;
+    let selectedFilterPlaylistFile = null;
+    let playlistFilterActive = false;
+    let unmatchedPlaylistTracks = [];
+    let activeMatchPlaylistKey = "";
+    let matchSearchTimer = null;
+    let tracks = [];
+    let selectedIds = new Set();
+    let confirmResolve = null;
+    let lastDemoData = null;
+    let lastPlaylistRows = [];
+
+    const REPARSE_ORDER_KEY = "parserReparseOrder";
+    const WRITE_ORDER_KEY = "parserWriteOrder";
+    const PARSE_FROM_FILENAME_KEY = "parserParseFromFilename";
+    const PLAYLIST_FILTER_PATH_KEY = "parserPlaylistFilterPath";
+
+    function getOrderFromSelects(selects) {
+      return selects
+        .map(select => (select.value || "").trim().toLowerCase())
+        .filter(part => part === "english" || part === "remixer" || part === "hebrew");
+    }
+
+    function loadOrderFromStorage(key, selects, defaults) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (!Array.isArray(saved)) return;
+        selects.forEach((select, index) => {
+          const value = saved[index] ?? defaults[index] ?? "";
+          select.value = ["english", "remixer", "hebrew", ""].includes(value) ? value : "";
+        });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    function saveOrderToStorage(key, selects) {
+      localStorage.setItem(key, JSON.stringify(getOrderFromSelects(selects)));
+    }
+
+    function loadParseFromFilename() {
+      parseFromFilenameInput.checked = localStorage.getItem(PARSE_FROM_FILENAME_KEY) === "1";
+    }
+
+    function saveParseFromFilename() {
+      localStorage.setItem(PARSE_FROM_FILENAME_KEY, parseFromFilenameInput.checked ? "1" : "0");
+    }
+
+    function getReparseOrder() {
+      return getOrderFromSelects([reparseOrder1, reparseOrder2, reparseOrder3]);
+    }
+
+    function saveReparseOrder() {
+      saveOrderToStorage(REPARSE_ORDER_KEY, [reparseOrder1, reparseOrder2, reparseOrder3]);
+    }
+
+    function loadReparseOrder() {
+      loadOrderFromStorage(REPARSE_ORDER_KEY, [reparseOrder1, reparseOrder2, reparseOrder3], ["english", "remixer", "hebrew"]);
+    }
+
+    function getWriteOrder() {
+      return getOrderFromSelects([writeOrder1, writeOrder2, writeOrder3]);
+    }
+
+    function saveWriteOrder() {
+      saveOrderToStorage(WRITE_ORDER_KEY, [writeOrder1, writeOrder2, writeOrder3]);
+    }
+
+    function loadWriteOrder() {
+      loadOrderFromStorage(WRITE_ORDER_KEY, [writeOrder1, writeOrder2, writeOrder3], ["hebrew", "remixer", ""]);
+    }
+
+    function formatOrderLabel(order) {
+      if (!order.length) return "no parts selected";
+      return order.map(part => {
+        if (part === "remixer") return "(Remixer)";
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      }).join(" + ");
+    }
+
+    function formatReparsedName(parts, order = getReparseOrder()) {
+      const values = {
+        english: (parts.english_name ?? "").toString().trim(),
+        hebrew: (parts.hebrew_name ?? "").toString().trim(),
+        remixer: (parts.remixer ?? "").toString().trim(),
+      };
+      const out = [];
+      for (const key of order) {
+        if (key === "remixer") {
+          if (values.remixer) out.push(`(${values.remixer})`);
+        } else if (values[key]) {
+          out.push(values[key]);
+        }
+      }
+      return out.join(" ");
+    }
+
+    function refreshReparsedDisplays() {
+      if (lastDemoData) {
+        demoReparsedEl.textContent = displayValue(formatReparsedName(lastDemoData));
+      }
+      if (lastPlaylistRows.length) {
+        showPlaylistResults({ tracks: lastPlaylistRows, parsed: lastPlaylistRows.length, total: lastPlaylistRows.length, source: "" });
+      }
+      refreshTrackReparsedCells();
+    }
+
+    function refreshTrackReparsedCells() {
+      body.querySelectorAll("td.reparsed[data-reparsed-id]").forEach(cell => {
+        const trackId = Number(cell.dataset.reparsedId);
+        const track = tracks.find(item => item.id === trackId);
+        if (!track) return;
+        cell.textContent = formatReparsedName(track) || "—";
+      });
+    }
+
+    function escapeAttr(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function escapeHtml(value) {
+      return escapeAttr(value);
+    }
+
+    function displayValue(value) {
+      const text = (value ?? "").toString().trim();
+      return text || "—";
+    }
+
+    function showDemoResults(data) {
+      lastDemoData = data;
+      demoErrorEl.hidden = true;
+      demoXmlTitleEl.textContent = displayValue(data.xml_title);
+      demoRemixerEl.textContent = displayValue(data.remixer);
+      demoHebrewEl.textContent = displayValue(data.hebrew_name);
+      demoEnglishEl.textContent = displayValue(data.english_name);
+      demoReparsedEl.textContent = displayValue(data.reparsed_name || formatReparsedName(data));
+    }
+
+    function clearDemo() {
+      lastDemoData = null;
+      demoTitleInput.value = "";
+      demoErrorEl.hidden = true;
+      demoXmlTitleEl.textContent = "—";
+      demoRemixerEl.textContent = "—";
+      demoHebrewEl.textContent = "—";
+      demoEnglishEl.textContent = "—";
+      demoReparsedEl.textContent = "—";
+    }
+
+    async function parseDemoTitle() {
+      const title = demoTitleInput.value.trim();
+      if (!title) {
+        demoErrorEl.hidden = false;
+        demoErrorEl.textContent = "Enter a title to parse.";
+        return;
+      }
+
+      demoParseBtn.disabled = true;
+      demoErrorEl.hidden = true;
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/parse-demo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, order: getReparseOrder() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Parse failed");
+        showDemoResults(data);
+      } catch (err) {
+        demoErrorEl.hidden = false;
+        demoErrorEl.textContent = err.message;
+      } finally {
+        demoParseBtn.disabled = false;
+      }
+    }
+
+    function showPlaylistResults(data) {
+      const rows = data.tracks || [];
+      lastPlaylistRows = rows;
+      demoPlaylistStatusEl.hidden = false;
+      demoPlaylistStatusEl.className = "ok";
+      if (data.source) {
+        demoPlaylistStatusEl.textContent = `Parsed ${data.parsed} of ${data.total} tracks from ${data.source}.`;
+      }
+
+      if (!rows.length) {
+        demoPlaylistWrapEl.hidden = true;
+        demoPlaylistBodyEl.innerHTML = "";
+        return;
+      }
+
+      demoPlaylistWrapEl.hidden = false;
+      demoPlaylistBodyEl.innerHTML = rows.map(row => `
+        <tr>
+          <td>${escapeHtml(row.row_number || "")}</td>
+          <td>${escapeHtml(row.track_title || row.xml_title || "")}</td>
+          <td class="english">${escapeHtml(row.english_name || "")}</td>
+          <td class="hebrew">${escapeHtml(row.hebrew_name || "")}</td>
+          <td class="remixer">${escapeHtml(row.remixer || "")}</td>
+          <td class="reparsed">${escapeHtml(row.reparsed_name || formatReparsedName(row))}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function parseDemoPlaylist() {
+      const path = demoPlaylistPathInput.value.trim();
+      if (!selectedPlaylistFile && !path) {
+        demoPlaylistStatusEl.hidden = false;
+        demoPlaylistStatusEl.className = "";
+        demoPlaylistStatusEl.textContent = "Enter a playlist path or browse for a file.";
+        return;
+      }
+
+      demoPlaylistParseBtn.disabled = true;
+      demoPlaylistStatusEl.hidden = false;
+      demoPlaylistStatusEl.className = "ok";
+      demoPlaylistStatusEl.textContent = "Parsing playlist…";
+
+      try {
+        let res;
+        if (selectedPlaylistFile) {
+          const formData = new FormData();
+          formData.append("file", selectedPlaylistFile);
+          formData.append("order", JSON.stringify({ order: getReparseOrder() }));
+          res = await fetch(`${URL_PREFIX}/api/parse-playlist`, { method: "POST", body: formData });
+        } else {
+          res = await fetch(`${URL_PREFIX}/api/parse-playlist`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path, order: getReparseOrder() }),
+          });
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Parse failed");
+        showPlaylistResults(data);
+      } catch (err) {
+        demoPlaylistStatusEl.hidden = false;
+        demoPlaylistStatusEl.className = "";
+        demoPlaylistStatusEl.textContent = err.message;
+        demoPlaylistWrapEl.hidden = true;
+      } finally {
+        demoPlaylistParseBtn.disabled = false;
+        demoPlaylistFileInput.value = "";
+      }
+    }
+
+    async function refreshAfterDatabaseSwitch() {
+      selectedIds = new Set();
+      await loadDatabaseInfo();
+    }
+
+    function showEmptyTrackList(message) {
+      tracks = [];
+      table.hidden = true;
+      empty.hidden = false;
+      empty.textContent = message || "Create or load a database, then import XML to see tracks here.";
+      statusEl.className = "ok";
+      statusEl.textContent = message || "No tracks loaded from database.";
+      updateSelectAllCheckbox();
+    }
+
+    function updateDatabaseUi(info) {
+      if (!info) return;
+      dbPathInput.value = info.path || "";
+      const recent = info.recent_paths || [];
+      dbRecentList.innerHTML = recent.map(path => `<option value="${escapeAttr(path)}"></option>`).join("");
+      const trackCount = info.total ?? 0;
+      const sourceXml = info.source_xml ? ` Last XML import: ${info.source_xml}.` : "";
+      const dataNote = info.has_data
+        ? `${trackCount} track(s) in database.`
+        : "Empty database — import XML to populate.";
+      dbStatusEl.className = "ok";
+      dbStatusEl.textContent = `Active: ${info.path}. ${dataNote}${sourceXml}`;
+    }
+
+    async function ensureActiveDatabaseLoaded(info) {
+      if (!info?.path || !info?.exists) return info;
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/database/load`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: info.path }),
+        });
+        const data = await res.json();
+        if (res.ok) return data;
+      } catch (_) {
+        /* keep original info */
+      }
+      return info;
+    }
+
+    async function restorePlaylistFilter() {
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/playlist-filter`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not load playlist filter");
+
+        if (data.active) {
+          playlistFilterActive = true;
+          const source = data.source || localStorage.getItem(PLAYLIST_FILTER_PATH_KEY) || "";
+          if (source) {
+            filterPlaylistPathInput.value = source;
+            localStorage.setItem(PLAYLIST_FILTER_PATH_KEY, source);
+          }
+          updatePlaylistFilterUi(data);
+          renderUnmatchedList(data.unmatched || []);
+          return true;
+        }
+
+        playlistFilterActive = false;
+        updatePlaylistFilterUi(null);
+        renderUnmatchedList([]);
+        return false;
+      } catch (_) {
+        playlistFilterActive = false;
+        updatePlaylistFilterUi(null);
+        renderUnmatchedList([]);
+        return false;
+      }
+    }
+
+    async function loadDatabaseInfo() {
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/database`);
+        let data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not load database info");
+
+        data = await ensureActiveDatabaseLoaded(data);
+        updateDatabaseUi(data);
+        await restorePlaylistFilter();
+
+        if (data.has_data) {
+          await loadTracks();
+        } else {
+          showEmptyTrackList("Database is empty — import XML to populate the list below.");
+        }
+      } catch (err) {
+        dbStatusEl.className = "";
+        dbStatusEl.textContent = err.message;
+        showEmptyTrackList(err.message);
+      }
+    }
+
+    async function loadDatabase() {
+      const path = dbPathInput.value.trim();
+      if (!path) {
+        dbStatusEl.className = "";
+        dbStatusEl.textContent = "Enter a database path.";
+        return;
+      }
+      dbLoadBtn.disabled = true;
+      dbStatusEl.className = "ok";
+      dbStatusEl.textContent = "Loading database…";
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/database/load`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Load failed");
+        updateDatabaseUi(data);
+        await refreshAfterDatabaseSwitch();
+      } catch (err) {
+        dbStatusEl.className = "";
+        dbStatusEl.textContent = err.message;
+      } finally {
+        dbLoadBtn.disabled = false;
+      }
+    }
+
+    async function createDatabase() {
+      const path = dbPathInput.value.trim();
+      if (!path) {
+        dbStatusEl.className = "";
+        dbStatusEl.textContent = "Enter a path for the new database (e.g. data/party-israeli.db).";
+        return;
+      }
+      dbCreateBtn.disabled = true;
+      dbStatusEl.className = "ok";
+      dbStatusEl.textContent = "Creating database…";
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/database/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Create failed");
+        updateDatabaseUi(data);
+        importStatusEl.className = "ok";
+        importStatusEl.textContent = "New empty database ready — import XML to populate.";
+        await refreshAfterDatabaseSwitch();
+      } catch (err) {
+        dbStatusEl.className = "";
+        dbStatusEl.textContent = err.message;
+      } finally {
+        dbCreateBtn.disabled = false;
+      }
+    }
+
+    async function uploadDatabaseFile(file) {
+      dbLoadBtn.disabled = true;
+      dbStatusEl.className = "ok";
+      dbStatusEl.textContent = "Uploading database…";
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch(`${URL_PREFIX}/api/database/upload`, { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        updateDatabaseUi(data);
+        await refreshAfterDatabaseSwitch();
+      } catch (err) {
+        dbStatusEl.className = "";
+        dbStatusEl.textContent = err.message;
+      } finally {
+        dbLoadBtn.disabled = false;
+        dbFileInput.value = "";
+      }
+    }
+
+    async function importXml({ createDb = false } = {}) {
+      const path = xmlPathInput.value.trim();
+      if (!selectedXmlFile && !path) {
+        importStatusEl.className = "";
+        importStatusEl.textContent = "Enter an XML path or browse for a file.";
+        return;
+      }
+
+      xmlImportBtn.disabled = true;
+      xmlCreateImportBtn.disabled = true;
+      importStatusEl.className = "ok";
+      importStatusEl.textContent = createDb
+        ? "Creating database and importing XML…"
+        : "Importing XML into database…";
+
+      try {
+        let res;
+        if (selectedXmlFile) {
+          const formData = new FormData();
+          formData.append("file", selectedXmlFile);
+          if (createDb) formData.append("create_db", "1");
+          if (parseFromFilenameInput.checked) formData.append("parse_from_filename", "1");
+          res = await fetch(`${URL_PREFIX}/api/import-xml`, { method: "POST", body: formData });
+        } else {
+          res = await fetch(`${URL_PREFIX}/api/import-xml`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              path,
+              create_db: createDb,
+              parse_from_filename: parseFromFilenameInput.checked,
+            }),
+          });
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Import failed");
+
+        if (data.database) updateDatabaseUi(data.database);
+        playlistFilterActive = false;
+        importStatusEl.className = "ok";
+        const parseNote = data.parse_from_filename
+          ? " Titles parsed from file names (English-only file names skipped)."
+          : "";
+        importStatusEl.textContent = `Imported ${data.imported} tracks into the database. Skipped ${data.skipped}.${parseNote}`;
+        selectedIds = new Set();
+        updatePlaylistFilterUi(null);
+        renderUnmatchedList([]);
+        await loadTracks();
+      } catch (err) {
+        importStatusEl.className = "";
+        importStatusEl.textContent = err.message;
+      } finally {
+        xmlImportBtn.disabled = false;
+        xmlCreateImportBtn.disabled = false;
+        xmlFileInput.value = "";
+      }
+    }
+
+    async function importRekordboxDb({ createDb = false } = {}) {
+      const path = rbDbPathInput.value.trim();
+      if (!path) {
+        rbDbImportStatusEl.className = "";
+        rbDbImportStatusEl.textContent = "Enter a Rekordbox DB/PDB file path.";
+        return;
+      }
+
+      rbDbImportBtn.disabled = true;
+      rbDbCreateImportBtn.disabled = true;
+      rbDbImportStatusEl.className = "ok";
+      rbDbImportStatusEl.textContent = createDb
+        ? "Creating database and importing Rekordbox DB/PDB…"
+        : "Importing Rekordbox DB/PDB into database…";
+
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/import-rekordbox-db`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path, create_db: createDb }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Import failed");
+
+        if (data.database) updateDatabaseUi(data.database);
+        selectedIds = new Set();
+        playlistFilterActive = false;
+        updatePlaylistFilterUi(null);
+        renderUnmatchedList([]);
+        rbDbImportStatusEl.className = "ok";
+        rbDbImportStatusEl.textContent =
+          `Imported ${data.imported} track(s) from ${data.parser || "rekordbox"} file. Skipped ${data.skipped}.`;
+        importStatusEl.className = "ok";
+        importStatusEl.textContent = "Database populated from Rekordbox DB/PDB source.";
+        await loadTracks();
+      } catch (err) {
+        rbDbImportStatusEl.className = "";
+        rbDbImportStatusEl.textContent = err.message;
+      } finally {
+        rbDbImportBtn.disabled = false;
+        rbDbCreateImportBtn.disabled = false;
+      }
+    }
+
+    async function writeOneLibraryTitles(mode = "formatted", order = null) {
+      const ids = getActionIds();
+      if (!ids.length) {
+        onelibraryStatusEl.className = "";
+        onelibraryStatusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to write."
+          : "Select one or more tracks first.";
+        return;
+      }
+      const targetPath = onelibraryPathInput.value.trim();
+      if (!targetPath) {
+        onelibraryStatusEl.className = "";
+        onelibraryStatusEl.textContent = "Enter path to exportLibrary.db.";
+        return;
+      }
+
+      const writeOrder = mode === "formatted" ? (order || getWriteOrder()) : null;
+      if (mode === "formatted" && !writeOrder.length) {
+        onelibraryStatusEl.className = "";
+        onelibraryStatusEl.textContent = "Select at least one part in the write format.";
+        return;
+      }
+
+      const confirmed = await showConfirmDialog({
+        title: "Write parser titles to exportLibrary.db",
+        description: `Apply parsed titles to OneLibrary at ${targetPath}. This edits the SQLCipher DB used by newer Rekordbox devices.`,
+        changes: [{ label: "Target", before: "(current content titles)", after: targetPath }],
+      });
+      if (!confirmed) {
+        onelibraryStatusEl.className = "ok";
+        onelibraryStatusEl.textContent = "OneLibrary write cancelled.";
+        return;
+      }
+
+      writeOnelibraryBtn.disabled = true;
+      onelibraryStatusEl.className = "ok";
+      onelibraryStatusEl.textContent = "Writing titles to exportLibrary.db…";
+      try {
+        const body = {
+          ids,
+          mode,
+          order: writeOrder,
+          target_path: targetPath,
+          use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+        };
+        const res = await fetch(`${URL_PREFIX}/api/write-onelibrary-titles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Write failed");
+        onelibraryStatusEl.className = "ok";
+        onelibraryStatusEl.textContent = `OneLibrary updated: ${data.changed} changed, ${data.skipped} unchanged, ${data.failed} failed.`;
+      } catch (err) {
+        onelibraryStatusEl.className = "";
+        onelibraryStatusEl.textContent = err.message;
+      } finally {
+        writeOnelibraryBtn.disabled = false;
+      }
+    }
+
+    function cellInput(track, field, className = "") {
+      const value = track[field] ?? "";
+      return `<td class="${className}"><input class="cell-input" data-id="${track.id}" data-field="${field}" value="${escapeAttr(value)}"></td>`;
+    }
+
+    function updateSelectAllCheckbox() {
+      if (!tracks.length) {
+        selectAllInput.checked = false;
+        selectAllInput.indeterminate = false;
+        return;
+      }
+      const visibleIds = tracks.map(track => track.id);
+      const selectedVisible = visibleIds.filter(id => selectedIds.has(id));
+      selectAllInput.checked = selectedVisible.length === visibleIds.length;
+      selectAllInput.indeterminate = selectedVisible.length > 0 && selectedVisible.length < visibleIds.length;
+    }
+
+    function getSelectedIds() {
+      return [...selectedIds];
+    }
+
+    function getActionIds() {
+      const selected = getSelectedIds();
+      if (selected.length) return selected;
+      if (playlistFilterActive && tracks.length) return tracks.map(track => track.id);
+      return [];
+    }
+
+    function playlistSearchDefault(item) {
+      const loc = (item.location || "").trim();
+      if (loc) {
+        const name = loc.replace(/\\/g, "/").split("/").pop() || "";
+        if (name) return name.replace(/\.[^.]+$/, "");
+      }
+      return (item.track_title || "").trim();
+    }
+
+    function renderUnmatchedList(items) {
+      unmatchedPlaylistTracks = items || [];
+      if (!unmatchedPlaylistTracks.length) {
+        manualMatchSection.hidden = true;
+        unmatchedBody.innerHTML = "";
+        return;
+      }
+      manualMatchSection.hidden = false;
+      unmatchedBody.innerHTML = unmatchedPlaylistTracks.map(item => `
+        <tr>
+          <td>${escapeHtml(item.row_number || "")}</td>
+          <td>${escapeHtml(item.track_title || "")}</td>
+          <td>${escapeHtml(item.location || "")}</td>
+          <td><button type="button" class="secondary pick-btn" data-match-key="${escapeAttr(item.playlist_key || "")}">Find match…</button></td>
+        </tr>
+      `).join("");
+      unmatchedBody.querySelectorAll("button[data-match-key]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const key = btn.dataset.matchKey;
+          const item = unmatchedPlaylistTracks.find(row => row.playlist_key === key);
+          if (item) openMatchDialog(item);
+        });
+      });
+    }
+
+    async function loadUnmatchedList() {
+      if (!playlistFilterActive) {
+        renderUnmatchedList([]);
+        return;
+      }
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/playlist-filter/unmatched`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not load unmatched tracks");
+        renderUnmatchedList(data.unmatched || []);
+      } catch (err) {
+        manualMatchSection.hidden = true;
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    function closeMatchDialog() {
+      matchOverlay.hidden = true;
+      activeMatchPlaylistKey = "";
+      matchResultsBody.innerHTML = "";
+      matchSearchInput.value = "";
+      matchResultsEmpty.hidden = false;
+      matchResultsEmpty.textContent = "Type to search the full XML library.";
+    }
+
+    function openMatchDialog(item) {
+      activeMatchPlaylistKey = item.playlist_key || "";
+      matchPlaylistInfoEl.textContent =
+        `#${item.row_number || "?"} — ${item.track_title || "(no title)"}${item.location ? ` — ${item.location}` : ""}`;
+      matchOverlay.hidden = false;
+      const defaultQuery = playlistSearchDefault(item);
+      matchSearchInput.value = defaultQuery;
+      searchXmlForMatch(defaultQuery);
+      matchSearchInput.focus();
+      matchSearchInput.select();
+    }
+
+    async function searchXmlForMatch(query) {
+      const q = (query || "").trim();
+      if (!q) {
+        matchResultsBody.innerHTML = "";
+        matchResultsEmpty.hidden = false;
+        matchResultsEmpty.textContent = "Type to search the full XML library.";
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `${URL_PREFIX}/api/tracks?playlist_filter=0&limit=40&q=${encodeURIComponent(q)}`
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Search failed");
+
+        const results = data.tracks || [];
+        if (!results.length) {
+          matchResultsBody.innerHTML = "";
+          matchResultsEmpty.hidden = false;
+          matchResultsEmpty.textContent = "No XML tracks match this search.";
+          return;
+        }
+
+        matchResultsEmpty.hidden = true;
+        matchResultsBody.innerHTML = results.map(track => `
+          <tr data-id="${track.id}">
+            <td>${escapeHtml(track.xml_title || "")}</td>
+            <td>${escapeHtml(track.file_name || "")}</td>
+            <td>${escapeHtml(track.location || "")}</td>
+            <td><button type="button" class="pick-btn" data-pick-id="${track.id}">Match</button></td>
+          </tr>
+        `).join("");
+
+        matchResultsBody.querySelectorAll("button[data-pick-id]").forEach(btn => {
+          btn.addEventListener("click", e => {
+            e.stopPropagation();
+            confirmManualMatch(Number(btn.dataset.pickId));
+          });
+        });
+        matchResultsBody.querySelectorAll("tr[data-id]").forEach(row => {
+          row.addEventListener("click", () => confirmManualMatch(Number(row.dataset.id)));
+        });
+      } catch (err) {
+        matchResultsBody.innerHTML = "";
+        matchResultsEmpty.hidden = false;
+        matchResultsEmpty.textContent = err.message;
+      }
+    }
+
+    async function confirmManualMatch(trackId) {
+      if (!activeMatchPlaylistKey || !trackId) return;
+      matchCancelBtn.disabled = true;
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/playlist-filter/manual-match`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playlist_key: activeMatchPlaylistKey, track_id: trackId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not save match");
+
+        closeMatchDialog();
+        updatePlaylistFilterUi(data.playlist_filter || playlist_filter_status_from(data));
+        renderUnmatchedList(data.unmatched || []);
+        await loadTracks();
+      } catch (err) {
+        matchResultsEmpty.hidden = false;
+        matchResultsEmpty.textContent = err.message;
+      } finally {
+        matchCancelBtn.disabled = false;
+      }
+    }
+
+    function playlist_filter_status_from(data) {
+      return {
+        active: true,
+        matched_count: data.matched_count,
+        playlist_total: data.playlist_total,
+        source: data.source,
+        unmatched_count: data.unmatched_count,
+        manual_match_count: data.manual_match_count,
+      };
+    }
+
+    function updatePlaylistFilterUi(filter = null) {
+      filterPlaylistClearBtn.hidden = !playlistFilterActive;
+      if (!playlistFilterActive) {
+        filterPlaylistStatusEl.className = "ok";
+        filterPlaylistStatusEl.textContent = "Optional: narrow the database list to tracks that match a playlist.";
+        if (!filter) renderUnmatchedList([]);
+        return;
+      }
+      const info = filter || {};
+      const unmatchedCount = info.unmatched_count ?? Math.max(0, (info.playlist_total || 0) - (info.matched_count || 0));
+      const manualNote = info.manual_match_count
+        ? ` ${info.manual_match_count} manual match(es).`
+        : "";
+      const unmatched = unmatchedCount
+        ? ` ${unmatchedCount} still unmatched — use manual match below.`
+        : "";
+      filterPlaylistStatusEl.className = unmatchedCount ? "warn" : "ok";
+      filterPlaylistStatusEl.textContent =
+        `Playlist filter active: ${info.matched_count || 0} of ${info.playlist_total || 0} playlist tracks matched from ${info.source || "playlist"}.${manualNote}${unmatched}`;
+    }
+
+    async function applyPlaylistFilter() {
+      const path = filterPlaylistPathInput.value.trim();
+      if (!selectedFilterPlaylistFile && !path) {
+        filterPlaylistStatusEl.className = "warn";
+        filterPlaylistStatusEl.textContent = "Enter a playlist path or browse for a file.";
+        return;
+      }
+
+      filterPlaylistApplyBtn.disabled = true;
+      filterPlaylistStatusEl.className = "ok";
+      filterPlaylistStatusEl.textContent = "Matching playlist tracks to XML database…";
+
+      try {
+        let res;
+        if (selectedFilterPlaylistFile) {
+          const formData = new FormData();
+          formData.append("file", selectedFilterPlaylistFile);
+          res = await fetch(`${URL_PREFIX}/api/playlist-filter`, { method: "POST", body: formData });
+        } else {
+          res = await fetch(`${URL_PREFIX}/api/playlist-filter`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path }),
+          });
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Filter failed");
+
+        selectedIds = new Set();
+        playlistFilterActive = true;
+        const filterInfo = data.playlist_filter || playlist_filter_status_from(data);
+        const source = filterInfo.source || path || selectedFilterPlaylistFile?.name || "";
+        if (source) {
+          filterPlaylistPathInput.value = source;
+          localStorage.setItem(PLAYLIST_FILTER_PATH_KEY, source);
+        }
+        updatePlaylistFilterUi(filterInfo);
+        renderUnmatchedList(data.unmatched || []);
+        await loadTracks();
+      } catch (err) {
+        filterPlaylistStatusEl.className = "warn";
+        filterPlaylistStatusEl.textContent = err.message;
+      } finally {
+        filterPlaylistApplyBtn.disabled = false;
+        filterPlaylistFileInput.value = "";
+      }
+    }
+
+    async function clearPlaylistFilter() {
+      filterPlaylistClearBtn.disabled = true;
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/playlist-filter`, { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not clear filter");
+        selectedIds = new Set();
+        playlistFilterActive = false;
+        localStorage.removeItem(PLAYLIST_FILTER_PATH_KEY);
+        updatePlaylistFilterUi(null);
+        renderUnmatchedList([]);
+        await loadTracks();
+      } catch (err) {
+        filterPlaylistStatusEl.className = "warn";
+        filterPlaylistStatusEl.textContent = err.message;
+      } finally {
+        filterPlaylistClearBtn.disabled = false;
+      }
+    }
+
+    async function saveTrackField(trackId, field, value, inputEl) {
+      inputEl.classList.add("saving");
+      inputEl.classList.remove("saved", "error");
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/tracks/${trackId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [field]: value }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Save failed");
+
+        const idx = tracks.findIndex(track => track.id === trackId);
+        if (idx >= 0) tracks[idx] = data.track;
+        inputEl.classList.add("saved");
+        if (["english_name", "hebrew_name", "remixer", "artist"].includes(field)) {
+          refreshTrackReparsedCells();
+        }
+      } catch (err) {
+        inputEl.classList.add("error");
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      } finally {
+        inputEl.classList.remove("saving");
+      }
+    }
+
+    function bindEditableInputs() {
+      body.querySelectorAll(".cell-input").forEach(input => {
+        input.addEventListener("keydown", e => {
+          if (e.key === "Enter") input.blur();
+        });
+        input.addEventListener("blur", () => {
+          const trackId = Number(input.dataset.id);
+          const field = input.dataset.field;
+          const track = tracks.find(item => item.id === trackId);
+          const previous = track ? (track[field] ?? "") : input.defaultValue;
+          if (input.value !== previous) {
+            saveTrackField(trackId, field, input.value, input);
+          }
+        });
+      });
+
+      body.querySelectorAll("td.select-col input").forEach(input => {
+        input.addEventListener("change", () => {
+          const id = Number(input.dataset.id);
+          if (input.checked) selectedIds.add(id);
+          else selectedIds.delete(id);
+          updateSelectAllCheckbox();
+        });
+      });
+    }
+
+    function closeConfirmDialog(confirmed) {
+      confirmOverlay.hidden = true;
+      confirmBody.innerHTML = "";
+      const resolve = confirmResolve;
+      confirmResolve = null;
+      if (resolve) resolve(Boolean(confirmed));
+    }
+
+    function showConfirmDialog({ title, description, changes }) {
+      return new Promise(resolve => {
+        if (!changes.length) {
+          resolve(false);
+          return;
+        }
+        confirmTitleEl.textContent = title;
+        confirmDescriptionEl.textContent = description;
+        confirmBody.innerHTML = changes.map(change => `
+          <tr>
+            <td>${escapeHtml(change.label)}</td>
+            <td>${escapeHtml(change.before)}</td>
+            <td>${escapeHtml(change.after)}</td>
+          </tr>
+        `).join("");
+        confirmResolve = resolve;
+        confirmOverlay.hidden = false;
+      });
+    }
+
+    async function exportXml(mode) {
+      const ids = getActionIds();
+      if (!ids.length) {
+        statusEl.className = "";
+        statusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to export."
+          : "Select one or more tracks first.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/export-xml`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids, mode, use_playlist_filter: playlistFilterActive && !getSelectedIds().length }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Export failed");
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `rekordbox_${mode}_titles.xml`;
+        link.click();
+        URL.revokeObjectURL(url);
+        statusEl.className = "ok";
+        statusEl.textContent = `Exported XML with ${mode} titles for ${ids.length} track(s).`;
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    async function exportSiteFormat(kind) {
+      const ids = getActionIds();
+      if (!ids.length) {
+        statusEl.className = "";
+        statusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to export."
+          : "Select one or more tracks first.";
+        return;
+      }
+
+      const endpoint = kind === "bundle" ? "export-site-tracks-bundle" : "export-site-tracks-json";
+      const filename = kind === "bundle" ? "tracks_export_bundle.zip" : "tracks_export.json";
+      const label = kind === "bundle" ? "ZIP bundle" : "JSON";
+      try {
+        const res = await fetch(`${URL_PREFIX}/api/${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids, use_playlist_filter: playlistFilterActive && !getSelectedIds().length }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || `Export ${label} failed`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        const missingCount = Number(res.headers.get("X-Missing-Audio-Files") || "0");
+        statusEl.className = "ok";
+        statusEl.textContent = missingCount
+          ? `Exported ${label} for ${ids.length} track(s). ${missingCount} file(s) were missing on disk and skipped in ZIP.`
+          : `Exported ${label} for ${ids.length} track(s).`;
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    async function writeFileTitles(mode, order = null) {
+      const ids = getActionIds();
+      if (!ids.length) {
+        statusEl.className = "";
+        statusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to update."
+          : "Select one or more tracks first.";
+        return;
+      }
+
+      const writeOrder = mode === "formatted" ? (order || getWriteOrder()) : null;
+      if (mode === "formatted" && !writeOrder.length) {
+        statusEl.className = "";
+        statusEl.textContent = "Select at least one part in the write format.";
+        return;
+      }
+
+      const modeLabel = mode === "xml"
+        ? "original XML title"
+        : mode === "formatted"
+        ? formatOrderLabel(writeOrder)
+        : `${mode} only (no remixer)`;
+
+      try {
+        const previewBody = {
+          ids,
+          mode,
+          use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+        };
+        if (mode === "formatted") previewBody.order = writeOrder;
+
+        const previewRes = await fetch(`${URL_PREFIX}/api/write-file-titles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(previewBody),
+        });
+        const previewData = await previewRes.json();
+        if (!previewRes.ok) throw new Error(previewData.error || "Preview failed");
+
+        const changes = (previewData.results || [])
+          .filter(item => item.would_change)
+          .map(item => ({
+            label: item.path.split("/").pop() || item.path,
+            before: item.old_title || "(empty)",
+            after: item.new_title || "(empty)",
+          }));
+
+        if (!changes.length) {
+          statusEl.className = "ok";
+          statusEl.textContent = previewData.failed
+            ? (previewData.results.find(item => item.error)?.error || "No changes to apply.")
+            : "No changes to apply for the selected tracks.";
+          return;
+        }
+
+        const confirmed = await showConfirmDialog({
+          title: mode === "xml" ? "Revert file titles to XML" : "Write file title tags",
+          description: mode === "xml"
+            ? `${changes.length} file(s) will be restored to the title stored from the XML import.`
+            : `${changes.length} file(s) will be updated using format: ${modeLabel}.`,
+          changes,
+        });
+        if (!confirmed) {
+          statusEl.className = "ok";
+          statusEl.textContent = "Write cancelled.";
+          return;
+        }
+
+        const writeBody = { ...previewBody, confirm: true };
+        const writeRes = await fetch(`${URL_PREFIX}/api/write-file-titles`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(writeBody),
+        });
+        const writeData = await writeRes.json();
+        if (!writeRes.ok) throw new Error(writeData.error || "Write failed");
+
+        statusEl.className = "ok";
+        statusEl.textContent = `Updated ${writeData.changed} file(s). ${writeData.failed} failed. ${writeData.skipped} unchanged.`;
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    async function fillEnglishNames() {
+      const ids = getActionIds();
+      if (!ids.length) {
+        statusEl.className = "";
+        statusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to update."
+          : "Select one or more tracks first.";
+        return;
+      }
+
+      try {
+        const previewRes = await fetch(`${URL_PREFIX}/api/fill-english-names`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids,
+            use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+          }),
+        });
+        const previewData = await previewRes.json();
+        if (!previewRes.ok) throw new Error(previewData.error || "Preview failed");
+
+        const changes = (previewData.results || [])
+          .filter(item => item.would_change)
+          .map(item => ({
+            label: item.hebrew_name || `Track ${item.id}`,
+            before: item.old_english || "(empty)",
+            after: item.new_english || "(empty)",
+          }));
+
+        if (!changes.length) {
+          statusEl.className = "ok";
+          const skipped = previewData.skipped || 0;
+          statusEl.textContent = skipped
+            ? `No changes — ${skipped} track(s) already have English names.`
+            : "No missing English names to fill for the selected tracks.";
+          return;
+        }
+
+        const confirmed = await showConfirmDialog({
+          title: "Fill English names from Hebrew",
+          description: `${changes.length} database row(s) will get a transliterated English name (curated map + phonetic fallback).`,
+          changes,
+        });
+        if (!confirmed) {
+          statusEl.className = "ok";
+          statusEl.textContent = "Fill English cancelled.";
+          return;
+        }
+
+        const writeRes = await fetch(`${URL_PREFIX}/api/fill-english-names`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids,
+            confirm: true,
+            use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+          }),
+        });
+        const writeData = await writeRes.json();
+        if (!writeRes.ok) throw new Error(writeData.error || "Update failed");
+
+        statusEl.className = "ok";
+        statusEl.textContent = `Filled ${writeData.changed} English name(s). ${writeData.skipped} skipped (already had English). ${writeData.failed} failed.`;
+        await loadTracks();
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    async function fillArtistEnglish() {
+      const ids = getActionIds();
+      if (!ids.length) {
+        statusEl.className = "";
+        statusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to update."
+          : "Select one or more tracks first.";
+        return;
+      }
+
+      try {
+        const previewRes = await fetch(`${URL_PREFIX}/api/fill-artist-english`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids,
+            use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+          }),
+        });
+        const previewData = await previewRes.json();
+        if (!previewRes.ok) throw new Error(previewData.error || "Preview failed");
+
+        const changes = (previewData.results || [])
+          .filter(item => item.would_change)
+          .map(item => ({
+            label: item.old_artist || `Track ${item.id}`,
+            before: item.old_artist || "(empty)",
+            after: item.new_artist || "(empty)",
+          }));
+
+        if (!changes.length) {
+          statusEl.className = "ok";
+          const skipped = previewData.skipped || 0;
+          statusEl.textContent = skipped
+            ? `No changes — ${skipped} track(s) already have an English artist or no Hebrew artist to translate.`
+            : "No Hebrew artist names to translate for the selected tracks.";
+          return;
+        }
+
+        const confirmed = await showConfirmDialog({
+          title: "Translate artist to English",
+          description: `${changes.length} artist field(s) will be transliterated using the same dictionary as Fill from Hebrew.`,
+          changes,
+        });
+        if (!confirmed) {
+          statusEl.className = "ok";
+          statusEl.textContent = "Translate artist cancelled.";
+          return;
+        }
+
+        const writeRes = await fetch(`${URL_PREFIX}/api/fill-artist-english`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids,
+            confirm: true,
+            use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+          }),
+        });
+        const writeData = await writeRes.json();
+        if (!writeRes.ok) throw new Error(writeData.error || "Update failed");
+
+        statusEl.className = "ok";
+        statusEl.textContent = `Translated ${writeData.changed} artist(s). ${writeData.skipped} skipped. ${writeData.failed} failed.`;
+        await loadTracks();
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    async function addArtistToEnglish() {
+      const ids = getActionIds();
+      if (!ids.length) {
+        statusEl.className = "";
+        statusEl.textContent = playlistFilterActive
+          ? "No filtered tracks to update."
+          : "Select one or more tracks first.";
+        return;
+      }
+
+      try {
+        const previewRes = await fetch(`${URL_PREFIX}/api/add-artist-to-english`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids,
+            use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+          }),
+        });
+        const previewData = await previewRes.json();
+        if (!previewRes.ok) throw new Error(previewData.error || "Preview failed");
+
+        const changes = (previewData.results || [])
+          .filter(item => item.would_change)
+          .map(item => ({
+            label: item.artist || `Track ${item.id}`,
+            before: item.old_english || "(empty)",
+            after: item.new_english || "(empty)",
+          }));
+
+        if (!changes.length) {
+          statusEl.className = "ok";
+          const skipped = previewData.skipped || 0;
+          statusEl.textContent = skipped
+            ? `No changes — ${skipped} track(s) already include the artist in the title or have no artist set.`
+            : "No tracks need the artist added to the English name.";
+          return;
+        }
+
+        const confirmed = await showConfirmDialog({
+          title: "Add artist to English name",
+          description: `${changes.length} track(s) will get the XML artist prepended to the English name (Artist - …).`,
+          changes,
+        });
+        if (!confirmed) {
+          statusEl.className = "ok";
+          statusEl.textContent = "Add artist cancelled.";
+          return;
+        }
+
+        const writeRes = await fetch(`${URL_PREFIX}/api/add-artist-to-english`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ids,
+            confirm: true,
+            use_playlist_filter: playlistFilterActive && !getSelectedIds().length,
+          }),
+        });
+        const writeData = await writeRes.json();
+        if (!writeRes.ok) throw new Error(writeData.error || "Update failed");
+
+        statusEl.className = "ok";
+        statusEl.textContent = `Added artist to ${writeData.changed} English name(s). ${writeData.skipped} skipped. ${writeData.failed} failed.`;
+        await loadTracks();
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      }
+    }
+
+    async function exportUnknownHebrew() {
+      const ids = getSelectedIds();
+      const body = {
+        download: true,
+        use_playlist_filter: playlistFilterActive && !ids.length,
+      };
+      if (ids.length) body.ids = ids;
+
+      try {
+        exportUnknownHebrewBtn.disabled = true;
+        statusEl.className = "ok";
+        statusEl.textContent = ids.length
+          ? `Exporting missing Hebrew words from ${ids.length} selected track(s)…`
+          : (playlistFilterActive
+            ? "Exporting missing Hebrew words from playlist-filtered tracks…"
+            : "Exporting missing Hebrew words from entire database…");
+
+        const res = await fetch(`${URL_PREFIX}/api/unknown-hebrew`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Export failed");
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "unknown_hebrew_for_gemini.txt";
+        link.click();
+        URL.revokeObjectURL(url);
+
+        statusEl.className = "ok";
+        statusEl.textContent = "Downloaded unknown_hebrew_for_gemini.txt — paste into Gemini, then merge JSON into transliteration_map.json.";
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+      } finally {
+        exportUnknownHebrewBtn.disabled = false;
+      }
+    }
+
+    async function loadTracks() {
+      const q = searchInput.value.trim();
+      const filterParam = playlistFilterActive ? "1" : "0";
+      const artistMissingParam = artistMissingFilter.checked ? "1" : "0";
+      try {
+        const res = await fetch(
+          `${URL_PREFIX}/api/tracks?limit=50000&playlist_filter=${filterParam}&artist_missing=${artistMissingParam}&q=${encodeURIComponent(q)}`
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Load failed");
+
+        tracks = data.tracks || [];
+        const libraryTotal = data.stats?.total ?? 0;
+        if (!tracks.length) {
+          showEmptyTrackList(
+            libraryTotal
+              ? (playlistFilterActive
+                ? "No database tracks match the playlist filter."
+                : "No tracks match your search.")
+              : "Database is empty — import XML to populate the list below."
+          );
+          return;
+        }
+
+        table.hidden = false;
+        empty.hidden = true;
+        body.innerHTML = tracks.map(track => `
+          <tr class="${track.artist_missing_in_title ? "artist-missing" : ""}">
+            <td class="select-col"><input type="checkbox" data-id="${track.id}" ${selectedIds.has(track.id) ? "checked" : ""}></td>
+            <td>${escapeHtml(track.id)}</td>
+            ${cellInput(track, "xml_title")}
+            ${cellInput(track, "file_name")}
+            ${cellInput(track, "artist", "artist")}
+            ${cellInput(track, "english_name", "english")}
+            ${cellInput(track, "hebrew_name", "hebrew")}
+            ${cellInput(track, "remixer", "remixer")}
+            <td class="reparsed" data-reparsed-id="${track.id}">${escapeHtml(formatReparsedName(track) || "—")}</td>
+            ${cellInput(track, "location")}
+          </tr>
+        `).join("");
+
+        bindEditableInputs();
+        updateSelectAllCheckbox();
+
+        const sourceXml = data.stats?.source_xml
+          ? ` Last XML import: ${data.stats.source_xml}.`
+          : "";
+        const dbPath = dbPathInput.value.trim();
+        const dbNote = dbPath ? ` Database: ${dbPath}.` : "";
+        const filterNote = playlistFilterActive && libraryTotal
+          ? ` Playlist filter active (${libraryTotal} tracks in full database).`
+          : "";
+        const artistNote = artistMissingFilter.checked ? " Showing tracks where artist is set but missing from the XML title." : "";
+        const truncated = data.total > tracks.length ? ` (${data.total - tracks.length} not loaded — use search to narrow)` : "";
+        statusEl.className = "ok";
+        statusEl.textContent = `Showing ${tracks.length} of ${data.total} tracks from the database.${dbNote}${filterNote}${artistNote}${truncated}${sourceXml}`;
+      } catch (err) {
+        statusEl.className = "";
+        statusEl.textContent = err.message;
+        table.hidden = true;
+        empty.hidden = false;
+        empty.textContent = err.message;
+      }
+    }
+
+    demoParseBtn.addEventListener("click", parseDemoTitle);
+    demoClearBtn.addEventListener("click", clearDemo);
+    [reparseOrder1, reparseOrder2, reparseOrder3].forEach(select => {
+      select.addEventListener("change", () => {
+        saveReparseOrder();
+        refreshReparsedDisplays();
+      });
+    });
+    loadReparseOrder();
+    loadWriteOrder();
+    loadParseFromFilename();
+    parseFromFilenameInput.addEventListener("change", saveParseFromFilename);
+    [writeOrder1, writeOrder2, writeOrder3].forEach(select => {
+      select.addEventListener("change", saveWriteOrder);
+    });
+    demoTitleInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") parseDemoTitle();
+    });
+
+    demoPlaylistParseBtn.addEventListener("click", parseDemoPlaylist);
+    demoPlaylistBrowseBtn.addEventListener("click", () => demoPlaylistFileInput.click());
+    demoPlaylistFileInput.addEventListener("change", () => {
+      const file = demoPlaylistFileInput.files?.[0];
+      if (!file) return;
+      selectedPlaylistFile = file;
+      demoPlaylistPathInput.value = file.name;
+    });
+    demoPlaylistPathInput.addEventListener("input", () => {
+      selectedPlaylistFile = null;
+    });
+    demoPlaylistPathInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") parseDemoPlaylist();
+    });
+
+    filterPlaylistApplyBtn.addEventListener("click", applyPlaylistFilter);
+    filterPlaylistBrowseBtn.addEventListener("click", () => filterPlaylistFileInput.click());
+    filterPlaylistFileInput.addEventListener("change", () => {
+      const file = filterPlaylistFileInput.files?.[0];
+      if (!file) return;
+      selectedFilterPlaylistFile = file;
+      filterPlaylistPathInput.value = file.name;
+    });
+    filterPlaylistPathInput.addEventListener("input", () => {
+      selectedFilterPlaylistFile = null;
+    });
+    filterPlaylistPathInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") applyPlaylistFilter();
+    });
+    filterPlaylistClearBtn.addEventListener("click", clearPlaylistFilter);
+
+    dbLoadBtn.addEventListener("click", loadDatabase);
+    dbCreateBtn.addEventListener("click", createDatabase);
+    dbBrowseBtn.addEventListener("click", () => dbFileInput.click());
+    dbFileInput.addEventListener("change", () => {
+      const file = dbFileInput.files?.[0];
+      if (!file) return;
+      dbPathInput.value = file.name;
+      uploadDatabaseFile(file);
+    });
+    dbPathInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") loadDatabase();
+    });
+
+    matchCancelBtn.addEventListener("click", closeMatchDialog);
+    matchOverlay.addEventListener("click", e => {
+      if (e.target === matchOverlay) closeMatchDialog();
+    });
+    matchSearchInput.addEventListener("input", () => {
+      clearTimeout(matchSearchTimer);
+      matchSearchTimer = setTimeout(() => searchXmlForMatch(matchSearchInput.value), 250);
+    });
+    matchSearchInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        clearTimeout(matchSearchTimer);
+        searchXmlForMatch(matchSearchInput.value);
+      }
+      if (e.key === "Escape") closeMatchDialog();
+    });
+
+    xmlImportBtn.addEventListener("click", () => importXml({ createDb: false }));
+    xmlCreateImportBtn.addEventListener("click", () => importXml({ createDb: true }));
+    rbDbImportBtn.addEventListener("click", () => importRekordboxDb({ createDb: false }));
+    rbDbCreateImportBtn.addEventListener("click", () => importRekordboxDb({ createDb: true }));
+    writeOnelibraryBtn.addEventListener("click", () => writeOneLibraryTitles("formatted"));
+    xmlBrowseBtn.addEventListener("click", () => xmlFileInput.click());
+    xmlFileInput.addEventListener("change", () => {
+      const file = xmlFileInput.files?.[0];
+      if (!file) return;
+      selectedXmlFile = file;
+      xmlPathInput.value = file.name;
+    });
+    xmlPathInput.addEventListener("input", () => {
+      selectedXmlFile = null;
+    });
+    xmlPathInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") importXml({ createDb: false });
+    });
+    rbDbPathInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") importRekordboxDb({ createDb: false });
+    });
+    onelibraryPathInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") writeOneLibraryTitles("formatted");
+    });
+
+    refreshBtn.addEventListener("click", loadTracks);
+    artistMissingFilter.addEventListener("change", loadTracks);
+    searchInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") loadTracks();
+    });
+
+    selectAllInput.addEventListener("change", () => {
+      tracks.forEach(track => {
+        if (selectAllInput.checked) selectedIds.add(track.id);
+        else selectedIds.delete(track.id);
+      });
+      loadTracks();
+    });
+
+    exportXmlHebrewBtn.addEventListener("click", () => exportXml("hebrew"));
+    exportXmlEnglishBtn.addEventListener("click", () => exportXml("english"));
+    exportSiteJsonBtn.addEventListener("click", () => exportSiteFormat("json"));
+    exportSiteBundleBtn.addEventListener("click", () => exportSiteFormat("bundle"));
+    writeFormattedBtn.addEventListener("click", () => writeFileTitles("formatted"));
+    writeHebrewBtn.addEventListener("click", () => writeFileTitles("hebrew"));
+    writeEnglishBtn.addEventListener("click", () => writeFileTitles("english"));
+    writeMergedBtn.addEventListener("click", () => writeFileTitles("merged"));
+    writeXmlBtn.addEventListener("click", () => writeFileTitles("xml"));
+    fillEnglishBtn.addEventListener("click", fillEnglishNames);
+    fillArtistEnglishBtn.addEventListener("click", fillArtistEnglish);
+    exportUnknownHebrewBtn.addEventListener("click", exportUnknownHebrew);
+    addArtistBtn.addEventListener("click", addArtistToEnglish);
+
+    confirmCancelBtn.addEventListener("click", () => closeConfirmDialog(false));
+    confirmApplyBtn.addEventListener("click", () => closeConfirmDialog(true));
+    confirmOverlay.addEventListener("click", e => {
+      if (e.target === confirmOverlay) closeConfirmDialog(false);
+    });
+
+    loadDatabaseInfo();
+  </script>
+</body>
+</html>
