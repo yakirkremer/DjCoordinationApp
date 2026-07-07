@@ -81,7 +81,7 @@ export function createCatalogExportApiMiddleware() {
           "Content-Disposition",
           `attachment; filename="catalog-export-${new Date().toISOString().slice(0, 10)}.zip"`
         );
-        const archive = archiver("zip", { zlib: { level: 6 } });
+        const archive = new archiver.ZipArchive({ zlib: { level: 6 } });
         archive.on("error", (err) => {
           if (!res.writableEnded) {
             res.statusCode = 500;
